@@ -1,0 +1,5 @@
+[
+ {"problemId":"sequence-v1","prompt":"수열 2, 5, 11, 23 다음 숫자는? 규칙은 같은 계산을 반복해.","format":{"type":"integer"},"answer":"47","hints":[{"id":"sequence-h1","text":"앞의 수에 2를 곱하고 1을 더해 봐."}]},
+ {"problemId":"boxes-v1","prompt":"상자 A와 B 중 보물이 하나 있어. A의 문구는 ‘보물은 B에 있다’, B의 문구는 ‘A에는 보물이 없다’. 문구가 둘 다 거짓이면 보물은 어디에 있을까? A 또는 B로 답해.","format":{"type":"choice","choices":["A","B"]},"answer":"A","hints":[{"id":"boxes-h1","text":"두 문구는 같은 뜻이야. 둘 다 거짓인 경우를 찾아 봐."}]},
+ {"problemId":"sum-v1","prompt":"서로 다른 양의 정수 두 개의 합이 9, 곱이 20이야. 작은 수,큰 수 형식으로 답해.","format":{"type":"pair"},"answer":"4,5","hints":[{"id":"sum-h1","text":"20의 약수 쌍 중 합이 9인 쌍을 찾아 봐."}]}
+]

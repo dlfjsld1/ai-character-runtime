@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.pnpm-store/
+.env
+.env.*.local
+runtime-data/
+validation/runs/
+*.log
+*.tsbuildinfo
+.venv*/
+__pycache__/
