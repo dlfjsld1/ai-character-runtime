@@ -193,3 +193,15 @@ apps/studio/src/wire.ts는 재접속 타이머를 보관하고 close에서 취�
 직접 계약은 RUNTIME_PROTOCOL.md에 반영했다. 기존 Store·adapter·Coordinator/server 소스의 유효한 검증 근거는 앞선 절을 유지한다. 이번 수정은 기존 6건과 A01을 보존한다. 기존 테스트 증거를 재사용했으며 전체 새 감사가 완료됐다고 주장하지 않는다.
 
 사용자 승인에 따라 지금까지의 수정 전체를 커밋/푸시한 뒤 실제 API 검증을 진행한다. 키와 runtime-data/validation/runs는 Git 무시 경로를 유지한다. 정상 실행 flags는 그대로 두고 승인된 검증 프로세스만 LOCAL_ONLY=false/ALLOW_PAID_PROVIDERS=true로 실행한다. dev 24건 결과를 먼저 확인하고 mapping/rubric을 고정한 상태에서 final 24건 및 실제 Qwen/Stage 두 만남을 진행하며, 공급자 오류 시 중단한다. 실제 사용 결과는 아래 후속 절에 기록한다.
+
+코드·검사·문서 16개 파일은 **3b4eac46c14cc407f4cbb1bc6696bba1270f1e05**로 커밋했고 GitHub origin/main의 같은 SHA를 확인했다. staged 자격증명 패턴 검사 0건, 키·검증 자료의 Git 제외 확인을 완료했다.
+
+실제 dev 실행을 시도했으나 approvedSyntheticJev 사전 검사에서 **jev_key_missing**으로 종료됐다. Node의 실제 env parser로 현재 runtime-data/jev.env의 TYPESAFE_API_KEY 할당이 빈 값인 것을 확인했으며 키 값은 출력하지 않았다. **API 요청 0회, 추정 사용 비용 USD 0**이다. 합성 fixture 48건 구조 PASS, 기존 character_runtime_validation DB의 migration 3·캐릭터 1개도 확인했다. 실제 dev/final 품질과 Jev→Qwen→Stage 두 만남은 아직 NOT RUN이다. 사용자에게 키 파일 입력을 요청한 상태이며, 입력되면 이미 승인된 총 USD 1 범위에서 이어서 실행한다. 추가 예산·합성 전송 승인을 다시 요구하지 않는다.
+
+### 키 저장 후 실제 Jev 실행 — 2026-10-05
+
+사용자가 키 입력·저장 완료를 알린 뒤 같은 승인 범위로 dev 평가를 실행했다. 명령은 검증 프로세스에만 LOCAL_ONLY=false/ALLOW_PAID_PROVIDERS=true를 설정한 `node --experimental-transform-types evals/jev-quality.ts --synthetic-inputs --allow-jev-api --max-cost-usd 1 --split dev`다. 첫 합성 입력 greeting-1에서 **jev_invalid_output**, CLI exit 1로 중단했다. 이는 HTTP 성공 이후 JSON 해석 또는 엄격한 응답 검증에서 발생하는 오류다. 인증 실패 코드가 아니지만 실제 응답 본문을 보존하지 않아 어떤 검사에서 실패했는지는 확정할 수 없다. 공식 API 문서 https://docs.typesafe.ai/api 의 Choice/Score/usage 구조와 현재 계약을 비교했으며, 문서만으로 특정 필드 불일치를 입증하지 못했다.
+
+증거는 Git 제외 경로 validation/runs/jev-dev-2026-10-05T09-17-02-138Z/{manifest,results}.json이다. **API 호출 시도 1회, 정상 평가 0건**이며 dev의 나머지 23건, final 24건, 실제 Jev→Qwen→Stage 2건은 **NOT RUN**이다. 공급자 오류 시 재시도 없이 중단한다는 승인 조건을 지켰다. results.json의 inputTokens=0/estimatedCostUsd=0은 검증된 usage를 누적하지 못한 값이며 실제 무과금의 증거가 아니다. **실제 사용량·청구 비용은 UNKNOWN**이다. 키는 출력하거나 Git에 포함하지 않았다.
+
+기존 A02 및 브라우저 fixture PASS는 유지하지만 실제 Jev 한국어 품질과 Jev→Qwen→Stage 성공을 뜻하지 않는다. 다음 작업은 비밀을 제외한 응답 구조·검증 실패 위치를 수집해 원인을 특정하고, 그 응답의 오프라인 회귀 검사로 필요한 최소 수정을 입증하는 것이다. 이번 3차 수정/재감사 루프를 자동 확장하거나 실패한 유료 호출을 다시 실행하지 않았다. 이후 실행은 누적 USD 1 예산과 실패한 첫 요청의 미확인 비용을 함께 고려해야 한다.
