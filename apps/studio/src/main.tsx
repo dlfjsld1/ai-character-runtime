@@ -36,17 +36,22 @@ function Studio({onError,error}:{onError:(s:string)=>void;error:string}) {
 }
 function Stage({onError,error}:{onError:(s:string)=>void;error:string}) {
   const[caption,setCaption]=useState(''),[status,setStatus]=useState('연결 중'),[expression,setExpression]=useState('neutral');
-  const wire=useRef<Wire|null>(null),epoch=useRef('0'),generation=useRef('0'),owner=useRef(false),cancelled=useRef(new Set<string>()),queue=useRef<any[]>([]),running=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
-  function clear(){owner.current=false;queue.current=[];if(timer.current)clearTimeout(timer.current);timer.current=null;running.current=false;setCaption('');}
+  const wire=useRef<Wire|null>(null),epoch=useRef('0'),generation=useRef('0'),owner=useRef(false),cancelled=useRef(new Set<string>()),queue=useRef<any[]>([]),running=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null),playbackVersion=useRef(0),activeSegment=useRef<any>(null);
+  function stopPlayback(){playbackVersion.current++;if(timer.current)clearTimeout(timer.current);timer.current=null;running.current=false;activeSegment.current=null;setCaption('');}
+  function clear(){owner.current=false;queue.current=[];stopPlayback();}
+  function syncGeneration(value:string){if(BigInt(value)<=BigInt(generation.current))return;generation.current=value;queue.current=queue.current.filter(s=>BigInt(s.generationEpoch)>=BigInt(value));if(activeSegment.current&&BigInt(activeSegment.current.generationEpoch)<BigInt(value))stopPlayback();void renderNext();}
   async function renderNext(){if(running.current||!owner.current)return;const segment=queue.current.shift();if(!segment)return;if(cancelled.current.has(segment.responseId)||segment.outputEpoch!==epoch.current||segment.generationEpoch!==generation.current)return void renderNext();running.current=true;setCaption(segment.text);
-    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));if(!owner.current||cancelled.current.has(segment.responseId)){running.current=false;return;}
-    const report={responseId:segment.responseId,segmentId:segment.segmentId,generationEpoch:segment.generationEpoch,outputEpoch:segment.outputEpoch};wire.current?.send('caption.shown',report,crypto.randomUUID());const duration=Math.max(2000,Math.min(8000,[...segment.text].length/15*1000));timer.current=setTimeout(()=>{if(owner.current&&!cancelled.current.has(segment.responseId)){wire.current?.send('caption.finished',report,crypto.randomUUID());setCaption('');}running.current=false;void renderNext();},duration);
+    activeSegment.current=segment;const version=++playbackVersion.current;
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));if(version!==playbackVersion.current)return;
+    if(!owner.current||cancelled.current.has(segment.responseId)||segment.outputEpoch!==epoch.current||segment.generationEpoch!==generation.current){stopPlayback();void renderNext();return;}
+    const report={responseId:segment.responseId,segmentId:segment.segmentId,generationEpoch:segment.generationEpoch,outputEpoch:segment.outputEpoch};wire.current?.send('caption.shown',report,crypto.randomUUID());const duration=Math.max(2000,Math.min(8000,[...segment.text].length/15*1000));timer.current=setTimeout(()=>{if(version!==playbackVersion.current)return;if(owner.current&&!cancelled.current.has(segment.responseId))wire.current?.send('caption.finished',report,crypto.randomUUID());stopPlayback();void renderNext();},duration);
   }
   useEffect(()=>{const channel=new Wire(packet=>{const p=packet.payload;if(packet.type==='connection.welcome'){clear();channel.subscribe(p.activeSessionId);if(p.activeSessionId)channel.send('stage.ready',{audioUnlocked:false,avatarReady:false,supportsExpressions:['neutral','listening','happy','embarrassed','uncomfortable']});}
     if(packet.type==='expression.set')setExpression(p.expression);
+    if(packet.type==='session.snapshot')syncGeneration(p.generationEpoch);
     if(packet.type==='output.granted'){clear();owner.current=true;epoch.current=p.outputEpoch;generation.current=p.generationEpoch;setStatus('자막 출력 중');}
     if(packet.type==='speech.segment'&&owner.current&&!cancelled.current.has(p.responseId)){queue.current.push(p);void renderNext();}
-    if(packet.type==='response.cancel'){cancelled.current.add(p.responseId);queue.current=queue.current.filter(s=>s.responseId!==p.responseId);if(timer.current)clearTimeout(timer.current);running.current=false;setCaption('');if(p.newGenerationEpoch)generation.current=p.newGenerationEpoch;}
+    if(packet.type==='response.cancel'){cancelled.current.add(p.responseId);queue.current=queue.current.filter(s=>s.responseId!==p.responseId);if(activeSegment.current?.responseId===p.responseId)stopPlayback();if(p.newGenerationEpoch)syncGeneration(p.newGenerationEpoch);void renderNext();}
     if(packet.type==='output.revoke'){clear();channel.send('output.released',{outputEpoch:p.outputEpoch,stopRequestId:p.stopRequestId},crypto.randomUUID());setStatus('출력 해제됨');}
     if(['connection.lost','session.ended'].includes(packet.type)){clear();setStatus('출력 대기');}
     if(packet.type==='command.result'&&p.status==='rejected')onError(p.error.code);

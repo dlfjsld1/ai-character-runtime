@@ -24,13 +24,15 @@ export class Coordinator {
   private queue:Promise<unknown>=Promise.resolve();
   private timer:ReturnType<typeof setInterval>|null=null;
   private dispatching=0;
+  private ticking=0;
   constructor(public store:Store,public provider:Provider,public sink:Sink,public appraiser:AppraisalProvider){}
   start(){this.timer=setInterval(()=>{void this.tick().catch(()=>this.sink.failure('db_unavailable'));},1000);}
-  async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);while(this.draining||this.solving||this.dispatching||this.taskRunning)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
+  async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
   control<T>(fn:()=>Promise<T>):Promise<T>{const result=this.queue.then(fn,fn);this.queue=result.catch(()=>{});return result;}
   async tick(){if(this.stopped||!this.store.db.healthy)return;
+    this.ticking++;try{
     if(!this.taskRunning){this.taskRunning=true;try{const task=await this.store.claimTask();if(task){const renewal=setInterval(()=>{void this.store.renewTask(task).catch(()=>this.sink.failure('db_unavailable'));},10000);try{await this.store.finishTask(task);}catch(e){await this.store.failTask(task,e instanceof RuntimeError?e.code:'task_failed');}finally{clearInterval(renewal);}}}finally{this.taskRunning=false;}}
-    const session=await this.store.currentSession();if(!session)return;
+    const session=await this.store.currentSession();if(!session||this.stopped)return;
     if(!this.draining&&!this.solving&&!await this.store.busy())await this.drain();
     if(!this.draining&&!this.solving&&!await this.store.busy()){
       const pending=(await this.store.candidates(session.id)).length;
@@ -38,6 +40,7 @@ export class Coordinator {
       if(!pending&&activity?.status==='solving'&&activity.last_session_id===session.id){await this.solve(session.id,activity.id);return;}
       const response=await this.store.agenda(session.id,!!pending);if(response)void this.dispatch(response.id);
     }
+    }finally{this.ticking--;}
   }
   async chat(sessionId:string,requestId:string,payload:any){const result=await this.store.acceptChat(sessionId,requestId,payload);this.sink.inputStatus(result.eventId,'pending');void this.drain().catch(()=>this.sink.failure('db_unavailable'));return result;}
   async drain(){if(this.draining||this.solving||this.stopped||!this.store.db.healthy)return;this.draining=true;

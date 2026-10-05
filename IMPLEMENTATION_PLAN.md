@@ -499,3 +499,39 @@ JR01 문서·계약 정정 완료, JR02–JR07 개발 범위 PASS: unit 47/47, �
 사용자가 무시 경로 runtime-data/jev.env에 키를 입력했고 존재만 확인했다. 유료 요청 flags는 true/false 차단 기본값을 유지한다. **JR08은 BLOCKED**: 비용·합성 입력 외부 전송 승인과 예산이 아직 없다. 실제 API 호출은 0회이며 실제 Jev 한국어 22/24·위험 오반영 0·Jev→Qwen→Stage 두 만남을 완료로 표시하지 않는다. 개발 완료는 전체 MVP 완료가 아니다.
 
 다음 행동은 요청받으면 AUDIT, 실제 공급자 검증은 별도 승인 후다. 이 BUILD에서 자동 감사나 유료 호출을 이어서 수행하지 않는다.
+
+## 15. 4e608b4 감사 지적 수정 — 라운드 1
+
+사용자가 전달한 정적 검토 6건을 재현한 뒤 BUILD로 수정한다. 기준선 HEAD=4e608b43d0d8df966bdf4624a95891559f162c6e, 착수 시 작업 트리 clean. 실제 Jev와 새 기능은 이번 검증 범위 밖이다.
+
+성공 기준: AR01 기억 수정/삭제 후 기존 Stage가 새 epoch의 자막을 표시·완료 ACK하고 다음 입력도 처리하며, 취소된 frame/timer는 새 재생을 건드리지 않는다. AR02 같은 인증 Stage 재연결은 새로운 output epoch로 소유권을 복구하고 과거 응답을 재생하지 않으며 다른 Stage의 무확인 takeover는 계속 거부한다. AR03 이전 정답 근거 삭제는 새 열린 활동을 보존하고 삭제 commit에 성공한다. AR04 같은 날 새 유효 관측은 무효화된 familiarity 근거를 중복 증가 없이 재활성화한다. AR05 정정된 기억 content는 현재 version/facts와 함께 생성 context에 전달하고 삭제/무효화된 기억은 제외한다. AR06 문장 전체를 보존하며 무공백 구두점과 소수점을 처리하고 기존 길이·문장 개수 제한을 유지한다.
+
+순서: browser/protocol로 AR01·02를 먼저 FAIL 재현하고 Stage/main.tsx와 서버 연결·소유권 경로를 최소 수정한다. 이어 db/adapter의 AR03–06 FAIL을 재현해 Store 삭제/근거/context와 validateDialogue를 수정한다. 기존 전용 test DB·Chrome·mock Jev/fixture 생성만 사용한다. 관련 회귀와 타입/build를 실행하고 실제 결과를 BUILD_HANDOFF.md에 남겨 AUDIT 전에서 멈춘다. 자동 commit/push/실제 API 호출은 하지 않는다.
+
+### 15.1 BUILD 결과 — 2026-10-04
+
+AR01–AR06은 수정 전 실행 FAIL을 확인하고 수정 후 집중 검증 PASS를 얻었다. 직접 관련 기존 묶음까지 DB/Coordinator/HTTP·WS 45/45, 대사 adapter 15/15, 실제 Chrome browser 3/3, TypeScript/Vite PASS다. browser는 idle 기억 정정, 진행 중 삭제와 지연된 렌더 ACK, 같은 인증 Stage 재연결, 새 응답의 shown/finished·completed를 확인했다. AR05는 실제 DB context를 Ollama adapter의 모의 transport에 넘겨 요청 JSON의 정정 문구·버전·facts까지 확인했다. 실제 Jev/Qwen 모델 품질 검증은 아니다.
+
+수정 파일: apps/studio/src/main.tsx의 generation/playback lifecycle, apps/runtime/src/http/server.ts의 소유권 목록·grant·stage.ready·disconnect, packages/database/src/store.ts의 evidence/responseContext/deleteEvent, packages/adapters/src/ollama.ts의 validateDialogue. 검사는 evals/browser/text.spec.ts, evals/db.test.ts, evals/protocol.test.ts, packages/adapters/src/adapter.test.ts에 추가했다. 직접 계약 문서는 RUNTIME_PROTOCOL.md·DATABASE_SPEC.md·LOCAL_AI_INTEGRATION.md에 반영했다.
+
+계획의 작은 조정: browser 재현 중 실제 기억 삭제 UI가 빈 body에 application/json을 붙여 Fastify에서 거부되는 경로를 확인했다. 같은 삭제 계약을 충족하기 위해 apps/studio/src/wire.ts에서 body가 있을 때만 Content-Type을 붙이도록 수정했고 실제 삭제 버튼으로 검증했다. 중간 검사의 잘못된 버튼 이름/삭제 후 관계 행 존재 가정도 검사 코드에서 바로잡았으며 그 실패를 제품 결함 증거로 사용하지 않았다.
+
+소스 상태는 HEAD=4e608b43d0d8df966bdf4624a95891559f162c6e 위의 이 작업 소유 미커밋 변경이다. 실제 결과·명령은 BUILD_HANDOFF.md 마지막 절, 소스 해시는 validation/runs/audit-repair-4e608b4-20261004/source-manifest.json에 기록한다. **BUILD 완료 → AUDIT 제안 대기**, 수정 라운드 1. 자동 감사·commit·push는 하지 않았다. 실제 Jev API 호출은 0회이며 JR08과 전체 MVP 품질/음성·아바타·OBS의 미검증 경계는 유지한다.
+
+### 15.2 A01 heartbeat timeout 복구 — 수정 라운드 2
+
+라운드 1 감사는 AR01·03–06 PASS, AR02 FAIL이었다. 정상 소켓 종료의 재연결은 동작하지만 서버의 1008/heartbeat_timeout 이후 Wire가 재접속하지 않는 기존 경로를 실제 WS·PG·Wire로 확인했다. 사용자가 “어 해”로 수정 BUILD를 승인했다. 기준선은 위 라운드 1 미커밋 소스이며 기존 수정은 보존한다.
+
+성공 기준 A01: heartbeat timeout 뒤 기존 backoff로 같은 인증 Stage가 재접속하고 새 output epoch·새 자막·완료 ACK를 얻는다. 인증 만료와 그 밖의 1008 인증/프로토콜 종료는 자동 재시도하지 않는다. server.ts의 만료 사유와 wire.ts의 재시도 분기를 함께 수정하고 Wire 정책 검사·실제 WS 만료 검사·실제 Chrome timeout 복구로 증명한다.
+
+검증 중 발견한 작은 추가 범위: protocol 테스트의 다음 reset에서 deadlock이 발생했다. 종료가 queued ownership 취소와 진행 중 tick을 기다리지 않는 두 경로를 별도 gate로 각각 FAIL 재현했다. server.onClose는 ownershipTail을 기다리고 Coordinator.stop은 전체 tick 완료를 기다리도록 수정했다. 임의 대기나 테스트 재시도로 숨기지 않고 종료 계약 자체를 보완한다. 검증은 기존 protocol/coordinator 묶음과 두 종료 회귀 검사에 한정한다. 결과는 BUILD_HANDOFF.md 마지막 절을 따른다.
+
+라운드 2 BUILD 결과: A01 및 두 종료 경계 검사 PASS, Wire/protocol/coordinator 33/33 PASS, Chrome 4/4 PASS, 타입/build PASS. 실제 API 0회, 기존 DB/adapter 소스와 증거 유지, commit/push 없음. 결과·수정 파일·제한은 BUILD_HANDOFF.md 마지막 절에 기록했다. 소스 manifest는 validation/runs/audit-repair-4e608b4-20261004/round2-source-manifest.json이다. 다음은 이 수정분의 AUDIT이며 자동 수행하지 않았다.
+
+### 15.3 A02 명시적 종료와 재접속 취소 — 수정 라운드 3
+
+2026-10-05 재감사에서 A01 및 서버 종료 순서는 PASS였고 A02는 FAIL이었다. heartbeat 재접속이 예약된 뒤 Wire.close를 호출해도 650ms 뒤 소켓이 1개에서 2개가 되고 closed=false로 돌아오는 기존 타이머 정리 누락을 재현했다. 사용자 “그래 수정하고 나머지도 ㄱㄱ”는 A02 수정·검증, 지금까지의 수정 커밋/푸시, 합성 입력의 실제 Jev 품질 및 Stage 검증을 승인한다. 실제 API 최대 총예산은 후속 답변으로 USD 1을 승인했다.
+
+성공 기준: close 시 타이머 취소, 늦은 콜백의 종료 상태 검사, 기존 timeout 복구/인증 차단 유지. wire.ts의 reconnectTimer/close/onclose를 수정하고 evals/wire.test.ts에 명시적 close와 이미 대기한 콜백 두 검사를 추가한다. 실제 API는 dev 24 → 결과 확인 및 mapping 고정 → final 24 → Stage 2 순서로 최대 50회, 합산 USD 1의 usage 추정 예산을 적용하며 공급자 오류 시 재시도 없이 중단한다. 정상 앱의 유료 flags는 바꾸지 않고 승인된 CLI 프로세스에만 적용한다. 모델·의존성 다운로드 및 개인 자료/음성 사용은 하지 않는다.
+
+이번 요청은 수정 후 다음 실행까지 승인했으므로 단계마다 다시 승인받지 않는다. 코드 수정/검증 결과와 실제 API 결과는 BUILD_HANDOFF.md 마지막 절에 기록한다. 기존 검증은 관련 소스가 유효한 범위에서 재사용한다. 사용자 요청으로 진행한 3차 수정이며 이후 같은 수정/재감사 루프를 자동 확장하지 않는다.

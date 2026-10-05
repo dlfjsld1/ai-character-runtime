@@ -116,7 +116,13 @@ function decodeStructured<T>(schema:z.ZodType<T>,text:string):T {try{return sche
 export function validateDialogue(text:string,maxSentences:number):string[] {
   const clean=text.trim();
   if(!clean||[...clean].length>120||/[{}<>\[\]]/.test(clean)||/```|<\|/.test(clean))throw new RuntimeError('invalid_output',503);
-  const sentences=clean.match(/[^.!?。！？]+[.!?。！？]*(?:\s+|$)/gu)?.map(s=>s.trim()).filter(Boolean)??[];
-  if(!sentences.length||sentences.length>maxSentences)throw new RuntimeError('invalid_output',503);
+  const sentences:string[]=[];let start=0;
+  for(let i=0;i<clean.length;i++){
+    if(!/[.!?。！？]/u.test(clean[i]!)||(clean[i]==='.'&&/\d/u.test(clean[i-1]??'')&&/\d/u.test(clean[i+1]??'')))continue;
+    while(i+1<clean.length&&/[.!?。！？]/u.test(clean[i+1]!))i++;
+    const sentence=clean.slice(start,i+1).trim();if(sentence)sentences.push(sentence);start=i+1;
+  }
+  const tail=clean.slice(start).trim();if(tail)sentences.push(tail);
+  if(!sentences.length||sentences.length>maxSentences||sentences.some(s=>!/[^.!?。！？\s]/u.test(s)))throw new RuntimeError('invalid_output',503);
   return sentences;
 }

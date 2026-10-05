@@ -1,4 +1,4 @@
-import {beforeAll,beforeEach,afterEach,afterAll,it,expect} from 'vitest';
+import {beforeAll,beforeEach,afterEach,afterAll,it,expect,vi} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import WebSocket from 'ws';
 import {testDatabase,reset,fixtureProvider,mockJevAppraiser,CHARACTER_ID,IDENTITY_IDS} from './helpers.ts';
@@ -13,6 +13,33 @@ function request(path:string,method='GET',body?:object,token=studioToken,key:str
 async function start(){const id=randomUUID();const result=await request('/api/sessions','POST',{sessionId:id,characterId:CHARACTER_ID,configVersion:'1'});expect(result.statusCode).toBe(200);return id;}
 async function pairStage(){const pairing=(await request('/api/stage-pairings','POST',{})).json().data;const id=randomUUID(),response=await request('/api/auth/exchange','POST',{code:pairing.code,clientInstanceId:id});return {id,token:response.json().data.accessToken};}
 async function connect(token:string,id:string){const socket=new WebSocket(url.replace('http:','ws:')+'/ws/control',{headers:{origin}});const packets:any[]=[];socket.on('message',data=>packets.push(JSON.parse(data.toString())));await new Promise<void>((resolve,reject)=>{socket.once('open',resolve);socket.once('error',reject);});socket.send(JSON.stringify({protocolVersion:1,type:'auth',accessToken:token,clientInstanceId:id}));const wait=async(type:string,match=(p:any)=>true)=>{const deadline=Date.now()+5000;for(;;){const packet=packets.find(p=>p.type===type&&match(p));if(packet)return packet;if(Date.now()>deadline)throw new Error(`missing ${type}`);await new Promise(resolve=>setTimeout(resolve,5));}};const welcome=await wait('connection.welcome');let sequence=0n;return {socket,packets,wait,send:(type:string,payload:object,sessionId:string|null,requestId?:string)=>socket.send(JSON.stringify({protocolVersion:1,messageId:randomUUID(),connectionId:welcome.connectionId,sequence:(++sequence).toString(),sessionId,type,payload,...(requestId?{requestId}:{})}))};}
+it('AR02 same Stage reconnect grants a fresh output epoch without replay',async()=>{
+ const id=await start(),pair=await pairStage(),first=await connect(pair.token,pair.id);let reconnected:Awaited<ReturnType<typeof connect>>|undefined;
+ try{first.send('session.subscribe',{sessionId:id},id);await first.wait('session.snapshot');first.send('stage.ready',{audioUnlocked:false,avatarReady:false,supportsExpressions:['neutral']},id);while(!(await request('/api/stages')).json().data[0]?.ready)await new Promise(r=>setTimeout(r,5));
+ await request(`/api/sessions/${id}/output-owner`,'POST',{stageClientId:pair.id,previousStageClosed:false});const grant=await first.wait('output.granted');first.socket.close();await new Promise(resolve=>first.socket.once('close',resolve));
+ reconnected=await connect(pair.token,pair.id);reconnected.send('session.subscribe',{sessionId:id},id);await reconnected.wait('session.snapshot');reconnected.send('stage.ready',{audioUnlocked:false,avatarReady:false,supportsExpressions:['neutral']},id);
+ const next=await reconnected.wait('output.granted');expect(BigInt(next.payload.outputEpoch)).toBeGreaterThan(BigInt(grant.payload.outputEpoch));expect(reconnected.packets.some(p=>p.type==='speech.segment')).toBe(false);expect((await request('/api/stages')).json().data[0]).toMatchObject({owner:true,ready:true});
+ }finally{first.socket.close();reconnected?.socket.close();}
+});
+it('A01 credential expiry has a non-retryable reason even when heartbeat is overdue',async()=>{
+ const conn=await connect(studioToken,studioId),closed=new Promise<{code:number;reason:string}>(resolve=>conn.socket.once('close',(code,reason)=>resolve({code,reason:reason.toString()})));
+ const clock=vi.spyOn(Date,'now').mockReturnValue(Date.now()+8*3600000+1);
+ try{expect(await closed).toEqual({code:1008,reason:'token_expired'});}finally{clock.mockRestore();conn.socket.close();}
+});
+it('A01 shutdown waits for an already queued Stage disconnect cancellation',async()=>{
+ const id=await start(),pair=await pairStage(),stage=await connect(pair.token,pair.id);
+ stage.send('session.subscribe',{sessionId:id},id);await stage.wait('session.snapshot');stage.send('stage.ready',{audioUnlocked:false,avatarReady:false,supportsExpressions:['neutral']},id);while(!(await request('/api/stages')).json().data[0]?.ready)await new Promise(r=>setTimeout(r,5));await request(`/api/sessions/${id}/output-owner`,'POST',{stageClientId:pair.id,previousStageClosed:false});
+ let release!:()=>void,entered!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;}),started=new Promise<void>(resolve=>{entered=resolve;}),cancelAll=runtime.coordinator.cancelAll.bind(runtime.coordinator);
+ const spy=vi.spyOn(runtime.coordinator,'cancelAll').mockImplementation(async(...args)=>{entered();await gate;return cancelAll(...args);});let closing:Promise<unknown>|undefined;
+ try{stage.socket.close();await started;closing=runtime.app.close();const finishedEarly=await Promise.race([closing.then(()=>true),new Promise<boolean>(resolve=>setTimeout(()=>resolve(false),30))]);expect(finishedEarly).toBe(false);}
+ finally{release();await closing;await runtime.coordinator.control(async()=>{});spy.mockRestore();stage.socket.close();}
+});
+it('A01 shutdown waits for an in-flight completion tick before releasing the database',async()=>{
+ let release!:()=>void,entered!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;}),started=new Promise<void>(resolve=>{entered=resolve;}),currentSession=store.currentSession.bind(store);
+ const spy=vi.spyOn(store,'currentSession').mockImplementationOnce(async()=>{entered();await gate;return currentSession();});const tick=runtime.coordinator.tick();let closing:Promise<unknown>|undefined;
+ try{await started;closing=runtime.app.close();const finishedEarly=await Promise.race([closing.then(()=>true),new Promise<boolean>(resolve=>setTimeout(()=>resolve(false),30))]);expect(finishedEarly).toBe(false);}
+ finally{release();await tick;await closing;spy.mockRestore();}
+});
 it('RT01 wrong Origin, unauthed and Stage private API rejected',async()=>{expect((await runtime.app.inject({url:'/api/characters/'+CHARACTER_ID+'/state'})).statusCode).toBe(403);expect((await request('/api/characters/'+CHARACTER_ID+'/state','GET',undefined,'missing')).statusCode).toBe(401);const stage=await pairStage();expect((await request('/api/characters/'+CHARACTER_ID+'/memories','GET',undefined,stage.token)).statusCode).toBe(403);expect((await request('/api/sessions','POST',{sessionId:randomUUID(),characterId:CHARACTER_ID,configVersion:'1'},stage.token)).statusCode).toBe(403);});
 it('JR02 readiness separates mock Jev and generation, never evaluates during startup/polls',async()=>{for(let i=0;i<3;i++){expect((await request('/health/ready')).json().data).toMatchObject({appraisal:{provider:'jev-mock',model:'jev-1.13.0',status:'configured',inferenceVerified:false},llm:'synthetic_test_only'});}expect(appraisalCalls).toBe(0);expect((await db.pool.query('SELECT count(*) FROM appraisals')).rows[0].count).toBe('0');});
 it('RT01 one-use pairing cannot be exchanged twice',async()=>{expect((await request('/api/auth/exchange','POST',{code:runtime.studioCode,clientInstanceId:randomUUID()})).statusCode).toBe(401);});

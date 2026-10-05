@@ -199,6 +199,8 @@ UNIQUE: `(character_id,event_id)`, `(activity_run_id,step_no)`, submitted 행의
 
 모든 단계의 유효성·순서·hint_id 소속은 잠금 안에서 검사한다. 원본 삭제 시 단계는 invalidated하고 필요한 답 원문은 NULL로 제거한다. 유효한 단계로 진행 상태를 다시 구성한다. 단계 부족으로 진행을 확정할 수 없으면 활동을 ended로 두고 자동 재개·자동 추가 제출을 막는다. 소급 정정으로 실제 소비한 시도·힌트 예산을 무료로 되돌리지 않는다.
 
+이미 solved/ended로 닫힌 활동의 정답 근거가 삭제되면 유효한 정답이 남아 있을 때만 solved를 유지하고, 그렇지 않으면 ended로 둔다. 이전 활동을 자동으로 다시 열어 새 열린 활동과 충돌시키지 않는다.
+
 ## 7. 관계 근거와 집계
 
 ### 7.1 relationships
@@ -230,6 +232,8 @@ PK `(evidence_id uuid, event_id uuid)`. 컬럼: `character_id uuid`, `event_revi
 단일 FK 하나로 도움을 증명하지 않는다. verified_hint는 `hint_used`와 `correct_result` 역할을 같은 support_group에 연결하고, 같은 activity_run에서 힌트 뒤에 성공했는지 검증한다. 하나의 group은 필요한 역할이 모두 유효해야 한다. 같은 문제의 다른 실행에서 독립적인 유효 도움을 확인하면 같은 evidence에 새 group을 추가할 수 있지만 관계 효과를 새로 주지 않는다.
 
 first_observed는 같은 날 관측된 다른 발언도 각자 독립 group으로 연결할 수 있다. 최초 발언이 삭제돼도 유효한 다른 관측이 있으면 근거를 유지한다. praise/direct_insult는 원본 하나의 group이다. 유효 group이 하나라도 있어야 evidence가 active다. 가장 이른 유효 group의 완료 시각·전이 순서를 효과 시점으로 사용한다.
+
+그날의 모든 관측 출처가 삭제된 뒤 새 유효 발언을 관측하면 같은 first_observed evidence를 재활성화하고 새 출처의 시각·전이 순서를 반영한다. 같은 날짜의 business key를 유지하므로 이후 추가 발언도 친숙함을 중복 증가시키지 않는다.
 
 ### 7.4 상한과 재계산
 
@@ -315,6 +319,8 @@ plan은 action·purpose·대상·표현·길이 제한을 보관한다. 원문·
 event_id와 memory_id 중 정확히 하나만 NOT NULL인 CHECK를 둔다. 각각 부모에 복합 FK를 둔다. event 행은 `(response_id,event_id)`, memory 행은 `(response_id,memory_id)` 부분 UNIQUE다. 해당 원문의 revision 또는 memory.content_version을 source_version에 기록한다. 삭제·정정에서 진행 중 응답을 찾기 위한 역방향 인덱스도 각각 둔다.
 
 입력·활동 사실·참조 기억은 빠짐없이 여기에 넣는다. 정답표는 참조 대상이 아니다. Core가 generation_epoch 또는 source version을 무효화하면 계산이 끝나도 출력에 사용할 수 없다.
+
+대사 생성 context에는 참조 기억의 현재 `content`, `content_version`, `facts`, 참여자를 함께 넣는다. 문구 정정은 facts를 바꾸지 않지만 수정한 문구는 모델에 전달한다. active이고 source_version이 현재 content_version과 일치하는 기억만 포함한다.
 
 ### 10.3 speech_segments
 

@@ -8,11 +8,31 @@ import { initialState } from '../packages/character-core/src/index.ts';
 import { neutralAppraisal } from '../packages/contracts/src/domain.ts';
 import { mapJevResponse } from '../packages/adapters/src/jev.ts';
 import { recordedJevResponse } from './jev-fixture.ts';
+import { OllamaProvider } from '../packages/adapters/src/ollama.ts';
 let db:Awaited<ReturnType<typeof testDatabase>>,store:Store,now:number;
 beforeAll(async()=>{db=await testDatabase();});
 beforeEach(async()=>{now=Date.now();await reset(db,now);store=new Store(db,CHARACTER_ID,()=>now);});
 afterAll(async()=>{await db?.close();});
 async function session(){const id=randomUUID();await store.startSession(id,randomUUID());return id;}
+it('AR03 deleting old correct submission commits without reopening beside a newer activity',async()=>{
+ const id=await session(),old=await store.startActivity(id,randomUUID(),'sequence-v1'),state=await store.state(),activity=await store.activity();const solved=await store.submitCandidate(id,old.activityId,'47',{generationEpoch:state.generationEpoch,activityVersion:BigInt(activity.version)});if(solved.response)await store.failResponse(solved.response.id,'synthetic_setup');
+ const current=await store.startActivity(id,randomUUID(),'boxes-v1'),source=(await db.pool.query("SELECT e.id,e.revision FROM activity_steps st JOIN events e ON e.id=st.event_id WHERE st.activity_run_id=$1 AND st.kind='answer_submitted'",[old.activityId])).rows[0];
+ await expect(store.deleteEvent(source.id,source.revision,randomUUID())).resolves.toMatchObject({status:'committed'});expect((await store.activity()).id).toBe(current.activityId);expect((await db.pool.query('SELECT status FROM activity_runs WHERE id=$1',[old.activityId])).rows[0].status).toBe('ended');expect((await db.pool.query('SELECT data_status FROM events WHERE id=$1',[source.id])).rows[0].data_status).toBe('deleted');
+});
+it('AR04 fresh same-day observation revives familiarity once after its sole source is deleted',async()=>{
+ const id=await session(),first=await observed(store,id),source=(await db.pool.query('SELECT revision FROM events WHERE id=$1',[first])).rows[0];await store.deleteEvent(first,source.revision,randomUUID());expect((await db.pool.query('SELECT familiarity FROM relationships WHERE identity_id=$1',[IDENTITY_IDS[0]])).rows[0]?.familiarity??0).toBe(0);
+ now+=1000;await observed(store,id);await observed(store,id);const evidence=(await db.pool.query("SELECT status,effective_at FROM relationship_evidence WHERE kind='first_observed' AND identity_id=$1",[IDENTITY_IDS[0]])).rows;expect(evidence).toHaveLength(1);expect(evidence[0].status).toBe('active');expect(evidence[0].effective_at.getTime()).toBe(now);expect((await db.pool.query('SELECT familiarity,interaction_days FROM relationships WHERE identity_id=$1',[IDENTITY_IDS[0]])).rows[0]).toMatchObject({familiarity:0.02,interaction_days:1});
+});
+it('AR05 corrected memory text/version reaches generation context; deleted text is excluded',async()=>{
+ const id=await session(),run=await store.startActivity(id,randomUUID(),'sequence-v1'),s=await store.state(),a=await store.activity();const solved=await store.submitCandidate(id,run.activityId,'47',{generationEpoch:s.generationEpoch,activityVersion:BigInt(a.version)});if(solved.response)await store.failResponse(solved.response.id,'synthetic_setup');
+ const memory=(await store.memories())[0];await store.editMemory(memory.id,memory.content_version,randomUUID(),'운영자가 고친 합성 기억');
+ const accepted=await store.acceptChat(id,randomUUID(),{identityId:IDENTITY_IDS[0],text:'합성 기억 질문'}),selected=(await store.select(accepted.eventId))!;const appraisal={...neutralAppraisal,target:'character' as const,act:'question' as const,uncertain:false,evidence_refs:[accepted.eventId]};
+ const committed=await store.commitAppraisal(selected,appraisal,{provider:'synthetic-fixture',model:'recorded'},[memory.id]),context=(await store.responseContext(committed.response!.id)).context;
+ expect(context.memories[0]).toMatchObject({id:memory.id,content:'운영자가 고친 합성 기억',content_version:'2',facts:memory.facts});
+ let request:any;const provider=new OllamaProvider('qwen2.5:7b',{count:async()=>10,countText:async()=>10},undefined,async(_url,options)=>{request=JSON.parse(options!.body as string);return new Response('{"message":{"content":"합성 응답."},"done":true}\n',{headers:{'content-type':'application/x-ndjson'}});});
+ await provider.dialogue(committed.response!.plan,context);expect(JSON.parse(request.messages[1].content).context.memories[0]).toMatchObject({content:'운영자가 고친 합성 기억',content_version:'2',facts:memory.facts});
+ await store.editMemory(memory.id,'2',randomUUID());expect((await store.responseContext(committed.response!.id)).context.memories).toEqual([]);
+});
 it('JR05 typed Jev metadata is atomic, replay fenced, source deletion clears it',async()=>{
   const id=await session(),accepted=await store.acceptChat(id,randomUUID(),{identityId:IDENTITY_IDS[0],text:'합성 칭찬'}),selected=(await store.select(accepted.eventId))!;
   const evaluation=mapJevResponse(recordedJevResponse('praise','character',3),accepted.eventId,17);

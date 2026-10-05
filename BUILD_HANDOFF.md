@@ -126,3 +126,70 @@ PostgreSQL은 프로젝트 cluster loopback55432에 남아 있고, runtime/test 
 종료 상태: 개발/검증 runtime·Chrome 종료, PG/Ollama 서비스 유지, 이번 smoke가 로드한 Qwen은 unload 후 loadedModels=[] 확인. 새 모델 다운로드·유료 호출·개인 파일/음성·마이크 사용 없음. 검증 기록과 소스 manifest는 `validation/runs/jev-required-build-20261004/`에 저장한다.
 
 다음은 사용자가 요청하면 AUDIT이다. 실제 Jev 평가는 별도 비용·전송 승인과 예산 후 JR08로 수행한다. confidence 0.80은 검증 전 초기 정책이며 앞선 중국어 혼합 대사, 음성·VRM·OBS·전체 MVP·성능 gate는 해결됐다고 주장하지 않는다.
+
+## 2026-10-04 4e608b4 감사 지적 수정 — 라운드 1
+
+사용자 제공 정적 지적 6건을 실행 재현한 뒤 수정했다. 기준선 HEAD는 4e608b43d0d8df966bdf4624a95891559f162c6e이며 현재 결과는 이 HEAD 위의 미커밋 변경이다. BUILD 완료로 AUDIT을 제안하는 상태다. 감사 승인·GitHub 반영을 주장하지 않는다.
+
+| 기준 | 수정 전 실제 재현 | 수정 후 실제 확인 |
+|---|---|---|
+| AR01 기억 변경 뒤 출력 | Chrome에서 정정 후 fixture 자막이 빈 문자열로 남아 실패 | snapshot으로 generation을 갱신하고 취소된 frame/timer를 playback version으로 차단. idle 정정 후 자막, 진행 중 삭제 후 즉시 제거, 지연 렌더 콜백 해제 후 새 응답과 다음 입력 completed PASS |
+| AR02 Stage 재연결 | WS에서 output.granted를 받지 못해 실패 | 같은 인증 Stage ready에서 disconnect 취소 후 새 outputEpoch 부여. WS와 실제 Chrome 재연결·새 자막 완료 PASS. 다른 Stage의 무확인 takeover 거절과 정상 release ACK 전환은 기존 protocol 검사 PASS |
+| AR03 과거 정답 삭제 | PostgreSQL 23505 activity_runs_one_open_uq로 삭제 rollback | 이전 닫힌 활동의 정답 근거가 사라지면 ended. 삭제 commit·새 열린 활동 보존 PASS |
+| AR04 같은 날 새 관측 | 새 유효 관측 후 first_observed status가 invalidated로 남아 실패 | 새 출처로 기존 일일 evidence 재활성화. evidence 1개·친숙함 0.02·interaction_days 1 PASS |
+| AR05 정정 문구 전달 | responseContext에 content/content_version 누락 | 현재 version의 active 기억 content/version/facts 전달. DB에서 만든 context를 모의 Ollama 요청 JSON까지 확인하고 삭제 기억 제외 PASS |
+| AR06 문장 분리 | 안녕.반가워. 앞 문장 누락, 3.14 분리, 공백 없는 3문장 상한 누락 | 문장 전체·소수점·연속 구두점 보존, 문장/120자 상한·빈 출력 거부 PASS |
+
+직접 수정: apps/studio/src/main.tsx, apps/runtime/src/http/server.ts, packages/database/src/store.ts, packages/adapters/src/ollama.ts. 브라우저 재현에서 발견한 직접 소비자 문제도 apps/studio/src/wire.ts에 수정했다. body 없는 DELETE의 application/json 헤더 때문에 Fastify가 요청을 거부했으며, body가 있을 때만 Content-Type을 붙인 뒤 실제 UI 기억 삭제 버튼으로 통과했다. schema/migration·Jev mapping·Core 계산식은 변경하지 않았다. 관련 계약 문서는 RUNTIME_PROTOCOL.md·DATABASE_SPEC.md·LOCAL_AI_INTEGRATION.md에 반영했다.
+
+실행 환경: 기존 loopback PostgreSQL의 전용 character_runtime_test, 기존 Chrome, jev-mock transport와 생성 fixture. DB/browser reset은 서로 겹치지 않게 실행했다. 실제 Jev·Qwen 추론, 새 모델/의존성 다운로드, 개인 자료·음성·마이크 사용은 하지 않았다.
+
+| 실행 명령 | 최종 결과 |
+|---|---|
+| node node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts evals/db.test.ts evals/protocol.test.ts evals/coordinator.test.ts | **45/45 PASS**, 3 files, 10.23s 실행기 기록 |
+| node node_modules/vitest/vitest.mjs run --config vitest.config.ts packages/adapters/src/adapter.test.ts | **15/15 PASS** |
+| node node_modules/@playwright/test/cli.js test --config playwright.config.ts | **3/3 PASS**, 40.0s 실행기 기록·정상 종료 |
+| node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json | **PASS**, exit 0 |
+| node node_modules/vite/bin/vite.js build --config apps/studio/vite.config.ts | **PASS**, exit 0 |
+
+집중 FAIL 재현 후 전체 관련 묶음을 확인했다. 중간 검사에서 잘못된 삭제 버튼 이름으로 발생한 timeout과 삭제 뒤 relationships 행이 반드시 있다고 가정한 assertion은 검사 코드 문제로 정정했다. 실패로 worker가 재시작된 뒤 소비된 pairing code를 다시 사용하는 실패도 독립 fresh 실행과 최종 3-test 연속 실행으로 구분했다. 이 실패들을 제품 수정 근거로 세지 않았다.
+
+현재 build는 갱신됐다. 수동 실행은 프로젝트 폴더에서 pnpm start 후 Studio 페어링 → 새 만남 → Stage 열기 → 출력 선택 순서다. LOCAL_ONLY=true/ALLOW_PAID_PROVIDERS=false 기본값은 유지했으므로 정상 앱의 Jev 의미 해석·응답은 차단 상태다. 비용·전송 없이 이번 수정의 자막을 재확인할 때는 위 Playwright 명령을 사용한다. 실제 Jev 한국어 판단 품질과 Jev→Qwen→Stage 전체 실행은 **NOT VERIFIED**이며 JR08 조건은 이전 절 그대로다.
+
+검증 runtime/Chrome은 종료됐다. Git commit/push는 하지 않았다. 소스 해시는 validation/runs/audit-repair-4e608b4-20261004/source-manifest.json에 보관한다. 다음 행동은 이 미커밋 소스의 **AUDIT**이다.
+
+## 2026-10-04 A01 heartbeat timeout 수정 — 라운드 2
+
+라운드 1 감사에서 같은 Stage의 정상 재연결은 PASS였지만 heartbeat timeout은 FAIL이었다. 실제 서버가 1008/heartbeat_timeout으로 닫은 뒤 전송을 복구해도 Wire의 재연결 수는 0, connectionId는 빈 값이었다. 사용자의 후속 수정 승인으로 A01을 구현했다. 기준선은 라운드 1 미커밋 소스이며 HEAD=4e608b4는 그대로다.
+
+- apps/studio/src/wire.ts: 1008 종료 중 정확히 heartbeat_timeout일 때만 기존 backoff 재연결을 허용한다. 다른 1008 인증·프로토콜 오류는 차단한다.
+- apps/runtime/src/http/server.ts: 인증 만료를 먼저 검사해 token_expired로 구분한다. 만료와 heartbeat timeout이 동시에 발생해도 재접속 가능한 사유로 잘못 표시하지 않는다.
+- evals/wire.test.ts: 재접속 간격과 인증/프로토콜 사유 8개의 차단을 검사한다. evals/protocol.test.ts는 실제 만료 close 사유를 검사한다. 수정 전 재접속 횟수와 만료 사유 assertion의 FAIL을 확인했다.
+- evals/browser/text.spec.ts: 기존 정상 종료 재연결 검사를 유지하고, 실제 Chrome Stage에서 heartbeat.pong만 차단해 서버 timeout을 유발한다. close 이후 송신을 복구하고 새 소켓 1개·새 output epoch·과거 자막 미재생·새 응답 shown/finished/completed를 확인한다.
+- 직접 계약 문서 RUNTIME_PROTOCOL.md에 timeout 재시도와 인증 만료 구분을 반영했다.
+
+검증 중 protocol의 다음 테스트 DB reset에서 deadlock이 발생했다. 기존 종료 경로가 아직 queued ownership 취소 및 진행 중 tick의 완료를 기다리지 않는 두 문제를 gate 기반 회귀 검사로 각각 FAIL 재현했다. 작은 추가 수정으로 server.onClose는 ownershipTail을 먼저 기다리고, apps/runtime/src/coordinator/index.ts의 stop은 진행 중 tick 전체가 끝날 때까지 기다린다. tick의 session 조회 후 종료 상태도 확인한다. 임의 sleep을 추가해 테스트를 통과시키지 않았으며 두 종료 검사를 포함한 관련 묶음이 최종 통과했다. 이는 A01 검증 과정에서 발견한 종료 lifecycle 보완이다.
+
+| 기준/검사 | 최종 결과·범위 |
+|---|---|
+| A01 timeout 복구 | 실제 Chrome 자동 재접속·새 Stage 자막·완료 ACK PASS |
+| A01 인증/프로토콜 경계 | Wire 정책 9개 + 실제 WS token_expired 검사 PASS |
+| 종료 경쟁 | queued 취소·진행 중 tick을 보류한 상태에서 종료가 먼저 완료되지 않음 PASS |
+| node node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts evals/wire.test.ts evals/protocol.test.ts evals/coordinator.test.ts | **33/33 PASS**, Wire 9·protocol 14·coordinator 10 |
+| node node_modules/@playwright/test/cli.js test --config playwright.config.ts | **4/4 PASS**, 기존 기본/기억 변경/정상 재연결 + timeout 재연결, CLI 정상 종료 |
+| node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json | **PASS**, exit 0 |
+| node node_modules/vite/bin/vite.js build --config apps/studio/vite.config.ts | **PASS**, exit 0 |
+
+앞선 Store·대사 adapter 소스와 해당 검사는 이번 라운드에서 변경하지 않아 라운드 1의 DB 24/24·adapter 15/15 증거를 유지한다. 이번에 이 두 묶음을 다시 실행했다고 주장하지 않는다. 모든 새 검사는 기존 전용 test PostgreSQL·Chrome·모의 Jev/생성 fixture를 사용했다. 실제 Jev 호출·모델 추론·다운로드·개인 입력은 없었다. 실제 Jev 품질 및 Jev→Qwen→Stage는 계속 NOT VERIFIED다.
+
+현재 소스 manifest는 validation/runs/audit-repair-4e608b4-20261004/round2-source-manifest.json이다. 검증 runtime/Chrome은 종료했고 commit/push는 하지 않았다. **BUILD 완료 → 재감사 제안 대기**, 수정 라운드 2다. 재감사 PASS를 뜻하지 않는다.
+
+## 2026-10-05 A02 수정 및 GitHub 반영
+
+사용자가 3차 감사에서 발견한 A02의 수정과 후속 커밋/푸시·실제 합성 API 검증을 승인했다. 실제 Jev 총예산은 후속 답변 USD 1이다. 이전의 API 승인 대기 기록은 당시 경계이며 현재 승인은 합성 평가 및 Stage 2건에만 적용한다.
+
+apps/studio/src/wire.ts는 재접속 타이머를 보관하고 close에서 취소한다. 콜백 실행 직전에도 closed를 확인하며 종료 시 watchdog 참조를 정리한다. evals/wire.test.ts에 두 회귀 검사를 추가했다. 수정 전 명시적 close 뒤 소켓 2개가 생기는 FAIL을 확인했고, 수정 후 Wire **11/11 PASS**와 TypeScript/Vite **PASS**를 얻었다. 기존 Chrome의 기본 출력·기억 정정/삭제·일반 재연결·heartbeat timeout 재연결은 **4/4 PASS**, 실행기 정상 종료다. 첫 브라우저 시도는 기존 DB 서비스가 내려가 있어 시작하지 못했으며, 기존 PostgreSQL과 설치 모델 전용 Ollama를 기동한 뒤 검증했다. 설치·다운로드·운영 DB 초기화는 하지 않았다.
+
+직접 계약은 RUNTIME_PROTOCOL.md에 반영했다. 기존 Store·adapter·Coordinator/server 소스의 유효한 검증 근거는 앞선 절을 유지한다. 이번 수정은 기존 6건과 A01을 보존한다. 기존 테스트 증거를 재사용했으며 전체 새 감사가 완료됐다고 주장하지 않는다.
+
+사용자 승인에 따라 지금까지의 수정 전체를 커밋/푸시한 뒤 실제 API 검증을 진행한다. 키와 runtime-data/validation/runs는 Git 무시 경로를 유지한다. 정상 실행 flags는 그대로 두고 승인된 검증 프로세스만 LOCAL_ONLY=false/ALLOW_PAID_PROVIDERS=true로 실행한다. dev 24건 결과를 먼저 확인하고 mapping/rubric을 고정한 상태에서 final 24건 및 실제 Qwen/Stage 두 만남을 진행하며, 공급자 오류 시 중단한다. 실제 사용 결과는 아래 후속 절에 기록한다.

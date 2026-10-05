@@ -156,6 +156,8 @@ Stage에는 감정·관계 숫자, 원본 채팅, 기억 내용, 숨겨진 정�
 
 snapshot에는 과거 발화 재생 명령이나 WAV 목록을 넣지 않는다. 재접속은 최신 상태 표시를 회복하는 작업이며 끊긴 오디오를 이어 듣는 기능이 아니다.
 
+Stage는 `session.snapshot`의 generationEpoch가 더 크면 이를 반영하고 이전 epoch의 현재 자막·대기 큐를 제거한다. 기억 정정·삭제처럼 활성 응답이 없어 `response.cancel`이 오지 않는 변경도 이 경로로 동기화한다. 취소 전에 예약된 렌더 콜백·완료 타이머는 이후 자막의 처리 중 상태를 바꾸거나 전달 ACK를 보내지 않는다.
+
 ## 6. 채팅·마이크 입력
 
 ### 6.1 채팅
@@ -288,7 +290,11 @@ Studio와 Stage가 다른 브라우저·OBS 프로세스면 Studio 버튼만으�
 
 close/error를 감지한 화면은 진행 음성·녹음·대기 파일을 버린다. 0.5·1·2·5초 간격으로 최대 네 번 재접속하고 실패하면 사용자 재연결 동작을 기다린다. 인증 만료·버전 오류에는 자동 재접속하지 않는다.
 
-새 connectionId와 sequence로 auth→subscribe→snapshot을 다시 수행한다. 같은 serverInstanceId이면 세션은 유지되지만 과거 output grant를 그대로 사용할 수 없다. 다시 ready를 보고하고 서버에서 소유권을 확인한다. Stage가 동일 clientInstanceId로 `output.released`를 보고해 이전 재생 중지를 확인하면 새 epoch를 부여할 수 있다.
+서버의 heartbeat 응답 timeout은 `1008 / heartbeat_timeout`으로 구분하며 위 재접속 대상이다. 인증 만료는 heartbeat 상태보다 먼저 검사해 `1008 / token_expired`로 닫는다. 그 밖의 1008 인증·권한·프로토콜 오류는 자동 재접속하지 않는다.
+
+화면 해제·수동 다시 연결로 Wire를 명시적으로 종료하면 예약된 재접속 타이머도 취소한다. 이미 대기 중인 재접속 콜백도 종료 상태를 확인해 이전 Wire의 연결을 다시 열지 않는다.
+
+새 connectionId와 sequence로 auth→subscribe→snapshot을 다시 수행한다. 같은 serverInstanceId이면 세션은 유지되지만 과거 output grant를 그대로 사용할 수 없다. Stage는 연결 상실과 새 welcome에서 출력·큐를 비운 뒤 ready를 다시 보고한다. 서버는 기존 소유자와 같은 인증 clientInstanceId인 경우 끊긴 연결의 응답 취소를 먼저 마치고 새 outputEpoch의 `output.granted`를 보낸다. `/api/stages`의 owner는 실제 연결에 부여된 권한을 표시한다. 다른 Stage로 전환할 때는 기존 중지 ACK 또는 운영자의 닫힘 확인 조건을 유지하며, 재연결로 과거 응답을 재전송하지 않는다.
 
 서버가 바뀌었으면 DB 복구 결과를 읽고 이전 세션 입력·응답을 재전송하지 않는다. 메모리 삭제 알림을 놓친 Studio는 snapshot·조회에서 다시 받아 표시를 교체한다. 서버는 invalidated source의 내용을 snapshot에 되살리지 않는다.
 
