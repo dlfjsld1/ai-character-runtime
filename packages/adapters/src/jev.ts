@@ -40,7 +40,9 @@ export function mapJevResponse(raw:unknown,eventId:string,latencyMs=0):Appraisal
     const answer=answers[key];chosen[key]=modal(answer.probabilities,['0','1','2','3']);
     if(Object.keys(answer.legend).length!==4||SCORE_LEVELS[key].some((level,i)=>answer.legend[String(i)]!==level))invalid();
     const mean=Object.entries(answer.probabilities).reduce((sum,[level,p])=>sum+Number(level)*p,0);
-    if(Math.abs(mean-answer.score)>1e-4)invalid();
+    // Live Jev rounds score and probabilities independently to two decimals.
+    // Half-unit error: score 0.005 + weighted probabilities (0+1+2+3)*0.005.
+    if(Math.abs(mean-answer.score)>0.035+1e-8)invalid();
   }
   const reasons:NonNullable<AppraisalEvaluation['metadata']['providerResult']>['gateReasons']=[];
   if(Object.values(answers).some(a=>a.confidence<JEV_THRESHOLD))reasons.push('low_confidence');

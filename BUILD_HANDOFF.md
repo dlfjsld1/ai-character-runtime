@@ -205,3 +205,11 @@ apps/studio/src/wire.ts는 재접속 타이머를 보관하고 close에서 취�
 증거는 Git 제외 경로 validation/runs/jev-dev-2026-10-05T09-17-02-138Z/{manifest,results}.json이다. **API 호출 시도 1회, 정상 평가 0건**이며 dev의 나머지 23건, final 24건, 실제 Jev→Qwen→Stage 2건은 **NOT RUN**이다. 공급자 오류 시 재시도 없이 중단한다는 승인 조건을 지켰다. results.json의 inputTokens=0/estimatedCostUsd=0은 검증된 usage를 누적하지 못한 값이며 실제 무과금의 증거가 아니다. **실제 사용량·청구 비용은 UNKNOWN**이다. 키는 출력하거나 Git에 포함하지 않았다.
 
 기존 A02 및 브라우저 fixture PASS는 유지하지만 실제 Jev 한국어 품질과 Jev→Qwen→Stage 성공을 뜻하지 않는다. 다음 작업은 비밀을 제외한 응답 구조·검증 실패 위치를 수집해 원인을 특정하고, 그 응답의 오프라인 회귀 검사로 필요한 최소 수정을 입증하는 것이다. 이번 3차 수정/재감사 루프를 자동 확장하거나 실패한 유료 호출을 다시 실행하지 않았다. 이후 실행은 누적 USD 1 예산과 실패한 첫 요청의 미확인 비용을 함께 고려해야 한다.
+
+### 재발급 키 재시도 및 반올림 호환 수정 — 2026-10-05
+
+사용자가 “키 재발급했어 다시 해봐”로 실제 호출 재시도를 승인했다. 이전 미확인 요청 비용을 위한 USD 0.01 여유를 남기고 재시도 명령의 예산은 USD 0.99로 설정했다. Git 제외 진단 wrapper는 요청 헤더·키를 기록하지 않고 성공 응답의 model/answers/usage만 저장했다. 실제 합성 dev 호출 **2회 모두 HTTP 200**이다. greeting-1은 parser 정상 처리 후 낮은 goal_relation confidence로 uncertain=true가 되어 rubric FAIL이었다. greeting-2는 strength.score=0.01, strength.probabilities={0:1,1:0,2:0,3:0}을 반환해 평균 오차 0.01이 기존 1e-4 한도를 초과하면서 jev_invalid_output이 발생했다. 이번 오류는 키 인증 실패가 아니다. 실제 dev 결과는 validation/runs/jev-dev-2026-10-05T09-24-57-956Z/results.json, 응답 진단은 validation/runs/jev-retry-20261005/response-{1,2}.json이다.
+
+packages/adapters/src/jev.ts의 Score 평균 일치 검사만 두 자리 독립 반올림의 최대 오차 0.035(+부동소수점 여유)까지 허용했다. 근거는 이번 실제 응답이며 공식 문서가 소수 정밀도를 보장한다고 주장하지 않는다. 점수 자체의 반올림 오차 0.005와 확률의 가중 오차 (0+1+2+3)*0.005를 합친 보수적 경계다. 반환 강도는 기존과 같이 확률 최빈값으로 정하므로 이 허용 오차가 강도를 올리지는 않는다. 확률 합·모델·필드·legend·범위·confidence 기준은 유지했다. 잘못된 0.04 차이는 여전히 거부한다. 수정 전 strength/hostility 0.01 회귀 **2 FAIL**을 재현했고 수정 후 packages/adapters/src/jev.test.ts **31/31 PASS**, 저장한 실제 응답 2건의 오프라인 parser 재생 **2/2 PASS**, TypeScript **PASS**다. 이번에 브라우저 검사를 다시 실행하지 않았다.
+
+이번 실제 응답 usage 합계는 **input_tokens 2142**, 공식 입력 단가 기준 추정 **USD 0.000089964**다. dev 실행기 자체의 누적 값은 실패한 두 번째 응답 usage를 제외한 1071 tokens/USD 0.000044982이므로 진단 자료 합산과 구분한다. 이전 첫 요청의 사용량과 계정 청구액은 여전히 미확인이다. 총 승인 예산 USD 1은 유지한다. 이번 공급자 응답 실패 후 추가 유료 호출은 하지 않았다. **실제 dev 전체·final·Jev→Qwen→Stage는 NOT VERIFIED/NOT RUN**이고, 낮은 confidence의 인사 품질 문제를 rubric/threshold 변경으로 숨기지 않았다. 다음 실행은 수정된 parser로 dev부터 다시 평가하고 고정된 mapping/rubric으로 final 및 Stage를 확인하는 것이다. 새 기능·다운로드·개인 자료·음성 사용은 없다.
