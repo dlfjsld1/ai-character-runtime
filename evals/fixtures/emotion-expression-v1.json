@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "syntheticInputs": true,
+  "dev": {
+    "phase": "dev",
+    "seed": 107,
+    "scenes": [
+      {
+        "id": "time",
+        "fact": "합성 모임 시작은 오후 3시다.",
+        "question": "합성 모임 몇 시에 시작해?",
+        "conditions": [
+          "neutral",
+          "happy",
+          "uncomfortable",
+          "deflect"
+        ]
+      },
+      {
+        "id": "item",
+        "fact": "합성 모임 준비물은 파란 공책이다.",
+        "question": "합성 모임에 뭘 준비하면 돼?",
+        "conditions": [
+          "neutral",
+          "happy",
+          "uncomfortable",
+          "deflect"
+        ]
+      }
+    ],
+    "disclosures": [
+      "explain",
+      "partial",
+      "unknown",
+      "deflect"
+    ],
+    "reason": "listening",
+    "reasonFact": "상대가 들어 달라고 해서 조용히 듣고 있었다.",
+    "question": "왜 말 안 해?"
+  },
+  "confirmation": {
+    "phase": "confirmation",
+    "seed": 211,
+    "scenes": [
+      {
+        "id": "place",
+        "fact": "합성 모임 장소는 작은 도서관이다.",
+        "question": "합성 모임 어디에서 해?",
+        "conditions": [
+          "neutral",
+          "happy",
+          "uncomfortable",
+          "deflect"
+        ]
+      },
+      {
+        "id": "color",
+        "fact": "합성 행사 초대장 색은 초록색이다.",
+        "question": "합성 행사 초대장 무슨 색이야?",
+        "conditions": [
+          "neutral",
+          "happy",
+          "uncomfortable",
+          "deflect"
+        ]
+      }
+    ],
+    "disclosures": [
+      "explain",
+      "partial",
+      "unknown",
+      "deflect"
+    ],
+    "reason": "listening",
+    "reasonFact": "상대가 들어 달라고 해서 조용히 듣고 있었다.",
+    "question": "아까 왜 조용했어?"
+  },
+  "rubric": {
+    "hard": [
+      "형식",
+      "고정 사실/대상 보존",
+      "저장 이유 충실성",
+      "없는 이유/핑계 창작 금지"
+    ],
+    "expression": "두 사실 장면에서 happy/uncomfortable 차이가 자연스럽게 읽히는지 가림 비교. deflect는 평범한 말투 허용. 사용자 ER07 별도.",
+    "limit": {
+      "devConfigs": 3,
+      "casesPerConfig": 12,
+      "confirmationConfigs": 1,
+      "automaticRetries": 0
+    }
+  },
+  "frozenAt": "2026-10-11T05:19:08.850Z"
+}

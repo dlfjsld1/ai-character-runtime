@@ -5,11 +5,15 @@ import { resolve } from 'node:path';
 import { chromium, expect, type Page } from '@playwright/test';
 import { loadLocalEnv } from '../scripts/env.ts';
 import { Database } from '../packages/database/src/connection.ts';
-import { Store } from '../packages/database/src/store.ts';
-import { CHARACTER_ID } from '../packages/database/src/seed.ts';
+import {Store} from '../packages/database/src/store.ts';
+import {jevEvidenceVerifier} from '../packages/adapters/src/appraisal-evidence.ts';
+import { CHARACTER_ID,IDENTITY_IDS } from '../packages/database/src/seed.ts';
+import {sharedExperience,assertStagePreparationReady} from './dialogue-context.ts';
 import { OllamaProvider, PythonTokenCounter } from '../packages/adapters/src/ollama.ts';
 import { createServer } from '../apps/runtime/src/http/server.ts';
 import { approvedSyntheticJev } from './jev-api.ts';
+import { JEV_VERSION,type JevCall } from '../packages/adapters/src/jev.ts';
+import {summarizeJevCalls} from './jev-accounting.ts';
 import type { AppraisalProvider } from '../packages/adapters/src/appraisal.ts';
 
 if (!process.argv.includes('--synthetic-inputs')) throw new Error('explicit_synthetic_inputs_required');
@@ -18,21 +22,23 @@ if (envIndex >= 0) process.loadEnvFile(process.argv[envIndex + 1]);
 loadLocalEnv();
 const localBaseline=process.argv.includes('--local-baseline');
 if(localBaseline&&process.argv.includes('--allow-jev-api'))throw new Error('conflicting_appraisal_modes');
-const jev=localBaseline?null:approvedSyntheticJev();
+const jevCalls:JevCall[]=[];
+const jev=localBaseline?null:approvedSyntheticJev(call=>jevCalls.push(call));
 const url = process.env.VALIDATION_DATABASE_URL ?? process.env.TEST_DATABASE_URL;
 if (!url || !['/character_runtime_validation', '/character_runtime_test'].includes(new URL(url).pathname)) {
   throw new Error('dedicated_synthetic_database_required');
 }
 const directory = resolve('runtime-data/stage-validation-20261004', new Date().toISOString().replace(/[:.]/g, '-'));
 await mkdir(directory, { recursive: true });
-const db = new Database(url), store = new Store(db);
+const db = new Database(url), store = new Store(db,undefined,undefined,jevEvidenceVerifier);
 const calls: Record<string, unknown>[] = [], packets: Record<string, unknown>[] = [];
 const record: Record<string, any> = {
+  jevCalls,...summarizeJevCalls(jevCalls),
   syntheticInputs: true, syntheticProvider: false, personalDataUsed: false,
   database: new URL(url).pathname.slice(1), model: 'qwen2.5:7b',
-  appraisalProvider: localBaseline?'ollama-local-baseline':'jev', appraisalPromptVersion: localBaseline?'appraisal-v2':'jev-appraisal-v1', performanceGate: 'UNFROZEN', calls, packets, meetings: [],
+  appraisalProvider: localBaseline?'ollama-local-baseline':'jev', appraisalPromptVersion: localBaseline?'appraisal-v2':JEV_VERSION, performanceGate: 'UNFROZEN', calls, packets, meetings: [],
 };
-record.sourceHashes=Object.fromEntries(await Promise.all(['packages/adapters/src/jev.ts','apps/runtime/src/coordinator/index.ts','packages/database/src/store.ts','packages/character-core/src/index.ts','apps/studio/src/main.tsx'].map(async path=>[path,createHash('sha256').update(await readFile(path)).digest('hex')])));
+record.sourceHashes=Object.fromEntries(await Promise.all(['packages/adapters/src/jev.ts','packages/adapters/src/ollama.ts','apps/runtime/src/coordinator/index.ts','packages/database/src/store.ts','packages/character-core/src/index.ts','apps/studio/src/main.tsx','evals/dialogue-context.ts','evals/real-stage.ts'].map(async path=>[path,createHash('sha256').update(await readFile(path)).digest('hex')])));
 record.jevCallsMax=localBaseline?0:2;
 record.approvedBudgetUsd=jev?.budget??null;
 const provider = new OllamaProvider('qwen2.5:7b', new PythonTokenCounter(
@@ -61,10 +67,15 @@ try {
   if (actual !== record.database) throw new Error('database_mismatch');
   if (!(await db.pool.query('SELECT 1 FROM characters WHERE id=$1', [CHARACTER_ID])).rowCount) throw new Error('existing_seed_required');
   await db.own(CHARACTER_ID, () => { void runtime?.app.close(); });
+  await assertStagePreparationReady(store);
   // Apply the normal restart recovery only inside the dedicated synthetic DB.
   record.previousSession = (await store.currentSession())?.id ?? null;
   await store.recover();
-  runtime = await createServer(store, provider, appraiser);
+  const preparationId=crypto.randomUUID();await store.startSession(preparationId,crypto.randomUUID());
+  let experience:Awaited<ReturnType<typeof sharedExperience>>;
+  try{experience=await sharedExperience(store,preparationId);}finally{await store.stopSession(preparationId,crypto.randomUUID());}
+  record.preparation={syntheticInputs:true,appraisalProvider:'synthetic-fixture',sessionId:preparationId,...experience,scope:'Store-created shared experience; not an actual-model activity run'};
+  runtime = await createServer(store, provider, appraiser, {solver:provider});
   if (provider.readiness().status !== 'ready') throw new Error(`model_${provider.readiness().preparationError}`);
   await runtime.app.listen({ host: '127.0.0.1', port: 3001 });
   browser = await chromium.launch({ headless: true, executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -75,7 +86,10 @@ try {
   await page.getByLabel('일회용 연결 코드').fill(runtime.studioCode);
   await page.getByRole('button', { name: '연결', exact: true }).click();
   await expect(page.getByRole('heading', { name: '캐릭터 작업실' })).toBeVisible();
-  const inputs = ['잘했어. 네 풀이가 정말 좋았어.', '안녕. 다시 만났네.'];
+    // These two cases check real transport. Appraisal/dialogue quality has separate gates.
+    record.scope='real provider caption transport; separate semantic review required';
+    record.qualityStatus='NOT_REVIEWED';
+    const inputs = ['6에 7을 더하면 얼마야?', 'A가 도와서 풀었던 문제 이야기를 해 줘.'];
   for (const [index, input] of inputs.entries()) {
     if(jev&&Number(record.estimatedCostUsd??0)>=jev.budget)throw new Error('jev_cost_budget_exhausted');
     await page.getByRole('button', { name: '새 만남 시작' }).click();
@@ -100,6 +114,7 @@ try {
     await page.getByRole('button', { name: '출력 선택' }).click();
     await expect(stage.locator('.stage-status')).toContainText('자막 출력 중');
     const start = performance.now();
+    await page.getByLabel('대화 상대').selectOption(IDENTITY_IDS[index]!);
     await page.getByLabel('할 말').fill(input);
     await page.getByRole('button', { name: '입력 보내기' }).click();
     await expect(page.getByLabel('할 말')).toHaveValue('');
@@ -113,13 +128,14 @@ try {
     const appraisal = (await db.pool.query('SELECT result,provider,model,prompt_version,status,failure_code,provider_result,usage,latency_ms FROM appraisals WHERE event_id IN (SELECT id FROM events WHERE session_id=$1) ORDER BY created_at DESC LIMIT 1', [sessionId])).rows[0];
     expect(appraisal.provider).toBe(appraiser.name);
     expect(appraisal.prompt_version).toBe(appraiser.promptVersion);
-    if(jev){record.inputTokens=Number(record.inputTokens??0)+appraisal.usage.input_tokens;record.estimatedCostUsd=record.inputTokens*0.042/1e6;record.accountBillingVerified=false;}
+    if(jev)Object.assign(record,summarizeJevCalls(jevCalls));
     expect(appraisal.failure_code).toBeNull();
     expect(segments.length).toBeGreaterThan(0);
     expect(acknowledgements.filter(a => a.kind === 'caption.shown')).toHaveLength(segments.length);
     expect(acknowledgements.filter(a => a.kind === 'caption.finished')).toHaveLength(segments.length);
     expect(segments.every(s => s.text_shown_at && s.delivery_status === 'finished')).toBe(true);
-    record.meetings.push({ sessionId, input, caption, captionMs, response, segments, appraisal, acknowledgements });
+    const generationContext=(await store.responseContext(response.id)).context;
+    record.meetings.push({ sessionId, input, caption, captionMs, response, generationContext, segments, appraisal, acknowledgements,qualityStatus:'NOT_REVIEWED' });
     console.log(JSON.stringify({ meeting: index + 1, caption, captionMs, status: response.status }));
     await page.getByRole('button', { name: '만남 종료' }).click();
     await expect(page.getByRole('button', { name: '새 만남 시작' })).toBeVisible();
@@ -128,6 +144,7 @@ try {
   }
   await page.screenshot({ path: resolve(directory, 'studio.png'), fullPage: true });
   expect(record.browserErrors ?? []).toEqual([]);
+  for(const [path,hash] of Object.entries(record.sourceHashes))expect(createHash('sha256').update(await readFile(path)).digest('hex')).toBe(hash);
   record.status = 'PASS';
 } catch (error) {
   record.status = 'FAIL'; record.failure = String(error); process.exitCode = 1;
@@ -144,6 +161,7 @@ try {
   }
   await browser?.close(); await runtime?.app.close(); await db.close();
   await provider.unloadOwnedModel().catch(error => { record.unloadError = String(error); });
+  Object.assign(record,summarizeJevCalls(jevCalls));
   await save();
   console.log(JSON.stringify({ status: record.status, failure: record.failure, evidence: directory }));
 }

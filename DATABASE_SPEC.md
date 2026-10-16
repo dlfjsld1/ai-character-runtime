@@ -1,8 +1,14 @@
+> **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 기획 개정 당시 코드·설정·DB는 바뀌지 않았으며, 후속 구현 상태는 아래 명시한 2026-10-11 계약과 현재 인계를 따른다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/DATABASE_SPEC.md)를 보존한다.
+
 # AI Character Runtime — DB 설계 명세
+
+현재 후속 변경은 [§17 최근 대화 출처](#conversation-database-plan)와 [입력 해석 v2](./docs/INTERACTION_V2_RESULT.md)다. 최근 대화·출처/삭제 전파·일회 repair marker를 구현했고 v2의 복수 행위/출처 실패도 실제 전용 합성 DB에서 검증했다. 별도 대사 원문 테이블이나 v2 migration 없이 기존 appraisals/transitions를 사용한다. 운영 DB migration이나 실제 v2 공급자 검증은 이번에 실행하지 않았다.
+
+후속 감사의 무효 appraisal/침묵 이유 소거 누락을 수정했다. 기존 refs/transitions로 이유·설명 응답까지 대상 집합을 확정한 뒤 소거한다. 예산 초과의 response.conversation_refs는 생성용 suffix이며 원래 appraisal.context_refs/response_sources는 삭제 의존성을 유지한다. history 전용 event 원문은 모델용 sources에 중복하지 않는다. 추가 migration 없이 전용 합성 DB에서 집중 검증했다. [구현 §23](./IMPLEMENTATION_PLAN.md#conversation-repair-build)·[검증 §24](./VALIDATION_PLAN.md#conversation-repair-evidence). 현재 감정 값은 삭제로 초기화하지 않는다.
 
 작성일: 2026-09-27  
 계약 버전: `database-v1`  
-상태: 구현 전 저장 계약. SQL 예시는 전체 migration이 아니며 실제 PostgreSQL 실행 검증은 아직 하지 않았다.
+상태: 초기 저장 계약과 현재 구현 변경 사항. SQL 예시는 전체 migration이 아니며 실행 증거는 [현재 인계](./BUILD_HANDOFF.md)를 따른다. 2026-10-11 침묵 이유 계약은 실제 합성 PostgreSQL에서 검증했다.
 
 관련 문서: [MVP 범위](./MVP_SPEC.md), [도메인 규칙](./CHARACTER_DOMAIN_SPEC.md), [로컬 AI 연동](./LOCAL_AI_INTEGRATION.md), [기술 설계](./technical_architecture_v1.md)
 
@@ -140,11 +146,15 @@ attention selected/observed는 원문을 읽었는지 표시하고, 의미 효�
 
 ### 5.2 appraisals
 
+**2026-10-11 구현:** 런타임의 신규 Jev v6 원응답은 version=2/provider/mappingVersion/eventId/identityId/eventRevision/payload envelope로 기존 provider_result JSONB에 저장한다. 구형 Jev raw와 version1 envelope는 덮어쓰지 않는다. revision을 전달하지 않는 호환용 평가 호출은 version1로 저장되지만 v6의 추가 감정·참여 권한은 얻지 못한다. 공급자별 strict 검증은 주입한 AppraisalEvidenceVerifier가, 현재 사건/revision/상대/출처와 세션의 거래 안 검사는 Store가 맡는다. 구형·신형 혼합 읽기·recover·삭제·종속 출력 취소를 전용 합성 DB에서 확인했다. 신규 migration/backfill은 없다. [현재 계약](./LOCAL_AI_INTEGRATION.md#planned-model-ports)과 [HB03–HB04](./VALIDATION_PLAN.md#model-boundary-criteria)를 따른다.
+
 컬럼: `id uuid`, `character_id uuid`, `event_id uuid`, `event_revision bigint`, `request_id uuid`, `generation_epoch bigint`, `config_version bigint`, `provider text`, `model text`, `model_digest? text`, `prompt_version text`, `status text`, `result? jsonb`, `context_refs jsonb`, `failure_code? text`, `latency_ms? int`, `usage? jsonb`, `provider_result? jsonb`.
 
 status: `running | accepted | stale | cancelled | failed | timed_out`. request_id는 UNIQUE다. `(character_id,event_id,event_revision)`에 accepted 행 한 건만 허용하는 부분 UNIQUE를 둔다. accepted result는 로컬 AI 문서의 AppraisalResult schema를 통과해야 한다. 실패를 채택할 때는 중립 result와 failure_code를 같이 기록한다.
 
 migration `0003_jev_appraisal.sql`은 nullable provider_result를 추가한다. 기존 행은 NULL을 유지한다. 검증된 Jev typed answers와 mappingVersion/confidenceThreshold/gateReasons만 저장하며 원문·키·header·오류 body는 저장하지 않는다. 기존 model/prompt_version/latency_ms/usage와 result를 같은 트랜잭션에서 반영한다. 원본 삭제/무효화 시 result/context_refs와 함께 provider_result도 제거한다.
+
+명시적 듣기·재접근의 참여 근거는 같은 commit의 검증된 provider_result에서 계산한다. target/act 각각의 0.8 기준·유일 최빈값·현재 appraisal 일치 및 공급자 실패 여부를 확인한다. 명시적 듣기·재접근 자체는 appraisal의 uncertain과 감정 효과 0을 덮어쓰지 않으며, 이 근거를 위한 새 컬럼·migration·별도 저장 엔터티는 만들지 않는다. 이유 저장과 정정/삭제 경계는 기존 전이를 따른다.
 
 context_refs에는 제공한 사건 ID·revision만 저장한다. 해석 단계에는 장기 기억 원문을 공급하지 않고 필요한 최소 관측 대화·활동 정보를 사용한다. 삭제 탐색을 위해 JSON ID만 저장했다는 이유로 이 테이블을 빠뜨리지 않는다. 작은 MVP에서는 정정 대상 캐릭터의 해석 참조를 검사하며 실제 규모가 요구할 때만 역조회 인덱스를 추가한다.
 
@@ -159,9 +169,15 @@ body는 다음 값만 가진다.
 - attention: 현재 입력 ID, 마지막 선택 상대·연속 선택 횟수.
 - working_memory_event_ids: 최대 20개, 원문 복사 없음.
 - expression: 현재 기본 표정·유지 시작 시각.
-- turn: listening 등 대화 차례 상태, 마지막 사회적 acknowledgement 시각의 제한된 캐시.
+- turn: listening 등 대화 차례 상태, 마지막 사회적 acknowledgement 시각, 상대별 최근 의도적 침묵 기록 recentSilences(전체 최대 20건).
 
 진행 퍼즐의 원본은 activity_runs, 출력은 response_runs, 상대별 관계는 relationships다. 반복 이력의 원본은 관계 근거와 원본 사건이며 snapshot의 count 하나로 대체하지 않는다. JSON 안의 ID는 갱신 트랜잭션에서 같은 캐릭터·유효 상태인지 확인한다.
+
+**2026-10-11 구현:** 의도적 침묵의 이유 유지·재접근은 [도메인 §10.1](./CHARACTER_DOMAIN_SPEC.md#101-선택적-발화와-침묵-이유--구현-계약)을 따른다. `turn.recentSilences`와 `transitions.effects`에 선택 시점·state version·대상·간단한 이유·당시 감정 요약·출처 revision을 관측 효과와 원자적으로 저장한다. 상대별 최근 1건·최대 20건이며 원문은 복제하지 않는다. sourceRefs는 event/revision과 memory/content version을 구분한다. 구형 snapshot에는 빈 배열을 적용하며 실제 합성 DB에서 기존 CHECK와 호환·복구를 검사했다. 별도 테이블·migration·기억 엔진은 추가하지 않았다.
+
+이유 참조도 정정·삭제 탐색에 포함한다. event뿐 아니라 참조 memory의 content version 변경을 확인하고, 원인 무효화 시 최근 상태와 전이에서 해당 이유를 제거/무효화한다. 이후 설명에 쓸 원인은 `response_sources`에도 등록해 진행 중 생성의 출처 무효화가 작동하게 한다. 사후 설명에 삭제된 내용을 복원하거나 캐릭터가 처음부터 아무 감정도 없었던 것처럼 이력을 덮어쓰지 않는다.
+
+**화제 전환·재참여 구현:** [도메인 §10.2](./CHARACTER_DOMAIN_SPEC.md#102-화제-전환과-재참여-뒤의-감정-지속--승인된-보강-계약)에 따라 현재 affect/mood와 침묵 당시 상태 요약의 소유권을 구분한다. 이유 기록의 교체·제거·복구는 현재 감정의 초기화·재자극 근거가 아니다. 발화 선택·새 화제·response 완료를 감정 해소 사건으로 저장하지 않는다. 현재 감정은 경과 시간과 실제 채택 사건으로만 갱신하며 새 topic별 상태 테이블이나 회복 flag를 만들지 않았다. ER12의 실제 합성 DB 검사를 통과했으며 실제 대사 품질의 증거로 확대하지 않는다.
 
 body의 네 감정과 pleasantness는 유한한 0–1 값, 필수 시각은 유효한 UTC여야 한다. Zod뿐 아니라 DB CHECK로 `schema_version=1`, JSON object·필수 키·수치 타입·범위를 검사한다. NULL이면 통과하는 CHECK만 두지 않고 존재 조건도 검사한다. UI 읽기용 decay는 UPDATE하지 않는다.
 
@@ -221,9 +237,11 @@ kind는 `first_observed | praise | direct_insult | verified_hint`. status는 `ac
 | praise/direct_insult | `종류:원본_event_id` | 해당 입력의 채택된 확실한 해석 |
 | verified_hint | `verified_hint:problem_id` | 등록 힌트 사용 AND 이후 같은 실행의 정답 판정 |
 
+C2의 새 사회적 근거는 applied.stimulus/habituation을 관계 v1 재계산용으로 유지하고 2026-10-13부터 applied.affect={version:3,stimulus,habituation,groupId:string|null}에 당시 실제 감정 적용량과 내부 label을 별도로 저장한다. evidenceInputs는 version2와3의 affect.stimulus를 읽고 그 이전 근거는 기존 stimulus로 호환한다. 현재 운영 v6는 의미 후보 미채택으로 groupId=null을 저장한다. 삭제에 따른 관계 재계산은 applied JSON을 병합 갱신해 살아 있는 affect를 보존하며, invalidated 근거는 미래 감정 계산에서 제외한다. 현재 감정을 과거부터 재생하거나 이미 적용된 감정을 다시 더하지 않는다. C2-S1B 감정 전용 칭찬은 features.relationshipEligible=false를 저장한다(생략은 기존 true). 이 근거는 관계 자극·반복 횟수·projection·삭제 replay에서 제외되고 감정 반복·소비에는 포함된다. strict strength는0, applied의 관계 stimulus는0이며 실제 affect는 별도로 남는다. 같은 transition.effects.affectEvidence에 검증된 제한 강도를 기록한다. 기존 JSONB 열을 사용해 migration/backfill은 없다.
+
 features에는 strength·종류·관측 사실 등 재계산 입력을 저장한다. applied에는 당시 habituation, 후보 자극·상한 적용 후 자극, familiarity/affinity 실제 변화와 양·음 예산 소비량을 구분해 저장한다. 실제 수치가 clamp돼 덜 변해도 이미 소비한 자극·일일 예산이 되살아나지 않는다.
 
-상한 때문에 적용량이 0인 명확한 칭찬·비하도 evidence를 보존한다. 최근 600초 반복 수 n에는 이러한 채택된 입력도 포함된다. ignored·중복·불확실한 입력은 사회적 evidence로 넣지 않는다.
+상한 때문에 적용량이 0인 명확한 칭찬·비하도 evidence를 보존한다. 최근 600초 반복 수 n에는 이러한 채택된 입력도 포함된다. ignored·중복·불확실한 입력은 관계용 evidence로 넣지 않는다. C2-S1B 검증 근거를 가진 불확실한 칭찬만 감정 전용으로 기록하며, 출처 삭제/무효화·중복·세션/revision/epoch 검사는 동일하게 적용한다.
 
 ### 7.3 relationship_evidence_sources
 
@@ -309,6 +327,8 @@ status: `pending | reserved | offered | accepted | declined | expired`. expires_
 segment_count는 생성 전 NULL, 최종 문장 확정 후 1–2다. 전체 segment 행과 함께 commit한 뒤 Stage에 전송한다. 생성된 일부 문장의 ACK만으로 전체 제안이 전달됐다고 오판하지 않는다. 자막 전용 문장의 표시 완료·표시 종료는 각각 text_shown_at과 delivery_status로 구분한다.
 
 status: `planned | generating | synthesizing | delivering | completed | cancelled | failed | interrupted`. 초기 네 상태에 대해 `(character_id)` 부분 UNIQUE로 활성 응답 하나를 강제한다. response는 commit 후 dispatch할 실행 계획이며 별도의 메시지 broker/outbox 테이블을 추가하지 않는다.
+
+**선택적 침묵 구현:** 발화할 때만 response_runs/segment를 생성한다. 의도적 침묵은 관측·상태 전이로 끝내며 `completed`인 빈 response나 0문장 출력을 만들지 않는다. 오류·취소·중립 대체 해석의 failure_code를 감정적 침묵으로 바꾸지 않는다. 위 response status와 문장 수 계약은 유지했다.
 
 plan은 action·purpose·대상·표현·길이 제한을 보관한다. 원문·기억 전체를 넣지 않고 ID로 참조한다. 모델 요청 ID·속도 기록은 events의 provider 완료 자료에 연결할 수 있다. 생성 결과를 받았다는 이유만으로 status=completed를 쓰지 않고, 실제 출력 종료 또는 실패 처리 후 닫는다.
 
@@ -499,7 +519,7 @@ MVP의 작은 데이터에서는 이 정리를 한 트랜잭션에서 완료한�
 
 초기 seed는 캐릭터 1개, `curious-puzzle-v1`/`core-rules-v1` 설정, 고정 A·B·C와 운영자, 문제 3개다. 가짜 친밀도·성공 기억은 기본 seed에 넣지 않는다. 검증 fixture는 명시적인 별도 테스트 DB에서만 만든다.
 
-Drizzle schema에서 migration을 생성하고 SQL을 검토한다. 개발 DB에 즉석 schema push로 계약을 바꾸는 방식을 정상 배포 절차로 삼지 않는다. migration 적용은 앱 시작 전 완료하며 앱은 DB 소유자 권한을 상시 사용하지 않는다. 파괴적인 변경에는 사전 백업과 복원 절차를 둔다.
+현재 실행 schema의 원본은 packages/database/migrations의 SQL이고 packages/database/src/migrate.ts가 파일별 checksum을 검증해 적용한다. 초기 Drizzle 생성 절차를 현재 구현과 혼동하지 않는다. 변경은 새 migration으로 작성하고 기존 적용 파일을 고치지 않는다. 개발 DB에 즉석 schema push로 계약을 바꾸는 방식을 정상 배포 절차로 삼지 않는다. migration 적용은 앱 시작 전 완료하며 파괴적인 변경에는 사전 백업과 복원 절차를 둔다.
 
 ### 16.2 실제 PostgreSQL에서 확인할 항목
 
@@ -525,3 +545,30 @@ Drizzle schema에서 migration을 생성하고 SQL을 검토한다. 개발 DB에
 | DB18 | 빈 DB migration·seed 재실행·dump 복원 | schema 재현, seed 중복 없음, 복원 후 제약 검사 통과 |
 
 지금 완료한 것은 **저장 계약과 검증 계획**이다. 실제 migration 작성·설치·DB01–DB18 실행 결과는 구현 단계에서 남긴다. [런타임 통신 명세](./RUNTIME_PROTOCOL.md)에서 여기서 정한 ID·epoch·ACK·취소 의미를 브라우저와 서버 메시지에 연결한다.
+
+### S2 출처와 그룹 수명 — 2026-10-13
+
+Store.select는 같은 character/identity의 active praise 중 (now-600초,now]의 전체 집합을 effective_at/order_version/id 순서로 선택한다. observed chat.final의 현재 revision과 직접 source revision이 일치해야 한다. 최대8개/이전 원문6000bytes/문장1000자·4096bytes다.9번째·원문 없음·구형 미분류가 있으면 incomplete/빈 비교를 반환한다. API 대기 중 잠금을 유지하지 않고 commit에서 현재 집합·revision·label·완전성을 다시 확인한다. 변화 시 grouping만 포기하며 기존 stale/epoch gate는 전체 commit을 취소한다.
+
+appraisals.context_refs는 현재 입력과 실제 비교에 사용한 출처의 ID/revision을 기록한다. 비교 출처 삭제 시 raw/envelope/result를 기존 삭제 경로로 제거한다. relationship_evidence_sources에는 해당 칭찬의 직접 출처만 저장한다. 그룹 label은 대표 event에 대한 FK가 아니므로 대표 삭제 후 생존 근거의 label/실제 감정 소비는 유지한다. 직접 source 삭제만 해당 근거를 무효화한다. 관계 replay는 affect JSON을 보존하고 감정 자체를 재생하지 않는다. 별도 테이블·migration·backfill은 없다.
+
+<a id="conversation-database-plan"></a>
+
+## 17. 최근 대화의 출처와 삭제 전파 — 2026-10-13 계획
+
+**상태: 두 컬럼/0004와 R1 출처 수명 구현, 별도 합성 DB 적용·검증.** 아래 transitions.effects repair 저장은 R3 계획이며 미구현이다. [사전 계획](./IMPLEMENTATION_PLAN.md#conversation-redesign-v1)과 [실제 결과](./IMPLEMENTATION_PLAN.md#conversation-build-r1-r2)를 구분한다. 기존 운영/증거 DB에는0004를 적용하지 않았으므로 재실행 전 RUNBOOK의 migration 명령이 필요하다.
+
+| 소유 위치 | 예정 저장/검증 |
+|---|---|
+| 신규 packages/database/migrations/0004_conversation_context.sql | response_runs.conversation_refs nullable jsonb, response_sources.source_response_id nullable uuid. 기존 event/memory/source_response 중 정확히 하나인 제약, 같은 character의 응답 FK, 중복 참조 방지·역조회 인덱스 |
+| Store.select/commitAppraisal | 관측 순서로 후보 고정, Coordinator가 예산 안에서 선택한 동일 snapshot 재검증. 현재 입력 revision, 앞선 응답 완료 상태/epoch, 상대/세션/순서·텍스트 digest 일치 |
+| Store.response/responseContext/fitResponseConversation/validResponse | events/speech_segments에서 읽고 전체 예산 내면 같은 이력, 초과면 교환 단위 suffix를 검증해 conversation_refs에 저장. 원래 response_sources는 유지. history 전용 user는 모델 sources에서 중복 제외. source_response의 source_version은 해당 응답 generation_epoch. 실패·취소·부분 전달·삭제 대사를 공급하지 않음 |
+| Store.invalidateOutputs/editMemory/deleteEvent/silenceSources | 원본 event/memory→응답→판단→침묵 이유→이유 설명의 집합을 확정해 재귀 무효화. 의존 대사/문맥·appraisal 복사 자료와 현재/과거 이유 소거, 진행 출력 취소. stale 판단의 잔존 이유도 읽기 거부. 현재 affect/mood는 소급 초기화하지 않음 |
+| appraisals.context_refs | 기존 event의 {id,revision}를 읽고 새 typed event/response 참조도 해석. 원문 대사 복제 없이 실제 사용한 출처를 보존 |
+| transitions.effects | 적용한 repair의 원인/입력/양과 한 번 사용한 marker. 삭제 뒤 원문은 제거하되 이미 사용한 효과의 중복 방지용 최소 ID/marker는 유지 |
+
+응답 참조는 이미 completed인 과거 응답만 가리킨다. Store가 자기 참조·역방향·순환을 거부하고 DB는 character/존재/배타·유일성 제약을 맡는다. 순환 거부를 FK만으로 증명했다고 쓰지 않는다. 원문을 각 응답에 누적 복제하거나 참조 DAG를 별도 저장소로 분리하지 않는다. 부모 응답의 근거 삭제로 후속 내용도 넓게 소거될 수 있다는 보수적 정책을 허용한다.
+
+구형 행은 nullable 새 컬럼으로 계속 읽고 과거 context를 추측해 backfill하지 않는다. 기존 migration0001–0003의 checksum은 유지한다. 합성 이전 schema에 legacy event/memory 출처와 대사를 넣은 뒤 실제 PostgreSQL에서0004를 적용하고 재실행·제약·삭제 전파를 검사한다. 정적 SQL 검토로 실제 migration 결과를 대체하지 않는다.
+
+이번 통합 검사 대상은 J:의 기존 로컬 cluster 안에 만드는 character_runtime_conversation_test다. 전용 profile과127.0.0.1:55434, URL 경로 및 current_database()를 migration/reset 전에 검증한다. 기존 character_runtime_test와 운영 데이터는 reset하지 않는다. 생성 권한이 없으면 필요한 승인을 요청하며 다른 DB로 우회하지 않는다. 재시작의 session interrupted 정책과 자동 재발화 금지는 유지한다.

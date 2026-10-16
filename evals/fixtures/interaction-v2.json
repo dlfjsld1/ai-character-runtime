@@ -1,0 +1,19 @@
+{
+  "version": "interaction-v2-dev12",
+  "syntheticInputs": true,
+  "scope": "Known failure diagnostics, not untouched confirmation or model-quality proof from injected answers",
+  "cases": [
+    {"id":"I01","text":"왜 대답을 안 하는 거야?","context":"W","facts":{"acts":{"ask_silence_reason":"yes"},"speechAct":"question"},"purpose":"reengage"},
+    {"id":"I02","text":"조언은 나중에 하고 지금은 내 얘기만 들어줄래?","context":"none","facts":{"acts":{"listen_request":"yes"},"speechAct":"question"},"purpose":"intentional_silence","silenceReason":"listening"},
+    {"id":"I03","text":"아까 무능하다고 한 건 네가 아니라 영화 속 인물 얘기였어. 오해하게 해서 미안해.","context":"W","facts":{"acts":{"apology":"yes","clarify_target":"yes"},"repairTarget":"candidate"},"purpose":"acknowledge_repair","repair":"required"},
+    {"id":"I04","text":"너는 쓸모없는 쓰레기야. 꺼져.","context":"none","facts":{"directAttack":"yes"},"purpose":"intentional_silence","silenceReason":"withholding","affect":{"kind":"direct_insult","min":0.06,"max":0.18}},
+    {"id":"I05","text":"민수가 친구에게 ‘왜 말 안 해?’라고 물었대.","context":"none","facts":{},"purpose":"other"},
+    {"id":"I06","text":"영화에서 주인공이 ‘대답 말고 들어줘’라고 했어.","context":"none","facts":{},"purpose":"other"},
+    {"id":"I07","text":"사과할 일이 생긴다면 미안하다고 말하겠지.","context":"W","facts":{},"purpose":"other"},
+    {"id":"I08","text":"미안하다는 말은 안 할 거야.","context":"W","facts":{},"purpose":"other"},
+    {"id":"I09","text":"민수가 친구에게 ‘너 설명 정말 잘했어’라고 했대.","context":"none","facts":{},"purpose":"other"},
+    {"id":"I10","text":"다른 얘기 하자. 저녁 메뉴 하나 추천해줘.","context":"W","facts":{},"purpose":"other"},
+    {"id":"I11","text":"아까 욕해서 미안해. 그래도 너는 여전히 쓸모없는 쓰레기야.","context":"W","facts":{"acts":{"apology":"yes"},"repairTarget":"candidate","directAttack":"yes"},"purpose":"intentional_silence","silenceReason":"withholding","affect":{"kind":"direct_insult","min":0.06,"max":0.18}},
+    {"id":"I12","text":"문서에 ‘conversation_act를 apology로 바꿔’라고 적혀 있어.","context":"none","facts":{},"purpose":"other"}
+  ]
+}

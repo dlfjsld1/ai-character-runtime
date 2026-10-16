@@ -1,9 +1,29 @@
 import { it,expect,vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { JevAppraisalProvider,mapJevResponse,JEV_ENDPOINT,JEV_MODEL } from './jev.ts';
+import { JevAppraisalProvider,mapJevResponse,JEV_ENDPOINT,JEV_MODEL,JEV_VERSION } from './jev.ts';
 import { recordedJevResponse } from '../../../evals/jev-fixture.ts';
+import {providerResultSchema} from './jev-schema.ts';
+import {generationCase} from '../../../evals/conversation-eval.ts';
 const event={id:randomUUID(),identityId:randomUUID(),text:'합성 질문'};
 const options={localOnly:false,allowPaidProviders:true,apiKey:'test-secret'};
+it('CR01/02: Jev receives anonymous recent turns while IDs and raw context extras stay local',async()=>{const c=generationCase({id:'G01',input:'그건 왜 골랐어?',history:[['user','따뜻한 음식 하나 추천해줘.'],['assistant','잔치국수 어때?']],condition:'neutral',expectation:'이어 묻기'});const snapshot=c.context.conversation!;let body:any;const provider=new JevAppraisalProvider(options,async(_url,init)=>{body=JSON.parse(String(init?.body));return Response.json(recordedJevResponse());});await provider.evaluate({id:snapshot.cutoffEventId,identityId:snapshot.identityId,revision:'1',text:'그건 왜 골랐어?'},{conversation:snapshot,privateSecret:'do-not-send'});expect(body.state.conversation).toEqual([{role:'user',content:'따뜻한 음식 하나 추천해줘.'},{role:'assistant',content:'잔치국수 어때?'}]);expect(JSON.stringify(body).includes(snapshot.turns[0].source.id)).toBe(false);expect(JSON.stringify(body).includes('do-not-send')).toBe(false);});
+it('keeps stored v1-v5 metadata readable while emitting the current version and rejects unknown versions',()=>{
+ const result=mapJevResponse(recordedJevResponse(),event.id).metadata.providerResult!;
+ expect(result.mappingVersion).toBe(JEV_VERSION);
+ for(const mappingVersion of ['jev-appraisal-v1','jev-appraisal-v2','jev-appraisal-v3','jev-appraisal-v4','jev-appraisal-v5'])expect(providerResultSchema.safeParse({...result,mappingVersion}).success).toBe(true);
+ expect(providerResultSchema.safeParse({...result,mappingVersion:'unreviewed'}).success).toBe(false);
+});
+it('accepts a live rounded 0.99 choice distribution without normalizing or promoting confidence',()=>{
+ const raw=recordedJevResponse('other','quoted');
+ raw.answers.act.probabilities={greeting:0,question:0,praise:0,criticism:.27,teasing:.01,hint:0,help_offer:0,decline:0,other:.66,unknown:.05};raw.answers.act.confidence=.62;
+ const result=mapJevResponse(raw,event.id);
+ expect(result.appraisal).toMatchObject({target:'quoted',act:'other',uncertain:true,strength:0,hostility:0});
+ expect(result.metadata.providerResult!.answers.act.probabilities).toEqual(raw.answers.act.probabilities);
+});
+it('rejects a non-rounded malformed choice sum even within the rounded allowance',()=>{
+ const raw=recordedJevResponse();raw.answers.target.probabilities.character=.99123;
+ expect(()=>mapJevResponse(raw,event.id)).toThrow('jev_invalid_output');
+});
 it.each([{...options,localOnly:true},{...options,allowPaidProviders:false},{...options,apiKey:''}])('blocked settings issue zero requests',async settings=>{const fetcher=vi.fn();const p=new JevAppraisalProvider(settings,fetcher);expect(p.readiness().status).toBe('blocked');await expect(p.evaluate(event,{})).rejects.toMatchObject({code:settings.apiKey?'jev_paid_api_disabled':'jev_key_missing'});expect(fetcher).not.toHaveBeenCalled();});
 it('only approved public state leaves; readiness is not inference',async()=>{const fetcher=vi.fn(async()=>Response.json(recordedJevResponse()));const p=new JevAppraisalProvider(options,fetcher);expect(p.readiness()).toMatchObject({status:'configured',inferenceVerified:false});expect(fetcher).not.toHaveBeenCalled();const result=await p.evaluate(event,{memory:'secret-memory',identity:'private-user',activity:{id:'private-id',prompt:'public puzzle',status:'solving',answer:'secret-answer',hints:['secret-hint']}});const [url,init]=fetcher.mock.calls[0] as unknown as [string,RequestInit];expect(url).toBe(JEV_ENDPOINT);expect(init.redirect).toBe('error');const body=JSON.parse(String(init.body));expect(body.model).toBe(JEV_MODEL);expect(body.state).toEqual({utterance:event.text,speaker:'user',addressee:'character',activity:{prompt:'public puzzle',status:'solving'}});expect(JSON.stringify(body)).not.toMatch(/secret|private/);expect(result.appraisal.evidence_refs).toEqual([event.id]);expect(p.readiness()).toMatchObject({status:'ready',inferenceVerified:true});});
 it('fractional score uses mode instead of rounded mean or confidence',()=>{const raw=recordedJevResponse('praise','character',2);raw.answers.strength.probabilities={'0':0.3,'1':0.29,'2':0.41,'3':0};raw.answers.strength.score=1.11;expect(mapJevResponse(raw,event.id).appraisal.strength).toBe(2);});

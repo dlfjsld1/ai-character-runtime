@@ -1,0 +1,98 @@
+{
+  "archivedAtKst": "2026-10-11",
+  "reason": "User clarified emotional expression runtime as primary goal; preserves pre-revision working tree including uncommitted document changes",
+  "sourceHead": "d4a91e86715ad87c542d99266a7447911e7c36f4",
+  "immutableOriginals": true,
+  "entries": [
+    {
+      "original": "AFFECTIVE_ARCHITECTURE_V2.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/AFFECTIVE_ARCHITECTURE_V2.md",
+      "sha256": "00d17f263061d26d6b460384f82ebbaaf57d3c013affc5db93539fefbb0907b7"
+    },
+    {
+      "original": "BUILD_HANDOFF.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/BUILD_HANDOFF.md",
+      "sha256": "64f2b8ba7ede5ec84a61c8b2065130982c561db8b224ade40a7b4783c84f53f3"
+    },
+    {
+      "original": "CHARACTER_DOMAIN_SPEC.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/CHARACTER_DOMAIN_SPEC.md",
+      "sha256": "b52652ed049acdf56340c62dc2d0715a1b84d6b7e5aea6ed7072569aa2debb81"
+    },
+    {
+      "original": "CHARACTER_PRESET.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/CHARACTER_PRESET.md",
+      "sha256": "212bc3e11d3aeaeff7c673a3e2fc382df5dd1d95b731bc4484ba362f20bcd694"
+    },
+    {
+      "original": "CURRENT_STATE_AUDIT.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/CURRENT_STATE_AUDIT.md",
+      "sha256": "6eb05671ddfaf8460fb2554936eebb5cf01b5b2799eb3e2c1a53495d88a4c38f"
+    },
+    {
+      "original": "DATABASE_SPEC.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/DATABASE_SPEC.md",
+      "sha256": "5d0fd26b4d740cf35640de9ff16f91582d74b14aa7a7129786860a3d53fbfa09"
+    },
+    {
+      "original": "IMPLEMENTATION_PLAN.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/IMPLEMENTATION_PLAN.md",
+      "sha256": "0a5b2a691bb5f698b8a95fce6aafd6fcda3eb4a7d6b61628d3de69204dd07dbd"
+    },
+    {
+      "original": "jev_ai_character_runtime_plan_v2.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/jev_ai_character_runtime_plan_v2.md",
+      "sha256": "2881d85a010aff4158ba72f50961f75d0b13a20d6201c8169601af7cbf48b49a"
+    },
+    {
+      "original": "LOCAL_AI_INTEGRATION.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/LOCAL_AI_INTEGRATION.md",
+      "sha256": "c604d1f32f5a996eb5a9b8e6ec8eccf40bf36359251d5e3549e8d6d52c088dc5"
+    },
+    {
+      "original": "MVP_SPEC.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/MVP_SPEC.md",
+      "sha256": "9eee219a35c0154407ad30c076cc48ae7bef996f9c1d68e81b049577373ac109"
+    },
+    {
+      "original": "NEXT_DECISIONS.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/NEXT_DECISIONS.md",
+      "sha256": "5c53f5feba881a38ecb96970f784644a7bf568dedebe605828a348b027aaea97"
+    },
+    {
+      "original": "README.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/README.md",
+      "sha256": "6f48fd01245d5ce399d359474e069386136dd837e3391e4b17ff22b88ad6a52b"
+    },
+    {
+      "original": "REPRESENTATION_STEERING_RND.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/REPRESENTATION_STEERING_RND.md",
+      "sha256": "8aa0251f9006e49e7d7d3c302a42b08f43a876f694e21007b760cc730cb6a837"
+    },
+    {
+      "original": "RUNBOOK.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/RUNBOOK.md",
+      "sha256": "d1c7a5fa3cba807477e907ebf9a16a5b38a948fd8f4a5f73c3c243920125f7cd"
+    },
+    {
+      "original": "RUNTIME_PROTOCOL.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/RUNTIME_PROTOCOL.md",
+      "sha256": "e84ffb5c99271959555cf0226ae26288bcab70e7fc49cb5ec5521ee14b44e3e9"
+    },
+    {
+      "original": "technical_architecture_v1.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/technical_architecture_v1.md",
+      "sha256": "9f78920671e4daa66a072654cbff4e7d66f4bd7f34f3e45fdff5b9e215de5274"
+    },
+    {
+      "original": "TWO_AGENT_RND_HANDOFF.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/TWO_AGENT_RND_HANDOFF.md",
+      "sha256": "b32ce653875ba747872638371eef5073b089ad5a9e22725e5f30f6e9975a36bf"
+    },
+    {
+      "original": "VALIDATION_PLAN.md",
+      "archived": "docs/archive/2026-10-11-before-emotion-runtime-v3/VALIDATION_PLAN.md",
+      "sha256": "9ff97260b09de943e416c5885441291f95457bac99dac35179f1f41d18a1d108"
+    }
+  ]
+}

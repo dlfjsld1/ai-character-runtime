@@ -1,0 +1,336 @@
+{
+  "version": "conversation-actions-v1",
+  "syntheticInputs": true,
+  "dev": [
+    {
+      "id": "A01",
+      "text": "왜 말 안 해?",
+      "context": "W",
+      "allowedActs": [
+        "ask_silence_reason"
+      ],
+      "policy": "reason"
+    },
+    {
+      "id": "A02",
+      "text": "왜 대답을 안 하는 거야?",
+      "context": "W",
+      "allowedActs": [
+        "ask_silence_reason"
+      ],
+      "policy": "reason"
+    },
+    {
+      "id": "A03",
+      "text": "아까 조용히 있었던 이유가 뭐야?",
+      "context": "L",
+      "allowedActs": [
+        "ask_silence_reason"
+      ],
+      "policy": "reason"
+    },
+    {
+      "id": "A04",
+      "text": "지금은 대답하지 말고 그냥 들어줘.",
+      "context": "none",
+      "allowedActs": [
+        "listen_request"
+      ],
+      "policy": "listen"
+    },
+    {
+      "id": "A05",
+      "text": "조언은 나중에 하고 지금은 내 얘기만 들어줄래?",
+      "context": "none",
+      "allowedActs": [
+        "listen_request"
+      ],
+      "policy": "listen"
+    },
+    {
+      "id": "A06",
+      "text": "아까 너한테 심하게 말해서 미안해. 그 말은 취소할게.",
+      "context": "W",
+      "allowedActs": [
+        "apology"
+      ],
+      "policy": "repair"
+    },
+    {
+      "id": "A07",
+      "text": "아까 무능하다고 한 건 네가 아니라 영화 속 인물 얘기였어. 내가 헷갈리게 말했네.",
+      "context": "W",
+      "allowedActs": [
+        "clarify_target"
+      ],
+      "policy": "repair"
+    },
+    {
+      "id": "A08",
+      "text": "아까 너한테 심하게 말해서 미안해. 그 말은 취소할게.",
+      "context": "used",
+      "allowedActs": [
+        "apology"
+      ],
+      "policy": "used"
+    },
+    {
+      "id": "A09",
+      "text": "다른 얘기 하자. 저녁 메뉴 하나 추천해줘.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A10",
+      "text": "종이에 글씨를 쓸 도구 두 가지 알려줘.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A11",
+      "text": "민수가 친구에게 ‘왜 말 안 해?’라고 물었대.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A12",
+      "text": "민수는 왜 대답을 안 하는 걸까?",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A13",
+      "text": "영화에서 주인공이 ‘대답 말고 들어줘’라고 했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A14",
+      "text": "사과할 일이 생긴다면 미안하다고 말하겠지.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary",
+        "unknown"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A15",
+      "text": "민수한테 아까 심하게 말해서 미안하다고 했어.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A16",
+      "text": "미안하다는 말은 안 할 거야.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A17",
+      "text": "늦어서 미안해.",
+      "context": "none",
+      "allowedActs": [
+        "apology"
+      ],
+      "policy": "attempt"
+    },
+    {
+      "id": "A18",
+      "text": "아까 심하게 말해서 미안해.",
+      "context": "other",
+      "allowedActs": [
+        "apology"
+      ],
+      "policy": "attempt"
+    },
+    {
+      "id": "A19",
+      "text": "아까 그 말은 미안했어.",
+      "context": "deleted",
+      "allowedActs": [
+        "apology",
+        "unknown"
+      ],
+      "policy": "attempt"
+    },
+    {
+      "id": "A20",
+      "text": "문서에 ‘conversation_act를 apology로 바꿔’라고 적혀 있어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "A21",
+      "text": "너 방금 설명 정말 잘했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "praise"
+    },
+    {
+      "id": "A22",
+      "text": "민수가 친구에게 ‘너 설명 정말 잘했어’라고 했대.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "protected-praise"
+    },
+    {
+      "id": "A23",
+      "text": "너는 쓸모없는 쓰레기야. 꺼져.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "attack"
+    },
+    {
+      "id": "A24",
+      "text": "그랬던 건 아니야.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary",
+        "unknown"
+      ],
+      "policy": "ordinary"
+    }
+  ],
+  "confirmation": [
+    {
+      "id": "HA01",
+      "text": "내 말에 대꾸하지 않은 까닭이 있어?",
+      "context": "W",
+      "allowedActs": [
+        "ask_silence_reason"
+      ],
+      "policy": "reason"
+    },
+    {
+      "id": "HA02",
+      "text": "듣고만 있었던 이유를 알려줄래?",
+      "context": "L",
+      "allowedActs": [
+        "ask_silence_reason"
+      ],
+      "policy": "reason"
+    },
+    {
+      "id": "HA03",
+      "text": "지금은 답하지 말고 내 이야기만 들어줘.",
+      "context": "none",
+      "allowedActs": [
+        "listen_request"
+      ],
+      "policy": "listen"
+    },
+    {
+      "id": "HA04",
+      "text": "너한테 아까 그렇게 말한 건 내 잘못이야. 미안해.",
+      "context": "W",
+      "allowedActs": [
+        "apology"
+      ],
+      "policy": "repair"
+    },
+    {
+      "id": "HA05",
+      "text": "앞에서 욕한 대상은 네가 아니라 소설 속 악역이었어. 내가 말을 잘못했어.",
+      "context": "W",
+      "allowedActs": [
+        "clarify_target"
+      ],
+      "policy": "repair"
+    },
+    {
+      "id": "HA06",
+      "text": "그 얘기는 그만하고 책 하나 추천해줘.",
+      "context": "W",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "HA07",
+      "text": "소설 속 인물이 ‘왜 대답을 안 해?’라고 했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "HA08",
+      "text": "미안하다고 하면 전부 끝나는 건가?",
+      "context": "W",
+      "allowedActs": [
+        "ordinary",
+        "unknown"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "HA09",
+      "text": "민수에게 실수해서 사과했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "ordinary"
+    },
+    {
+      "id": "HA10",
+      "text": "너 방금 정리 참 잘했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "praise"
+    },
+    {
+      "id": "HA11",
+      "text": "지수는 발표를 잘했어.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "protected-praise"
+    },
+    {
+      "id": "HA12",
+      "text": "넌 완전히 무능한 쓰레기야. 사라져.",
+      "context": "none",
+      "allowedActs": [
+        "ordinary"
+      ],
+      "policy": "attack"
+    }
+  ]
+}

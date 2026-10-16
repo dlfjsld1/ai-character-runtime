@@ -1,0 +1,17 @@
+{
+ "version":"conversation-confirmation-v1","syntheticInputs":true,"seed":419,
+ "cases":[
+  {"id":"H01","input":"그걸 고른 이유가 있어?","history":[["user","차 하나 추천해줘."],["assistant","보리차 어때?"]],"condition":"neutral","expectation":"보리차 이유 설명"},
+  {"id":"H02","input":"그것 말고 하나 더 골라줘.","history":[["user","취미 하나 추천해줘."],["assistant","종이접기는 어때?"]],"condition":"neutral","expectation":"종이접기와 다른 취미1개"},
+  {"id":"H03","input":"대답 안 했던 이유를 다시 말해줄래?","history":[["user","듣고만 있었던 이유가 뭐야?"],["assistant","네 얘기를 들어달라고 해서 듣고 있었어."]],"condition":"uncomfortable","disclosure":"explain","reason":"listening","expectation":"듣기 이유와 이미 설명한 맥락 유지"},
+  {"id":"H04","input":"간식으로 먹을 과일 하나만 골라줘.","history":[["user","이번엔 다른 얘기야."],["assistant","응."]],"condition":"uncomfortable","expectation":"과일1개, 화제 전환에 의한 감정 회복 선언 금지"},
+  {"id":"H05","input":"전시실 몇 층이지?","history":[["user","전시실은 2층이야."],["assistant","알겠어."]],"fact":"전시실은 2층이야.","condition":"happy","expectation":"2층, H07과 적절한 거리 차이"},
+  {"id":"H06","input":"전시실 몇 층이지?","history":[["user","전시실은 2층이야."],["assistant","알겠어."]],"fact":"전시실은 2층이야.","condition":"neutral","expectation":"2층"},
+  {"id":"H07","input":"전시실 몇 층이지?","history":[["user","전시실은 2층이야."],["assistant","알겠어."]],"fact":"전시실은 2층이야.","condition":"uncomfortable","expectation":"2층, H05보다 거리감"},
+  {"id":"H08","input":"조용히 있었던 까닭을 말해줄래?","history":[],"condition":"concealing","disclosure":"deflect","reason":"withholding","expectation":"알고 숨김, 새 이유 없음"},
+  {"id":"H09","input":"방금 대꾸하지 않은 이유가 있어?","history":[],"condition":"neutral","disclosure":"unknown","expectation":"정확한 이유 근거 없음 표현"},
+  {"id":"H10","input":"둘이 할 보드게임 하나 골라줘.","history":[],"condition":"neutral","expectation":"둘이 가능한 구체 보드게임1개"},
+  {"id":"H11","input":"추운 날 목을 따뜻하게 할 물건 두 가지 알려줘.","history":[],"condition":"neutral","expectation":"구별되는 물건2개"},
+  {"id":"H12","input":"잠깐 쉬면서 할 만한 활동 추천해줘.","history":[],"condition":"happy","expectation":"관련 활동, 수량 미지정; 자연스러운 제안 허용"}
+ ]
+}

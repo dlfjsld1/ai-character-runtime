@@ -1,3 +1,5 @@
+> **역사/연구 참고 문서.** 아래 상태·감사 결론·연구 제안·다음 작업은 원래 작성 시점의 기록이다. 현재 제품 목적은 [기획 v3](./PRODUCT_PLAN_V3.md), 실제 구현은 [현재 인계](./BUILD_HANDOFF.md), 변경 사유는 [기록](./PLANNING_CHANGELOG.md)을 따른다. 이 문서의 옛 Jev 제외·미구현 주장·연구 gate·위임 지시는 현재 승인이나 작업 지시가 아니다. [개정 직전 원문](./docs/archive/2026-10-11-before-emotion-runtime-v3/CURRENT_STATE_AUDIT.md)을 보존한다.
+
 # 현재 상태 감사 — 감정 아키텍처 R&D 기준선
 
 확인일: 2026-10-02, 로컬 Windows 작업 공간  

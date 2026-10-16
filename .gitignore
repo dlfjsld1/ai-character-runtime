@@ -2,8 +2,22 @@ node_modules/
 dist/
 .pnpm-store/
 .env
-.env.*.local
+.env.*
+*.env
+!.env.example
+!*.env.example
+# Private credentials and local database/browser artifacts must not be published.
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+test-results/
+playwright-report/
 runtime-data/
+.codex-remote-attachments/
 validation/runs/
 *.log
 *.tsbuildinfo

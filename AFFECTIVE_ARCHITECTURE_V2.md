@@ -1,4 +1,16 @@
+> **역사/연구 참고 문서.** 아래 상태·감사 결론·연구 제안·다음 작업은 원래 작성 시점의 기록이다. 현재 제품 목적은 [기획 v3](./PRODUCT_PLAN_V3.md), 실제 구현은 [현재 인계](./BUILD_HANDOFF.md), 변경 사유는 [기록](./PLANNING_CHANGELOG.md)을 따른다. 이 문서의 옛 Jev 제외·미구현 주장·연구 gate·위임 지시는 현재 승인이나 작업 지시가 아니다. [개정 직전 원문](./docs/archive/2026-10-11-before-emotion-runtime-v3/AFFECTIVE_ARCHITECTURE_V2.md)을 보존한다.
+
 # 지속 감정 캐릭터 아키텍처 v2 — 연구 제안
+
+## 현재 적용 경계 — 2026-10-14
+
+현행은 **필수 Jev → Core/PostgreSQL → Plan → 교체 가능한 로컬 생성 → 출력 검증/epoch → Stage**다. 아래 “로컬 appraisal”은 당시 제안이며 Jev를 빼는 현행 결정이 아니다. Core가 joy/frustration/surprise/embarrassment와 mood.pleasantness를 소유하고 Plan이 발화/침묵·이유 공개를 정한다. 생성 모델은 상태 writer가 아니다.
+
+[Goal 1–3](./IMPLEMENTATION_PLAN.md#goal-roadmap-20261014)에서 모델 비교·대화 행위·제한된 수선·실제 텍스트 MVP를 다룬다. [연구 보완](./REPRESENTATION_STEERING_RND.md#steering-update-20261014)의 Goal 4–6은 선택형 표현 수단이다. vector/layer/strength는 provider 안에 두며 새 CoreState 필드·감정 축·DB·공개 wire 계약을 먼저 만들지 않는다. 숨김은 첫 연구에서 off, 침묵은 생성0, 주제 전환/재참여는 감정 초기화 근거가 아니다.
+
+현재 선택은 Jev v6/Gemma이고 A03까지 지정 범위 구현·검증 기록이 있다. 연구 구상의 구현 완료를 뜻하지 않으며 [인계](./BUILD_HANDOFF.md#docs-goal-1a-20261014)를 따른다.
+
+## 2026-10-02 아키텍처 원안 — 역사 기록
 
 작성일: 2026-10-02  
 상태: `PROPOSED`, 구현·제품 채택 전  

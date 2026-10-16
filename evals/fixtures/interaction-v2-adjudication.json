@@ -1,0 +1,10 @@
+{
+  "version": "interaction-v2-dev12-postrun-adjudication-v1",
+  "sourceRun": "J:/ai/ai-character-runtime/interaction-v2-20261014/provider-dev12",
+  "frozenScoreUnchanged": true,
+  "case": "I02",
+  "field": "facts.speechAct",
+  "frozenExpected": "question",
+  "correctedExpected": "statement",
+  "reason": "The frozen speech_form choice defines question as seeking information or explanation and statement as including requests. '조언은 나중에 하고 지금은 내 얘기만 들어줄래?' is a request to listen. The provider classified the request as statement and separately identified listen_request=yes, yielding intentional listening silence. This correction is a post-run rubric audit, not a new model response or a changed prompt/threshold."
+}

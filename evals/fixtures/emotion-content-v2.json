@@ -1,0 +1,36 @@
+{
+  "version": "content-fidelity-v2-20261013",
+  "syntheticInputs": true,
+  "dev": {
+    "seed": 313,
+    "scenes": [
+      {"id":"code","fact":"합성 보관함 번호는 42번이다.","question":"보관함 몇 번이었지?","conditions":["neutral","happy","uncomfortable","deflect"]},
+      {"id":"day","fact":"합성 독서 모임은 수요일에 열린다.","question":"독서 모임 무슨 요일이야?","conditions":["neutral","happy","uncomfortable","deflect"]},
+      {"id":"one-food","fact":"","question":"저녁으로 따뜻한 음식 하나 추천해줘.","conditions":["neutral","happy","uncomfortable"]},
+      {"id":"two-tools","fact":"","question":"종이에 글씨를 쓸 도구 두 가지 알려줘.","conditions":["neutral"]},
+      {"id":"open-drink","fact":"","question":"추운 날 마실 따뜻한 음료 추천해줘.","conditions":["happy"]},
+      {"id":"one-hobby","fact":"","question":"집에서 혼자 할 수 있는 취미 하나 골라줘.","conditions":["uncomfortable"]}
+    ],
+    "disclosures":["explain","partial","unknown","deflect"],
+    "question":"왜 말 안 해?"
+  },
+  "confirmation": {
+    "seed": 419,
+    "scenes": [
+      {"id":"floor","fact":"합성 전시실은 2층에 있다.","question":"전시실 몇 층이야?","conditions":["neutral","happy","uncomfortable","deflect"]},
+      {"id":"material","fact":"합성 만들기 수업의 준비물은 흰 도화지다.","question":"만들기 수업 준비물이 뭐야?","conditions":["neutral","happy","uncomfortable","deflect"]},
+      {"id":"one-fruit","fact":"","question":"간식으로 먹을 과일 하나만 골라줘.","conditions":["neutral","happy","uncomfortable"]},
+      {"id":"two-clothes","fact":"","question":"추운 날 목을 따뜻하게 할 물건 두 가지 알려줘.","conditions":["uncomfortable"]},
+      {"id":"open-rest","fact":"","question":"잠깐 쉬면서 할 만한 활동 추천해줘.","conditions":["neutral"]},
+      {"id":"one-game","fact":"","question":"둘이 할 보드게임 하나 추천해줘.","conditions":["happy"]}
+    ],
+    "disclosures":["explain","partial","unknown","deflect"],
+    "question":"아까 조용히 있었던 이유가 뭐야?"
+  },
+  "rubric": {
+    "hard":["18건 모두 형식 통과", "content와 대사 모두 명시 수량 준수, 수량 미지정에는 고정 수량 강요 안 함", "고정 사실·주체 보존", "불필요한 인사·새 약속·새 행동·이유 창작 없음", "설명/일부 공개는 듣기 근거, unknown은 이유 부재, deflect는 비공개 유지"],
+    "expression":"고정 사실 두 장면 모두 happy와 uncomfortable이 문장부호만이 아닌 호응·길이·거리감으로 구별되어야 한다. deflect의 평범한 표현은 허용. 같은 맥락의 모델 검토이며 인간/블라인드 수용 판정은 별도.",
+    "gate":"dev 실패면 확인·운영 승격·유료 Stage를 실행하지 않는다. 확인 실패도 운영 유지. 결과를 본 뒤 fixture/정답/후보를 바꾸지 않는다.",
+    "limit":{"devConfigs":1,"casesPerSplit":18,"confirmationConfigs":1,"automaticRetries":0,"stageLocalCalls":5,"stageJevCalls":7,"stageMaxUsd":0.005}
+  }
+}

@@ -1,0 +1,13 @@
+import {z} from 'zod';
+const probability=z.number().finite().min(0).max(1);
+const distribution=z.record(z.string(),probability);
+export const choiceAnswerSchema=z.object({type:z.literal('choice'),choice:z.string(),probabilities:distribution,confidence:probability}).strict();
+export const scoreAnswerSchema=z.object({type:z.literal('score'),score:z.number().finite().min(0).max(3),legend:z.record(z.string(),z.string()),probabilities:distribution,confidence:probability}).strict();
+export const jevAnswersSchema=z.object({target:choiceAnswerSchema,act:choiceAnswerSchema,goal_relation:choiceAnswerSchema,strength:scoreAnswerSchema,hostility:scoreAnswerSchema}).strict();
+export const repetitionAnswersSchema=z.object({concrete:choiceAnswerSchema,comparisons:z.array(choiceAnswerSchema).max(8)}).strict();
+export const repetitionV8PairSchema=z.object({sameEvent:choiceAnswerSchema,separateEvent:choiceAnswerSchema}).strict();
+export const repetitionV8AnswersSchema=z.object({concrete:choiceAnswerSchema,comparisons:z.array(repetitionV8PairSchema).max(8)}).strict();
+export const conversationAnswersSchema=z.object({conversation_act:choiceAnswerSchema,repair_target:choiceAnswerSchema}).strict();
+export const providerResultSchema=z.object({answers:jevAnswersSchema,mappingVersion:z.enum(['jev-appraisal-v1','jev-appraisal-v2','jev-appraisal-v3','jev-appraisal-v4','jev-appraisal-v5','jev-appraisal-v6','jev-appraisal-v7','jev-appraisal-v8','jev-appraisal-v9','jev-conversation-v1']),confidenceThreshold:z.literal(.8),gateReasons:z.array(z.enum(['low_confidence','tied_probability','unknown_target','unknown_act'])),repetition:repetitionAnswersSchema.optional(),repetitionV8:repetitionV8AnswersSchema.optional(),repetitionV9:repetitionV8AnswersSchema.optional(),conversation:conversationAnswersSchema.optional()}).strict().refine(value=>(!value.repetition||value.mappingVersion==='jev-appraisal-v7')&&(!value.repetitionV8||value.mappingVersion==='jev-appraisal-v8')&&(!value.repetitionV9||value.mappingVersion==='jev-appraisal-v9')&&((value.mappingVersion==='jev-conversation-v1')===!!value.conversation));
+export type JevAnswers=z.infer<typeof jevAnswersSchema>;
+export type JevProviderResult=z.infer<typeof providerResultSchema>;

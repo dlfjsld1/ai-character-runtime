@@ -1,4 +1,29 @@
+> **역사/연구 참고 문서.** 아래 상태·감사 결론·연구 제안·다음 작업은 원래 작성 시점의 기록이다. 현재 제품 목적은 [기획 v3](./PRODUCT_PLAN_V3.md), 실제 구현은 [현재 인계](./BUILD_HANDOFF.md), 변경 사유는 [기록](./PLANNING_CHANGELOG.md)을 따른다. 이 문서의 옛 Jev 제외·미구현 주장·연구 gate·위임 지시는 현재 승인이나 작업 지시가 아니다. [개정 직전 원문](./docs/archive/2026-10-11-before-emotion-runtime-v3/REPRESENTATION_STEERING_RND.md)을 보존한다.
+
 # Representation steering R&D — 근거, 재사용, 반증 실험
+
+<a id="steering-update-20261014"></a>
+## 현재 연구 보완 — 2026-10-14 / 계획만 작성
+
+이 절은 [Goal 4–6](./IMPLEMENTATION_PLAN.md#goal-roadmap-20261014)의 현재 연구 범위다. 아래 2026-10-02 본문은 당시 가설·방법·기준이다. 당시 Core 판단 선택률을 바꾸는 primary나 HF 우선 경로를 지금 그대로 실행하지 않는다. 텍스트 MVP는 Goal 3까지이며 연구 성공은 필수 조건이 아니다.
+
+**현재 질문:** Core의 상태·참여·공개 수준을 유지하면서 activation steering이 허용된 한국어 감정 표현에 추가 이득을 주는가? 첫 대상은 공개 가능한 joy이며 숨김에서는 off, 침묵에서는 생성0이다. 현재 content-first는 내용 초안과 대사를 한 호출로 생성하므로 내용/사실 왜곡도 검사한다.
+
+| 근거 | 계획에 주는 의미 | 아직 입증하지 못한 것 |
+|---|---|---|
+| [공식 llama.cpp cvector generator](https://github.com/ggml-org/llama.cpp/tree/master/tools/cvector-generator), [Gemma4 구현](https://github.com/ggml-org/llama.cpp/blob/master/src/models/gemma4.cpp) | 설치 GGUF 재사용과 control-vector 경로를 우선 조사할 근거 | 해당 Windows 환경·정확한 가중치의 추출/요청별 적용/해제·품질 |
+| [Transformers compressed-tensors](https://huggingface.co/docs/transformers/quantization/compressed_tensors) | 저장 4bit와 실행 메모리는 같다고 가정하지 않음. HF는 후속 선택지 | 4bit 파일만으로 VRAM 적합·성능 보장 불가 |
+| [Anthropic emotion concepts](https://www.anthropic.com/research/emotion-concepts-function) | 표현 외 내용/선택에도 영향을 줄 수 있어 부작용 대조 필요 | 지속적 감정 경험, 우리 한국어 캐릭터 품질의 증거 아님 |
+| [ai-torture-chamber](https://github.com/terrafying/ai-torture-chamber) | 세기와 능력 저하를 함께 검증할 참고 구현. 재사용 시 라이선스·귀속 조건 확인 | 다른 Qwen의 벡터가 Gemma에 호환된다는 증거 아님 |
+| [ucvg.cpp 한계](https://github.com/Egor4More/ucvg.cpp#known-limitations-and-issues) | 요청별 제어·병렬 누출·어휘 오염 확인 필요 | fork 기능을 stock Ollama 기능으로 간주할 수 없음 |
+
+Goal 4는 선택 모델의 로드/추출/적용/해제와 자원 실측으로 가능·제한·차단을 결정한다. Goal 5는 같은 backend off/on 및 zero/random/관련 개념/반대 방향/shuffle 대조를 쓴다. paired mean difference와 difference of means는 같은 쌍/가중치일 때 대수적으로 같으므로 독립 방법 두 개로 세지 않는다. Goal 6은 효과가 남을 때만 기존 생성 포트 뒤에 통합한다.
+
+[성공 기준](./VALIDATION_PLAN.md#goal-validation-20261014)의 표현 적합률 개선≥10%p 및 paired 95% CI 하한>0, 능력 손실≤5%p와 불확실성, 중요 위반0, p95 지연 증가≤20%, 사용자 수용을 함께 요구한다. AUC≥.75는 탐색 신호일 뿐이며 옛 schema98% 연구 기준으로 운영 오류0 조건을 완화하지 않는다. 독립 평가자3명은 일반화 연구용이며 개인 제작자 MVP의 선행 조건으로 추가하지 않는다.
+
+이번에는 코드·벡터·모델 실행이 없다. 기존 설치 모델을 재사용하고 새 모델 다운로드·대규모 backend 재작성은 자동 수행하지 않는다. 실험 소스는 향후 `research/affect-steering/`, 실행 산출물은 J:/ai 아래에 둔다.
+
+## 2026-10-02 연구 원안 — 역사 기록
 
 작성·검색 기준일: 2026-10-02  
 상태: 문헌·공개 저장소 확인. 로컬 재현·모델 추론·성능 측정은 `NOT_RUN`.  

@@ -1,10 +1,12 @@
-import { stateSchema, type State, type Emotion, type Appraisal, type Plan, type EvidenceInput, type Relationship } from '../../contracts/src/domain.ts';
+import { stateSchema, type State, type Emotion, type Appraisal, type Plan, type EvidenceInput, type Relationship, type SilenceRecord, type AffectEvidence } from '../../contracts/src/domain.ts';
+import type {PraiseGroupSource,RepetitionEvidence} from '../../contracts/src/ai-ports.ts';
+import {isInteractionEvidence,hasConversationAct,canAttemptRepair} from '../../contracts/src/conversation.ts';
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const timing: Record<Emotion, {hold:number;half:number}> = {joy:{hold:4000,half:45000},frustration:{hold:6000,half:90000},surprise:{hold:1000,half:8000},embarrassment:{hold:3000,half:30000}};
 export function initialState(now: number): State {
   const emotion = () => ({value:0,asOf:now,holdUntil:now,causes:[]});
-  return {affect:{joy:emotion(),frustration:emotion(),surprise:emotion(),embarrassment:emotion()},mood:{pleasantness:.6,asOf:now},attention:{eventId:null,lastIdentityId:null,consecutive:0},workingMemoryEventIds:[],expression:{kind:'neutral',since:now},turn:{listening:false,acknowledgements:{}}};
+  return {affect:{joy:emotion(),frustration:emotion(),surprise:emotion(),embarrassment:emotion()},mood:{pleasantness:.6,asOf:now},attention:{eventId:null,lastIdentityId:null,consecutive:0},workingMemoryEventIds:[],expression:{kind:'neutral',since:now},turn:{listening:false,acknowledgements:{},recentSilences:[]}};
 }
 export function decay(state: State, suppliedNow: number): State {
   const next = structuredClone(state);
@@ -30,11 +32,36 @@ export function expression(state: State, now: number): State['expression'] {
 export function socialEffect(appraisal: Appraisal, history: EvidenceInput[], identityId: string, now: number) {
   const category:'praise'|'direct_insult'|null= !appraisal.uncertain&&appraisal.target==='character' ? appraisal.act==='praise'?'praise':appraisal.act==='criticism'&&appraisal.hostility>=2?'direct_insult':null:null;
   if(!category) return {category:null,stimulus:0,n:0,habituation:1};
-  const window=history.filter(x=>x.identityId===identityId&&x.kind===category&&x.at>now-600000&&x.at<=now).sort((a,b)=>a.at-b.at||(a.order<b.order?-1:1));
+  const window=history.filter(x=>x.relationshipEligible!==false&&x.identityId===identityId&&x.kind===category&&x.at>now-600000&&x.at<=now).sort((a,b)=>a.at-b.at||(a.order<b.order?-1:1));
   const cap=category==='praise'?.3:.24;
   const consumed=window.reduce((sum,e)=>sum+(e.appliedStimulus??0),0);
   const habituation=1/(1+window.length);
   return {category,stimulus:Math.min(.18*(appraisal.strength/3)*habituation,Math.max(0,cap-consumed)),n:window.length,habituation};
+}
+export function selectPraiseGroup(groups:readonly PraiseGroupSource[],evidence:RepetitionEvidence|undefined,complete:boolean):{kind:'new'}|{kind:'existing';groupId:string}|{kind:'fallback'}{
+  const fallback={kind:'fallback'} as const;
+  if(!complete||!evidence?.concrete||groups.length!==evidence.comparisons.length||new Set(groups.map(g=>g.eventId)).size!==groups.length)return fallback;
+  const relations=new Map<string,Set<string>>();
+  for(const [i,g] of groups.entries()){
+    const comparison=evidence.comparisons[i];
+    if(!g.groupId||comparison?.eventId!==g.eventId||comparison.revision!==g.revision||!['same','distinct'].includes(comparison.relation))return fallback;
+    const values=relations.get(g.groupId)??new Set<string>();values.add(comparison.relation);relations.set(g.groupId,values);
+  }
+  if([...relations.values()].some(values=>values.size!==1))return fallback;
+  const matches=[...relations].filter(([,values])=>values.has('same'));
+  return matches.length>1?fallback:matches.length===1?{kind:'existing',groupId:matches[0]![0]}:{kind:'new'};
+}
+export function socialAffect(appraisal:Appraisal,history:EvidenceInput[],identityId:string,now:number,evidence?:AffectEvidence,groupId?:string):ReturnType<typeof socialEffect>{
+  const boundedPraise=appraisal.uncertain&&appraisal.target==='character'&&appraisal.act==='praise'&&evidence?.kind==='praise'&&[1,2,3].includes(evidence.strength);
+  const boundedAttack=appraisal.uncertain&&appraisal.target==='character'&&appraisal.act==='criticism'&&evidence?.kind==='direct_insult'&&[1,2,3].includes(evidence.strength);
+  const category=boundedPraise?'praise':boundedAttack?'direct_insult':!appraisal.uncertain&&appraisal.target==='character'?appraisal.act==='praise'?'praise':appraisal.act==='criticism'&&appraisal.hostility>=2?'direct_insult':null:null;
+  if(!category)return {category:null,stimulus:0,n:0,habituation:1};
+  const window=history.filter(e=>e.identityId===identityId&&e.kind===category&&e.at>now-600000&&e.at<=now&&(category!=='praise'||!groupId||!e.affectGroupId||e.affectGroupId===groupId));
+  // Affect pressure recovers with elapsed time; relationship replay stays on v1.
+  let repetitions=0,consumed=0;
+  for(const e of window){const weight=1-(now-e.at)/600000;repetitions+=weight;consumed+=weight*(e.affectStimulus??e.appliedStimulus??0);}
+  const habituation=1/(1+repetitions),cap=category==='praise'?.3:.24;
+  return {category,stimulus:Math.min(.18*(((boundedPraise||boundedAttack)?evidence!.strength:appraisal.strength)/3)*habituation,Math.max(0,cap-consumed)),n:window.length,habituation};
 }
 export function apply(state:State, input:{eventId:string;targetId:string|null;now:number;stimuli?:Partial<Record<Emotion,number>>;holdEligible?:boolean;observe?:boolean}):State {
   const next=decay(state,input.now); const now=next.mood.asOf;
@@ -52,16 +79,104 @@ export function apply(state:State, input:{eventId:string;targetId:string|null;no
   next.expression=expression(next,now);
   return stateSchema.parse(next);
 }
-export function dialoguePlan(state:State,purpose:string,targetIdentityId:string|null,memoryIds:string[]=[]):Plan {
-  return {action:purpose==='question'?'answer':purpose==='clarify'||purpose==='request_hint'||purpose==='resume_puzzle'?'ask':'acknowledge',purpose,targetIdentityId,expression:state.expression.kind,maxSentences:state.affect.frustration.value>=.6||state.affect.embarrassment.value>=.6?1:2,delivery:state.mood.pleasantness<.45?'calm':state.mood.pleasantness>.65?'lively':'normal',memoryIds};
+// These are expression choices, never new affect or relationship evidence.
+// Store validates cause provenance before persisting a styled response.
+export function speechStyle(state:State,targetIdentityId:string|null,intent:{joy?:'show'|'mask';discomfort?:'show'|'mask';embarrassment?:'show'|'mask'}={}):NonNullable<Plan['speechStyle']>{
+  const distance=intent.discomfort!=='mask'&&targetIdentityId!==null&&state.affect.frustration.value>=.1&&state.affect.frustration.causes.some(c=>c.targetId===targetIdentityId);
+  const joy=intent.joy==='mask'?0:state.affect.joy.value;
+  return {register:distance?'formal':'casual',positiveTone:joy>=.6?'bright':joy>=.05?'warm':'neutral',...(state.expression.kind==='embarrassed'&&intent.embarrassment!=='mask'?{nuance:'cautious' as const}:{}),...(intent.joy==='mask'&&intent.discomfort==='mask'&&intent.embarrassment==='mask'?{concealAffect:true as const}:{})};
 }
-export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof socialEffect>,identityId:string,now:number):Plan {
-  if(a.act==='question') return dialoguePlan(state,a.uncertain||a.target==='unknown'?'clarify':'question',identityId);
-  if(a.uncertain||a.target==='unknown') return {...dialoguePlan(state,'uncertain',identityId),action:'listen'};
-  if(!['greeting','praise','criticism'].includes(a.act)) return {...dialoguePlan(state,'unselected',identityId),action:'listen'};
-  const category=effect.category??a.act; const key=`${identityId}:${category}`;
-  if((effect.category&&effect.stimulus<=1e-12)||(state.turn.acknowledgements[key]!==undefined&&now-state.turn.acknowledgements[key]<15000)) return {...dialoguePlan(state,'repeat',identityId),action:'ignore'};
-  return dialoguePlan(state,a.act,identityId);
+// Store supplies only the last completed delivery to this recipient in this
+// session, with a still-valid shared cause. Hiding is not relationship repair.
+export function continueRegister(state:State,plan:Plan,previous:Plan|null):Plan {
+  if(!plan.speechStyle||previous?.targetIdentityId!==plan.targetIdentityId||!plan.targetIdentityId||previous.speechStyle?.register!=='formal'||state.affect.frustration.value<.05||!state.affect.frustration.causes.some(c=>c.targetId===plan.targetIdentityId))return plan;
+  return {...plan,speechStyle:{...plan.speechStyle,register:'formal'}};
+}
+export function dialoguePlan(state:State,purpose:string,targetIdentityId:string|null,memoryIds:string[]=[]):Plan {
+  return {action:purpose==='question'?'answer':purpose==='clarify'||purpose==='request_hint'||purpose==='resume_puzzle'?'ask':'acknowledge',purpose,targetIdentityId,expression:state.expression.kind,maxSentences:state.affect.frustration.value>=.6||state.affect.embarrassment.value>=.6?1:2,delivery:state.mood.pleasantness<.45?'calm':state.mood.pleasantness>.65?'lively':'normal',speechStyle:speechStyle(state,targetIdentityId),memoryIds};
+}
+// Project only the already-selected performance; never disclose the internal face.
+export function stageExpression(plan:Plan):Plan['expression'] {
+  if(!plan.speechStyle||plan.speechStyle.concealAffect||plan.participation&&plan.participation.mode!=='speak'||['ignore','pause','listen'].includes(plan.action))return 'neutral';
+  if(plan.speechStyle.nuance==='cautious')return 'embarrassed';
+  if(plan.speechStyle.register==='formal')return 'uncomfortable';
+  return plan.speechStyle.positiveTone==='warm'||plan.speechStyle.positiveTone==='bright'?'happy':'neutral';
+}
+export type SocialContext={text?:string;previousSilence?:SilenceRecord|null;explainedSilenceEventId?:string;recentWithholdingEventId?:string;recentBoundaryDelivered?:boolean;appraisalFailed?:boolean;previousOutputFailed?:boolean;participationEvidence?:{target:'character';act:Appraisal['act'];acknowledgePraise?:true};conversationEvidence?:import('../../contracts/src/conversation.ts').ConversationEvidence};
+export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof socialEffect>,identityId:string,now:number,context:SocialContext={}):Plan {
+  const speak=(purpose:string):Plan=>({...dialoguePlan(state,purpose,identityId),participation:{mode:'speak'}});
+  const repeated=(category:string):Plan|undefined=>{
+    const last=state.turn.acknowledgements[`${identityId}:${category}`];
+    if(last!==undefined&&now-last<15000)return {...dialoguePlan(state,'repeat',identityId),action:'ignore',participation:context.previousOutputFailed?{mode:'defer'}:{mode:'silent',reason:'no_addition'}};
+  };
+  if(context.appraisalFailed) return {...dialoguePlan(state,'appraisal_failed',identityId),action:'listen',participation:{mode:'defer'}};
+  const text=(context.text??'').trim();
+  const semantic=context.conversationEvidence,v2=isInteractionEvidence(semantic)?semantic:undefined;
+  // v2 authority is already source-verified; uncertain affect never suppresses
+  // an independently known action. Do not route it through legacy regex gates.
+  if(v2){
+    const prior=context.previousSilence;
+    if(v2.responsePressure==='yes'&&!context.previousOutputFailed&&prior?.reason==='withholding'&&prior.identityId===identityId&&prior.at<=now){
+      if(context.recentBoundaryDelivered||state.affect.frustration.value>=.6)return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'withholding'}};
+      return {...speak('set_boundary'),maxSentences:1,reengagement:{silenceEventId:prior.eventId,disclosure:'deflect'}};
+    }
+    if(v2.directAttack==='yes')return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'withholding'}};
+    if(v2.acts.listen_request==='yes')return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'listening'}};
+    if(v2.acts.listen_request==='unknown')return speak('clarify');
+  }
+  // Validated target/act evidence authorizes only the explicit acts below, never affect changes.
+  const explicitTarget=a.target==='character'&&a.act!=='unknown'&&(!a.uncertain||(context.participationEvidence?.target===a.target&&context.participationEvidence.act===a.act));
+  // Recognize explicit conversational acts only; these patterns do not infer concern, pressure, or reconciliation.
+  const asksAboutSilence=/^(?:너\s*|아까\s*|그때\s*|방금\s*)*(?:왜\s*(?:말(?:을)?|대답(?:을)?|답변(?:을)?)\s*(?:안\s*(?:해|했어|하니)|없어)|왜\s*조용(?:해|했어))\s*[?.!？]*$/.test(text);
+  if(hasConversationAct(semantic,'ask_silence_reason')||!v2&&explicitTarget&&asksAboutSilence) {
+    const previous=context.previousSilence;
+    const record=!context.previousOutputFailed&&previous?.identityId===identityId&&previous.at<=now?previous:null;
+    // Only a delivered explanation plan in the validated recent conversation
+    // grants this option. Repeated wording alone is not evidence or an attack.
+    const linkedCause=!!record&&state.affect.frustration.causes.some(c=>c.targetId===identityId&&(c.eventId===record.eventId||record.sourceRefs.some(ref=>ref.kind==='event'&&ref.id===c.eventId)));
+    // A recent, source-checked withholding choice has its own disclosure
+    // policy. Fine intensity uncertainty does not erase that choice. Bound it
+    // to the existing four-exchange context and ten-minute incident window.
+    const recentWithholding=!!v2&&record?.reason==='withholding'&&context.recentWithholdingEventId===record.eventId&&now-record.at<=600000;
+    const noRepairQuestion=v2?v2.acts.apology==='no'&&v2.acts.clarify_target==='no':!hasConversationAct(semantic,'apology')&&!hasConversationAct(semantic,'clarify_target');
+    const alreadyExplained=!!record&&context.explainedSilenceEventId===record.eventId&&(linkedCause||recentWithholding)&&noRepairQuestion;
+    // Like the expression's .20 entry/.10 exit bands, retained discomfort
+    // should not disappear at .199. Bind retention to this valid incident's
+    // recorded affect and current causes, independently of the visible face.
+    const uncomfortable=state.affect.frustration.value>=.2||linkedCause&&record!.affect.frustration>=.2&&state.affect.frustration.value>=.1;
+    const limitedDisclosure=uncomfortable||recentWithholding;
+    const disclosure=record?record.reason==='withholding'?(state.affect.frustration.value>=.6||limitedDisclosure&&alreadyExplained?'deflect':limitedDisclosure?'partial':'explain'):'explain':'unknown';
+    const plan:Plan={...speak('reengage'),action:'answer',reengagement:{silenceEventId:record?.eventId??null,disclosure}};
+    // Preserve deliberate composure in the old high-affect concealment case.
+    // A repeated reason can stay private without masking either emotion.
+    if(disclosure==='deflect'&&state.affect.frustration.value>=.6)plan.speechStyle=speechStyle(state,identityId,{joy:'mask',discomfort:'mask',embarrassment:'mask'});
+    return plan;
+  }
+  const requestsListening=/(?:대답|답변)(?:은|을)?\s*하지\s*말(?:고\s*(?:내\s*(?:말|얘기)(?:만|를)?\s*)?들어\s*줘|아\s*줘)\s*[.!?]*$|(?:그냥|일단|지금은|말없이)\s*(?:내\s*(?:말|얘기)(?:만|를)?\s*)?들어\s*줘\s*[.!?]*$/.test(text);
+  if(hasConversationAct(semantic,'listen_request')||!v2&&explicitTarget&&requestsListening) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'listening'}};
+  if(effect.category!=='direct_insult'&&canAttemptRepair(semantic))return speak('acknowledge_repair');
+  if(v2){
+    // Uncertain sentence form alone is not missing conversational information.
+    // Only ordinary input with all participation-sensitive acts ruled out may
+    // respond normally; it grants no affect, repair or disclosure authority.
+    if(v2.speechAct==='unknown'&&v2.directAttack==='no'&&v2.directPraise==='no'&&Object.values(v2.acts).every(act=>act==='no'))return speak('other');
+    if(v2.directAttack==='unknown'||Object.values(v2.acts).includes('unknown')||v2.speechAct==='unknown')return speak('clarify');
+    const purpose=v2.speechAct==='question'?'question':v2.directPraise==='yes'?'praise':v2.speechAct==='statement'?'other':v2.speechAct;
+    return (['praise','greeting'].includes(purpose)?repeated(purpose):undefined)??speak(purpose);
+  }
+  const acknowledgePraise=explicitTarget&&a.act==='praise'&&context.participationEvidence?.acknowledgePraise===true;
+  if((a.uncertain&&!acknowledgePraise)||a.target==='unknown') return a.act==='question'?speak('clarify'):{...dialoguePlan(state,'uncertain',identityId),action:'listen',participation:{mode:'defer'}};
+  if(a.target==='character'&&a.act==='criticism'&&a.hostility===3) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'withholding'}};
+  if(a.act==='question') return speak('question');
+  if(['greeting','praise','criticism'].includes(a.act)) {
+    const repeat=repeated(effect.category??a.act);if(repeat)return repeat;
+  }
+  return speak(a.act);
+}
+export function applyRepair(state:State,now:number,eligible:boolean):{state:State;amount:number}{
+  const next=decay(state,now),amount=eligible?Math.min(.03,next.affect.frustration.value*.10):0;
+  if(amount>0){next.affect.frustration.value-=amount;next.mood.pleasantness=clamp(next.mood.pleasantness+.1*amount);next.expression=expression(next,next.mood.asOf);}
+  return {state:next,amount};
 }
 export function koreanDate(now:number):string { return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now); }
 export function projectRelationships(inputs:EvidenceInput[]):Map<string,Relationship> {
@@ -80,7 +195,7 @@ export function projectRelationships(inputs:EvidenceInput[]):Map<string,Relation
         if(b.helps<2) {r.familiarity=clamp(r.familiarity+.01);b.helps++;}
         const delta=Math.min(.015,.03-b.positive); b.positive+=delta;r.affinity=clamp(r.affinity+delta);
       }
-      if(e.kind==='praise'||e.kind==='direct_insult') {
+      if(e.relationshipEligible!==false&&(e.kind==='praise'||e.kind==='direct_insult')) {
         const a:Appraisal={target:'character',act:e.kind==='praise'?'praise':'criticism',strength:e.strength??0,hostility:2,goal_relation:'unrelated',uncertain:false,evidence_refs:[]};
         const effect=socialEffect(a,socials,identityId,e.at); socials.push({...e,appliedStimulus:effect.stimulus});
         const positive=e.kind==='praise'; const remaining=.03-(positive?b.positive:b.negative);

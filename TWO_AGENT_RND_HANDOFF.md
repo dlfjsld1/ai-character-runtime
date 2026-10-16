@@ -1,4 +1,14 @@
+> **역사/연구 참고 문서.** 아래 상태·감사 결론·연구 제안·다음 작업은 원래 작성 시점의 기록이다. 현재 제품 목적은 [기획 v3](./PRODUCT_PLAN_V3.md), 실제 구현은 [현재 인계](./BUILD_HANDOFF.md), 변경 사유는 [기록](./PLANNING_CHANGELOG.md)을 따른다. 이 문서의 옛 Jev 제외·미구현 주장·연구 gate·위임 지시는 현재 승인이나 작업 지시가 아니다. [개정 직전 원문](./docs/archive/2026-10-11-before-emotion-runtime-v3/TWO_AGENT_RND_HANDOFF.md)을 보존한다.
+
 # 두 연구 에이전트 인계 패키지
+
+## 현재 사용 범위 — 2026-10-14
+
+아래 패키지는 당시 연구 인계 예시다. 이번에는 에이전트 생성·다른 대화 메시지·연구 실행을 하지 않는다. 순서는 [여섯 Goal](./IMPLEMENTATION_PLAN.md#goal-roadmap-20261014), 연구 범위는 [현재 보완](./REPRESENTATION_STEERING_RND.md#steering-update-20261014)을 따른다. 옛 G1–G5와 새 Goal 1–6을 같은 작업 ID로 해석하지 않는다.
+
+Goal 1-B와 런타임 후속 진단의 로컬 비교는48/48·미채택으로 종료했다. 다음은 [API 생성기 비교 계획](./docs/DIALOGUE_API_COMPARISON_PLAN.md)이며 서비스·별도 예산·키는 미정이다. [현재 인계](./BUILD_HANDOFF.md#runtime-generator-diagnosis-20261014)를 따르고 steering은 보류한다. 향후 위임이 필요하면 실제 승인된 Goal 범위만 전달한다. 아래 “사용법/다음 작업” 자체는 현재 위임 권한이 아니다.
+
+## 2026-10-02 인계 원안 — 역사 기록
 
 작성일: 2026-10-02  
 상태: 전달용 문서 작성 완료. **이번 작업에서 에이전트를 생성하거나 실험을 실행하지 않았다.**

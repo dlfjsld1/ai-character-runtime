@@ -1,10 +1,18 @@
+> **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 기획 개정 당시 코드·설정·DB는 바뀌지 않았으며, 후속 구현 상태는 아래 명시한 2026-10-11 계약과 현재 인계를 따른다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/RUNTIME_PROTOCOL.md)를 보존한다.
+
 # AI Character Runtime — 런타임 통신 명세
+
+## 2026-10-16 구현 — Stage 공개 값
+
+후속 [말투 지속 보완](./docs/REGISTER_CONTINUITY_RESULT.md)에서는 Plan의 optional speechStyle.concealAffect가 true이면 register가 formal이어도 response.start.expression은 neutral이다. 기존 wire 필드·enum은 바뀌지 않으며 이 내부 선택 필드를 Stage에 따로 보내지 않는다. 실제 강도 통제 연속 대화의 공개 패킷·자막 ACK와 화면에서 확인했다.
+
+[공개 표현 계약](./IMPLEMENTATION_PLAN.md#stage-public-expression-plan-20261016)에 따라 wire v1 response.start.expression은 해당 응답의 공개 표정이다. expression.set은 대기용 neutral만 보낸다. 기존 필드·enum을 유지한다. Stage는 responseId/generationEpoch/outputEpoch로 표현을 자막과 묶고 오래된 시작·취소·재연결에서 과거 표현을 복원하지 않는다. 대기 snapshot은 표시 중 표현을 덮지 않는다. Studio state.snapshot의 내부 관측은 유지한다. [합성 프로토콜·Chrome 검증](./docs/MIXED_AFFECT_EXPRESSION_RESULT.md#stage-public-build-20261016)을 완료했으며 아래 메시지 표의 형태는 유지된다.
 
 2026-10-04 준비 상태 추가: 인증된 Studio의 `/health/ready` 응답은 `appraisal: {provider, model, status, inferenceVerified, errorCode}`로 사건 해석을 구분한다. Jev status는 blocked/configured/ready/unavailable이며 configured는 키·flags 준비만 뜻한다. 첫 유효한 Jev 응답 전에는 inferenceVerified=false다. 시작·health poll은 Jev 추론하지 않는다. `llm`/`llmDetails`는 기존 대사 생성 Qwen 상태다. 모의 해석 provider는 `jev-mock`으로 표시하고 실제 Jev ready로 표시하지 않는다. Stage 메시지와 wire version은 유지한다.
 
 작성일: 2026-09-27  
 계약 버전: `runtime-v1` / wire `protocolVersion: 1`  
-상태: 구현 전 계약. 브라우저·OBS 통합과 지연·자동 재생 동작은 아직 검증하지 않았다.
+상태: 초기 통신 계약과 현재 텍스트 런타임의 변경 사항. 실제 검증 범위는 [현재 인계](./BUILD_HANDOFF.md)를 따른다. OBS·음성·자동 재생을 현재 텍스트 검사만으로 완료 처리하지 않는다.
 
 관련 문서: [MVP 범위](./MVP_SPEC.md), [도메인 규칙](./CHARACTER_DOMAIN_SPEC.md), [로컬 AI 연동](./LOCAL_AI_INTEGRATION.md), [DB 설계](./DATABASE_SPEC.md), [기술 설계](./technical_architecture_v1.md)
 
@@ -156,6 +164,8 @@ Stage에는 감정·관계 숫자, 원본 채팅, 기억 내용, 숨겨진 정�
 
 snapshot에는 과거 발화 재생 명령이나 WAV 목록을 넣지 않는다. 재접속은 최신 상태 표시를 회복하는 작업이며 끊긴 오디오를 이어 듣는 기능이 아니다.
 
+**2026-10-11 후속 검증 보강:** 자막 shown/finished, response 완료, neutral/listening 표정 표시는 감정이 해소됐다는 보고가 아니다. 화제 전환이나 대화 재개에도 Core의 현재 감정·기분을 이어받고, Stage가 출력 결과로 상태를 초기화하지 않는다. [도메인 §10.2](./CHARACTER_DOMAIN_SPEC.md#102-화제-전환과-재참여-뒤의-감정-지속--승인된-보강-계약)와 ER12의 검증 대상으로 명시하며 새 wire 필드는 추가하지 않는다.
+
 Stage는 `session.snapshot`의 generationEpoch가 더 크면 이를 반영하고 이전 epoch의 현재 자막·대기 큐를 제거한다. 기억 정정·삭제처럼 활성 응답이 없어 `response.cancel`이 오지 않는 변경도 이 경로로 동기화한다. 취소 전에 예약된 렌더 콜백·완료 타이머는 이후 자막의 처리 중 상태를 바꾸거나 전달 ACK를 보내지 않는다.
 
 ## 6. 채팅·마이크 입력
@@ -165,6 +175,8 @@ Stage는 `session.snapshot`의 generationEpoch가 더 크면 이를 반영하고
 `chat.submit` payload는 `{identityId,text,replyToEventId?}`다. Studio만 호출할 수 있고 identityId는 등록된 A·B·C 또는 운영자 중 하나여야 한다. text는 trim 후 1–1000 Unicode code points, 최대 UTF-8 4KiB다. HTML로 해석하지 않고 화면에는 textContent로 표시한다.
 
 서버가 event ID·수신 시각·source key를 부여한다. `command.result`를 받은 뒤에도 주의 선택이 되기 전에는 읽었다고 표시하지 않는다. `input.status` payload `{eventId,status:"pending"|"selected"|"observed"|"ignored"|"expired"}`로 상태를 별도 알린다. 20초·100개 후보 상한과 공정성은 도메인 규칙을 따른다.
+
+**2026-10-11 구현:** [도메인 §10.1](./CHARACTER_DOMAIN_SPEC.md#101-선택적-발화와-침묵-이유--구현-계약)의 의도적 침묵은 읽은 입력의 발화 선택이다. 관측된 입력을 `ignored`로 바꾸지 않으며 `observed`만으로 정상 해석이나 의도적 침묵을 추정하지 않는다. `participation`과 failure_code로 silent/defer/실패를 구분한다. 침묵에서는 대사 생성·빈 자막·`…`·sealed·shown/finished ACK 대기를 만들지 않고 처리를 끝낸다. 재접근 시 발화를 선택하면 기존 Stage 전달·완료 계약을 따른다. 이유 원문이나 내부 감정 수치를 Stage로 보내지 않으며 wire version·메시지 enum은 유지했다. DB/출력 sink 검사와 실제 브라우저 관측의 결과는 [현재 인계](./BUILD_HANDOFF.md)에서 구분한다.
 
 ### 6.2 누르고 말하기
 

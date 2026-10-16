@@ -4,6 +4,9 @@ import { createConnection } from 'node:net';
 import { join } from 'node:path';
 import { loadLocalEnv } from './env.ts';
 import { parseConfig } from '../packages/contracts/src/local-config.ts';
+import {createProviders} from '../apps/runtime/src/providers.ts';
+import {DialogueBudget} from '../packages/adapters/src/openai.ts';
+import {RuntimeError} from '../packages/contracts/src/domain.ts';
 
 type Check = { status: string; detail?: string };
 
@@ -113,18 +116,28 @@ async function checkStt(python: string, modelPath: string): Promise<Check> {
 
 try {
   const config = parseConfig(process.env);
-  const jevError=config.LOCAL_ONLY||!config.ALLOW_PAID_PROVIDERS?'jev_paid_api_disabled':!config.TYPESAFE_API_KEY?'jev_key_missing':null;
+  const providers=createProviders(config),appraisal={provider:providers.appraiser.name,model:providers.appraiser.model,...providers.appraiser.readiness()};
+  const dialogue={provider:providers.dialogue.name,model:providers.dialogue.model,...providers.dialogue.readiness?.()};
+  let openaiBudget:Record<string,unknown>={status:'not_selected'};
+  if(config.DIALOGUE_PROVIDER==='openai'||['openai-decisions-v3','openai-decisions-v4'].includes(config.APPRAISAL_PROVIDER)){
+    try{openaiBudget={status:'local_estimate_and_reserves',...new DialogueBudget(config.DIALOGUE_BUDGET_PATH,config.DIALOGUE_BUDGET_USD).summary()};}
+    catch(error){openaiBudget={status:'unavailable',errorCode:error instanceof RuntimeError?error.code:'dialogue_budget_unavailable'};}
+  }
+  const studioRoot=config.STUDIO_DIST_PATH||join(process.cwd(),'apps/studio/dist');
   const checks = {
     node: { status: 'available', detail: process.version },
     database: await checkDatabase(config.DATABASE_URL),
-    jev: {status:jevError?'blocked':'configured',model:config.APPRAISAL_MODEL,keyConfigured:Boolean(config.TYPESAFE_API_KEY),inferenceVerified:false,errorCode:jevError},
-    ollama: await checkOllama(config.OLLAMA_BASE_URL, [config.DIALOGUE_MODEL]),
+    appraisal,
+    dialogue,
+    openaiBudget,
+    jev: config.APPRAISAL_PROVIDER==='jev'?appraisal:{status:'not_selected'},
+    ollama: config.DIALOGUE_PROVIDER==='ollama'?await checkOllama(config.OLLAMA_BASE_URL, [config.DIALOGUE_MODEL]):{status:'not_selected'},
     omnivoice: await checkTts(config.OMNIVOICE_PYTHON, config.OMNIVOICE_MODEL_PATH, config.VOICE_PRESET_ID),
     stt: await checkStt(config.STT_PYTHON, config.STT_MODEL_PATH),
-    studio: { status: existsSync(join(process.cwd(),'apps/studio/dist/index.html'))?'files_present':'build_missing', detail: 'Text UI; runtime connectivity checked separately' },
-    stage: { status: existsSync(join(process.cwd(),'apps/studio/dist/index.html'))?'files_present':'build_missing', detail: 'Text captions only; voice/VRM blocked by P05' },
+    studio: { status: existsSync(join(studioRoot,'index.html'))?'files_present':'build_missing', detail: 'Text UI; runtime connectivity checked separately' },
+    stage: { status: existsSync(join(studioRoot,'index.html'))?'files_present':'build_missing', detail: 'Text captions; inference and creator acceptance checked separately' },
   };
-  process.stdout.write(`${JSON.stringify({ diagnosticVersion: 1, checks }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ diagnosticVersion: 2, checks }, null, 2)}\n`);
 } catch (error) {
   const detail = error instanceof Error ? error.name : 'unknown';
   process.stderr.write(`Configuration could not be read or validated (${detail}). Check local-only flags and paths.\n`);

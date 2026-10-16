@@ -1,4 +1,4 @@
-"""Offline Qwen tokenizer/template count; no model, Torch or remote code load."""
+"""Offline tokenizer/template count; no model, Torch or remote code load."""
 import json,sys,pathlib
 try:
     from tokenizers import Tokenizer
@@ -11,8 +11,11 @@ try:
         def raise_exception(message):raise ValueError(message)
         env.globals['raise_exception']=raise_exception
         env.filters['tojson']=lambda value,**kwargs:json.dumps(value,ensure_ascii=False,**kwargs)
-        template=env.from_string(config['chat_template'])
-        text=template.render(messages=data['messages'],add_generation_prompt=True,tools=None,**{k:v for k,v in config.items() if k.endswith('_token')})
+        template_source=config.get('chat_template') or (root/'chat_template.jinja').read_text(encoding='utf-8')
+        options=data.get('templateOptions',{})
+        if set(options)-{'enable_thinking'}:raise ValueError('unsupported_template_options')
+        template=env.from_string(template_source)
+        text=template.render(messages=data['messages'],add_generation_prompt=True,tools=None,**{k:v for k,v in config.items() if k.endswith('_token')},**options)
     else:text=data['text']
     print(json.dumps({'tokens':len(tokenizer.encode(text,add_special_tokens=False).ids)}))
 except Exception:

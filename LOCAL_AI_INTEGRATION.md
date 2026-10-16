@@ -1,14 +1,58 @@
+> **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 범위 개정은 문서만 변경했으며, 이후 승인된 구현과 검증 상태는 [현재 인계](./BUILD_HANDOFF.md)를 따른다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/LOCAL_AI_INTEGRATION.md)를 보존한다.
+
+이전 기록(2026-10-14): 명시적 openai 생성 factory와 비밀 파일 로딩을 추가했다. 기본 ollama/유료 차단은 유지한다. OpenAI 생성은 gpt-6-sol·OpenAI 총예산 원장·유료 허용이 모두 필요하며 자동 solver/appraiser 연결은 없다. [생성 비교 결과](./docs/OPENAI_GENERATION_RESULT.md)에서 schema 포함 계수24건의 실제 일치와 개발용 수용 완료를 확인한다. Goal2 Jev 실패 뒤 평가 전용 `OpenAIConversationCandidate`/verifier를 구현해 같은 원장의 명시적 판단 범위에서 실제24회 실행했다. 기능21/24로 미승격이며 [현재 결과](./docs/GOAL2_DECISIONS_RESULT.md)를 따른다. 운영 factory에 Decisions를 등록하지 않았고 아래 설치·운영 계약은 그대로다.
+
 # 로컬 AI 연동 명세
+
+## 현재: B1 감사 수정·B2 감정 경로 검증 — 2026-10-15
+
+B1 예산 경계 수선과 G3-L 삭제/취소/연결 회복·실제 프로세스 재시작을 검증했다. 작은 긍정 반응을 주는 선택형 v4는 단위75·DB19·타입을 통과했고 실제 판단1회에서 joy .06과 listening 침묵을 확인했다. 첫 도구 실행의 표정 기대 오류와 초기 B2 happy 미도달은 [현재 결과·판정 경계](./docs/EMOTION_RUNTIME_RESULT.md#restart-and-praise-v4)에 보존했다. 누적 판단73/생성29 상한은 소진됐고 모델 사용량 추정 USD0.0719108·계수 예약 USD0.9059575의 합계0.9778683은 청구액이 아니다. 플랫폼 약0.05는 이전 사용자 조회 시점이다. 다음은 숨김의 자연 도달성과 감정 표현 대조, G3-S16·G3-U 제작자 수용이다.
+
+## 이전: v3 실시간 합성 Stage 기술 경로 — 2026-10-15
+
+운영 factory에는 v3를 등록하지 않았다. 전용 평가 도구 `evals/interaction-v3-stage.ts --live --synthetic-inputs --allow-decisions-api`가 v3 provider/verifier와 설치된 Gemma를 새 합성 Store/Studio/Stage에 직접 주입해 [네 장면 모두 실시간 판단→Stage](./docs/INTERACTION_V3_LIVE_STAGE_RESULT.md)를 확인했다. 판단62회 상한 소진으로 재실행하지 않는다. 운영 Jev v6/Gemma 유지, 제작자 수용은 별도다. 아래 혼합 세션과 이전 후보는 당시 기록이다.
+
+## 이전: v3 혼합 재생·실시간 합성 Stage 기술 경로 — 2026-10-15
+
+운영 factory에는 v3를 등록하지 않았다. 전용 평가 도구 `evals/interaction-v3-stage.ts`가 v3 provider/verifier와 설치된 Gemma를 합성 Store/Studio/Stage에 직접 주입해 [네 장면](./docs/INTERACTION_V3_STAGE_RESULT.md)을 확인했다. 최종 세션의 L1·L2는 저장된 실제 판단 원문 재생, L3·L4는 실시간 판단이다. 전자는 Stage 후단 검증, 후자는 실시간 판단→Stage 검증으로 구분한다. 판단58회 상한 소진, 운영 Jev v6/Gemma 유지, 제작자 수용은 별도다. 아래 v3 후보·v2 절은 당시 기록이다.
+
+## 이전: v3 평가 후보 통과 — 2026-10-15
+
+평가 전용 `openai-interaction-v3`는 이전 사건 **언급**을 실제 수선 허가와 분리하는 질문, 별도 `promptVersion`과 출처 verifier를 사용한다. 기존 v2 기본 동작과 판단36회 기본 상한은 유지하고, 승인된 v3 평가 continuation에만 판단54회 상한을 명시했다. 실제 Decisions 개발6/6·확인12/12와 합성 DB15/15가 통과했고 판단 상한54회를 소진했다. [실제 결과](./docs/INTERACTION_V3_RESULT.md)를 따른다. 운영 Jev v6/Gemma·factory는 바꾸지 않았으며 실제 v3→Stage와 제작자 수용은 미검증이다. 아래 v2 내용은 당시 기록이다.
+
+## 이전: v2 실제 진단 종료 — 2026-10-15
+
+`OpenAIInteractionCandidate`로 합성12건을 실제 Decisions API에 전송했다. 네 축 고정 통과10/12, I02 평가 기준 오류 정정11/12이며 I11 의미 연결이 불명이다. [실제 결과](./docs/INTERACTION_V2_DEV12_RESULT.md)를 따른다. 운영 Jev v6/Gemma는 유지하고 판단36회 한도에 도달했다. 아래는 당시 구현/로컬 검증 상태다.
+
+## 이전: 독립 입력 해석 후보 구현 — 2026-10-14
+
+운영 Jev v6/Gemma는 유지한다. OpenAI 생성 후보의 개발용 수용 뒤 실제 Decisions v1 실패를 확인해 `openai-interaction-v2`를 별도 평가 후보로 구현했다. 현재 입력/과거 문맥과 복수 행위·공격/칭찬·강도를 분리하고 출처 검증 뒤 Core에 공급자 중립 근거를 전달한다. 새 실제 판단 품질은 미검증이며 [결과](./docs/INTERACTION_V2_RESULT.md)·[현재 인계](./BUILD_HANDOFF.md#interaction-v2-20261014)를 따른다. 아래 구 연동·준비 상태는 당시 기록이다.
+
+## 이전 로컬 연동 상태 — 2026-10-14
+
+현재 작업공간의 선택은 `gemma4:12b-it-qat`, 사건 해석은 Jev v6다. 필수 경로는 Jev → Core/PostgreSQL → 선택 생성 모델 → Stage다. 후속 Ollama 0.31.2에서 Qwen3.5 형식8/8은 통과했지만 의미·말투 문제로 미채택했다. 운영 adapter·설정은 유지하며 [현재 인계](./BUILD_HANDOFF.md#runtime-generator-diagnosis-20261014)를 따른다.
+
+Goal 1-B dev36·think 생략4·수정 런타임8의 로컬 비교는48/48로 종료했다. 기존 모델을 재사용했고 공식 런타임만 J:에 별도 다운로드했다. [진단 결과](./VALIDATION_PLAN.md#runtime-generator-evidence-20261014)와 [다음 API 비교 계획](./docs/DIALOGUE_API_COMPARISON_PLAN.md)을 따른다. 서비스·별도 예산·키 확정 후에만 생성 API를 호출한다. Goal 3 운영 연결은 미착수이며 steering은 보류한다. 아래 날짜별 계약/명령/결과는 당시 기록이다.
+
+2026-10-11 grounded-v2의 **과거 실행 기록**: 당시 구현·검증은 IMPLEMENTATION_PLAN.md §18.11에 기록했습니다. 관련 회귀44/44·실제 J: DB Q03 5/5·타입 PASS였지만 Gemma dev18/24·형식18/24·진단2/4, 집중10/16·형식14/16·금지 사실4로 품질 FAIL이었습니다. 추론50회·유료0·다운로드0, 해당 실행의 새 final/Stage는 미실행이었습니다. 자료는 J:/ai/ai-character-runtime/model-comparison/grounding-v2에 보존합니다. 서버·테스트 DB 종료와 다음 AUDIT 안내도 그 실행 종료 당시의 기록입니다. 최신 결과는 [현재 인계](./BUILD_HANDOFF.md)를 따릅니다.
+
+2026-10-11 최신 계약: 현재 로컬 선택은 Gemma4:12b-it-qat와 Jev v6이며 생략 기본 Qwen2.5:7b를 유지합니다. 일반 Gemma 대사는 한 JSON에 내용 초안과 한국어 문장 배열을 생성한 뒤 검증된 대사 문자열만 Stage에 전달합니다. 초안은 어댑터 내부에만 남으며 재접근 공개/숨김 요청은 기존 구성을 유지합니다. 감정 수치 적용과 명시적 듣기·재접근 참여 판단은 분리하며 Jev의 기존 임계값은 유지합니다. 평가용 준비는 실제 token 일치·물리 완료·비어 있지 않은 content를 검사하고, 대사 형식은 dialogue에서 따로 검사합니다. 평가기의 onCall은 timeout 뒤 늦은 완료도 원문과 함께 직렬 저장합니다. evidence-bound-v1/grounded-v2는 명시적 평가 프로필에 남은 과거 평문 후보이며 운영 기본이 아닙니다. 기존 모델·tokenizer는 J:에서 재사용하고 최신 실행 결과는 [현재 인계](./BUILD_HANDOFF.md)를 따릅니다.
+
+> 단계 결정 기록 (2026-10-09): 텍스트 캐릭터 우선. 필수 Jev·기존 Qwen·자막 Stage를 검증하고 TTS/STT·마이크·VRM·OBS는 후속 확장으로 미룬다. 실제 Jev 합성 검증은 누적 USD 1 승인 범위에서 실행하며 공급자 오류 시 중단한다. 아래 과거 준비/실행 기록은 당시 결과이고 최신 상태는 BUILD_HANDOFF.md를 따른다.
 
 > 2026-10-04 범위 수정: Jev 사건 해석은 MVP 필수다. 정상 경로는 Jev → Core → 로컬 Qwen → Stage다. 원격 Jev의 비용·합성 입력 전송은 별도 승인 조건이며, 승인 전에는 차단 상태로 개발·모의 검증한다. 아래 최초 작성일의 설치·실행 기록은 당시 범위를 유지한다.
 
 작성일: 2026-09-24  
 계약 버전: `local-ai-v1`  
-상태: 구현 전 명세. 설치 파일·공식 API를 확인했으며, 모델 추론·성능 측정·통합 실행은 아직 하지 않았다.
+상태: 연동 계약. 텍스트 구현과 개별 실행 결과는 BUILD_HANDOFF.md를 따른다. 음성 부분은 후속 확장 명세다.
 
 관련 문서: [MVP 범위](./MVP_SPEC.md), [캐릭터 preset](./CHARACTER_PRESET.md), [도메인 규칙](./CHARACTER_DOMAIN_SPEC.md), [기술 설계](./technical_architecture_v1.md)
 
 ## 1. 목적과 문서 경계
+
+2026-10-10 재개 당시에는 평문 대사를 생성한 뒤 `validateDialogue`가 Han 문자를 거부했다. 2026-10-11 수정에서는 일반 대사를 `sentences` 배열 JSON으로 생성하며 문장 개수와 허용 문자·종결부호 패턴을 생성 schema에 전달한다. 각 항목에는 한글 음절이 하나 이상 있어야 한다. 한자 표기는 계속 거부하며 영문 참여자 이름과 숫자·소수 답은 한글 대사와 함께 쓸 수 있다. JSON 파싱 뒤 각 항목 한 문장·전체 120자와 기존 출력 검사를 다시 적용한다. 이 형식 검사는 한국어 의미·반말·사실 정확성의 판정기가 아니다. 거부된 대사는 `invalid_output`으로 실패 처리하고 자막을 보내지 않는다. 자동 재생성이나 잘라내기는 하지 않는다. 실제 Qwen 의미 품질은 별도 평가한다.
+
+현재 대사 생성은 일반 캐릭터의 purpose·표현·공개 선택을 한국어 행동 지침으로 전달한다. 일반 화제에는 현재 입력·관련 출처·선택 기억·상대 정보를 제공한다. 재접근에는 검증된 저장 이유·이번 공개 선택·현재 말투와 현재 질문만 제공하고, 과거 원문 지시를 재전달하지 않는다. DB의 원본·출처는 보존한다. 재접근은 한 문장으로 생성·검증하며 unknown은 이유에 대한 불확실성만 말하도록 한다. explain/partial/unknown에는 Core의 calm/normal/lively 전달 지시도 반영한다. deflect는 현재 기분을 드러내도록 강요하지 않고 담담한 숨김 표현을 유지한다. 잘못된 이유 값이나 사건/상대 불일치도 unknown이다. 숨김과 괜찮은 척은 허용하지만 다른 핑계를 만들어 원인을 바꾸지 않는다. 이는 생성 지침이고 모든 의미 정확성을 보장하지 않는다. 실제 품질은 [검증 기준](./VALIDATION_PLAN.md)의 ER02·ER07·ER10·ER12로 판정한다. Jev Score의 평균 일치 허용 오차는 2026-10-05 반올림 호환 수정의 `0.035 + 1e-8`, 확률 합 허용 오차는 기본 `1e-4`이며 v3는 두 자리 반올림 분포에만 `항목 수 × 0.005 + 1e-8`을 적용한다. 실제 합 0.99 응답을 근거로 하며 공식 정밀도 보장을 뜻하지 않는다. confidence 기준 0.80은 유지한다.
 
 기존 PC에서 **Jev로 사건을 해석하고, Ollama로 대사·퍼즐 답 후보를 생성하며, OmniVoice와 로컬 STT로 음성을 처리하는 경로**를 정의한다. Jev는 필수이며 비용·합성 입력 전송 승인 조건을 따른다. 다른 유료 서비스·체험 크레딧·AnimeAct Engine 구매는 필요 조건에 넣지 않는다.
 
@@ -20,7 +64,7 @@
 
 | 역할 | 첫 구현 선택 | 확인된 사실 / 남은 확인 |
 |---|---|---|
-| 사건 해석 | Jev `jev-1.13.0`, Choice/Score | adapter와 모의 검증 구현. 실제 Jev 한국어 품질은 미검증 |
+| 사건 해석 | Jev `jev-1.13.0`, Choice/Score | adapter와 모의 검증 구현. 실제 Jev의 기존 실패와 수정 후 검증 상태는 [현재 인계](./BUILD_HANDOFF.md)에서 구분 |
 | 대사 생성 | 로컬 Qwen `qwen2.5:7b` | 별도 모델 상주 없음. 실제 발화 품질·지연 확인 필요 |
 | 퍼즐 풀이 | 같은 모델, 답 후보 JSON | 정답은 활동 검증기만 보유 |
 | 기억 정리 | 구조화 사건을 코드로 묶음 | MVP의 사실 기억은 템플릿 사용. LLM 회고 호출은 필수 아님 |
@@ -112,12 +156,12 @@ provider의 재시도 ID와 도메인의 중복 방지 키는 다르다. 같은 
 
 초기 주소는 `http://127.0.0.1:11434` 하나로 제한한다. 모델 이름은 설치 목록에 존재하는 `qwen2.5:7b`를 명시적으로 허용하며, 임의 모델·cloud 태그·원격 URL·HTTP redirect는 거부한다. `:cloud` 문자열 검사만으로 로컬 실행을 판정하지 않는다. 허용된 설치 모델의 metadata와 작은 준비 호출을 함께 확인한다.
 
-`POST /api/chat`에 `messages`, `stream`, `format`, `options`, `keep_alive`를 보낸다. 구조화 작업은 `stream=false`와 JSON Schema를 사용하고, 대사는 `stream=true`로 받아 내부 버퍼에 모은다. `message.content`를 읽으며 정상 완료 신호 없이 연결이 끝나면 실패다. [Ollama Chat API](https://docs.ollama.com/api/chat)
+`POST /api/chat`에 `messages`, `stream`, `format`, `options`, `keep_alive`를 보낸다. 해석·풀이 작업은 `stream=false`와 JSON Schema를 사용한다. 일반 대사는 JSON Schema와 `stream=true`를 함께 사용해 내부 버퍼에 모은 뒤 파싱한다. `message.content`를 읽으며 정상 완료 신호 없이 연결이 끝나면 실패다. [Ollama Chat API](https://docs.ollama.com/api/chat), [구조화 출력](https://docs.ollama.com/capabilities/structured-outputs)
 
 | 작업 | temperature | num_predict | 출력 계약 |
 |---|---:|---:|---|
 | 사건 해석 | 0 | 256 | AppraisalResult JSON |
-| 대사 생성 | 0.5 | 256 | 한국어 평문, 목표 80자, 최대 1–2문장 |
+| 대사 생성 | 0.2 | 256 | 일반 모드: 한국어 `sentences` 배열 JSON → 검증된 문자열 배열. 목표 80자, 최대 1–2문장·총 120자. 과거 명시적 평가 프로필만 평문 |
 | 퍼즐 풀이 | 0 | 256 | PuzzleCandidate JSON |
 
 초기 `options.num_ctx=4096`, `keep_alive="5m"`로 설정한다. 옵션 값은 측정 후 버전과 함께 조정한다. temperature 0도 같은 장비·버전의 완전한 재현을 보장하지 않으므로 Core 재현 시험에는 기록된 해석 결과를 사용한다.
@@ -128,7 +172,7 @@ Ollama 서버 실행 환경에 `OLLAMA_NO_CLOUD=1`, `OLLAMA_NUM_PARALLEL=1`을 �
 
 system에는 해당 작업 규칙·고정 preset을, user에는 JSON으로 직렬화한 선택 입력·허용 맥락을 넣는다. 인용문, 채팅, 기억은 자료이며 역할 지시문으로 승격하지 않는다. `tools`는 보내지 않는다. 역할 토큰처럼 보이는 사용자 문자열도 그대로 자료로 취급한다.
 
-4096 tokens 안에서 입력 최대 3328, 출력 최대 256, 여유 512를 초기 예산으로 둔다. 입력 예산은 chat template·system을 포함한다. 준비 단계에서 사용 모델과 호환되는 tokenizer 파일을 로컬에 확보하고 token counter를 검증한다. tokenizer는 아직 준비됐다고 간주하지 않는다. Ollama 응답의 실제 prompt token 수와 비교해 차이를 기록하며, 정확한 계수가 준비되기 전에는 M0 실험만 진행한다.
+4096 tokens 안에서 입력 최대 3328, 출력 최대 256, 여유 512를 초기 예산으로 둔다. 입력 예산은 chat template·system을 포함한다. 준비 단계에서 사용 모델과 호환되는 기존 로컬 tokenizer 파일과 token counter를 검증한다. 파일의 존재만으로 준비됐다고 간주하지 않는다. Ollama 응답의 실제 prompt token 수와 비교해 차이를 기록하며, 해당 모델·설정의 정확한 계수가 준비되기 전에는 본 품질 평가로 진행하지 않는다.
 
 작업 기억은 최대 20개가 저장돼 있어도 전체를 프롬프트에 넣지 않는다. 검색된 기억은 최대 5개·600 tokens다. 초과 시 낮은 우선순위의 기억 전체와 오래된 대화 차례부터 제외한다. 현재 입력·출처 ID·활동 사실·고정 지침을 중간에서 자르지 않는다. 필수 입력만으로 넘으면 `input_too_long`을 반환하고 짧게 다시 입력하도록 Studio에 표시한다.
 
@@ -151,7 +195,9 @@ type AppraisalResult = {
 };
 ```
 
-정상 해석은 `POST https://api.typesafe.ai/v1/systemone`, Bearer key와 고정 model, state, questions를 전송한다. Choice(target/act/goal_relation) 3개, Score(strength/hostility) 2개를 각각 독립 질문으로 요청한다. 모든 답의 type·label·분포 합(1±1e-4)·confidence·Score legend/평균을 검증한다. Score는 유일 최빈 등급으로 정수화한다. confidence 최솟값 <0.80, 확률 동률, unknown target/act는 uncertain과 0 강도로 유보한다. 검증된 typed 답·mappingVersion·threshold·gateReasons는 provider_result에 보존한다. [Jev API](https://docs.typesafe.ai/api), [Score](https://docs.typesafe.ai/primitives/score)
+정상 해석은 `POST https://api.typesafe.ai/v1/systemone`, Bearer key와 고정 model, state, questions를 전송한다. Choice(target/act/goal_relation) 3개, Score(strength/hostility) 2개를 각각 독립 질문으로 요청한다. 모든 답의 type·label·분포 합(기본 오차 1e-4, 두 자리 반올림 분포만 항목 수×0.005+1e-8)·confidence·Score legend/평균을 검증한다. Score는 유일 최빈 등급으로 정수화한다. confidence 최솟값 <0.80, 확률 동률, unknown target/act는 uncertain과 0 강도로 유보한다. 검증된 typed 답·mappingVersion·threshold·gateReasons는 provider_result에 보존한다. [Jev API](https://docs.typesafe.ai/api), [Score](https://docs.typesafe.ai/primitives/score)
+
+감정 적용과 명시적 참여 행동의 근거는 분리한다. Store에 주입한 Jev evidence verifier는 오류 없는 metadata를 기존 엄격한 파서로 재검증하고, 현재 사건 참조·판정 선택·prompt/mapping 버전이 맞는지 확인한다. `target=character`와 알려진 `act` 각각 confidence ≥0.80이고 유일 최빈 선택이 현재 appraisal과 일치하면 Core에 좁은 참여 근거만 전달한다. 저장된 `uncertain`, `strength=0`, `hostility=0`은 그대로다. 명시적 듣기·재접근만으로 감정이 증가하지 않는다. 구형 v4 참여 근거는 원문에 명시된 듣기 요청과 침묵 이유 재접근에 한정한다. 새 v6는 검증된 target/act에 acknowledgePraise를 더해 칭찬 응답을 허용한다. 감정은 별도 verifyAffect로 검사하며 비난·공격으로 권한을 확대하지 않는다. quoted/other/unknown 대상, unknown 행위, 낮은 대상·행위 confidence, 해당 분포 동률, 공급자 오류·잘못된 metadata는 이 경로를 쓰지 못한다. 유효한 같은 상대의 침묵 기록이 없거나 이후 출력 실패가 있으면 재접근의 공개 선택은 `unknown`이며 이유를 만들지 않는다. 다시 말하거나 주제를 바꾸는 것만으로 감정을 초기화하지 않는다.
 
 `evidence_refs`는 제공한 ID의 부분집합이며, 의미 판단을 반환했다면 현재 입력 ID를 포함해야 한다. 빈 응답, JSON 파싱 실패, 미제공 ID, 잘린 생성은 실패다. JSON 내부에서 추측한 숫자를 강제로 범위 안에 넣어 성공으로 바꾸지 않는다.
 
@@ -169,7 +215,8 @@ Core가 `action`, `purpose`, `target_identity_id`, 감정 요약, 허용된 기�
 
 - 한국어의 부드러운 반말, 보통 최대 두 문장·목표 80자.
 - 강한 frustration/embarrassment에서는 도메인 규칙에 따라 최대 한 문장.
-- 전달할 말만 반환. JSON·지시문·행동 묘사·수치 상태를 읽지 않음.
+- 일반 재접근은 감정 강도와 별도로 한 문장 상한. 저장 이유와 공개 방침을 현재 말투에서 분리하며, 과거 원문 지시는 재전달하지 않는다.
+- 모델은 `sentences` 배열 JSON을 반환하고 Stage에는 검증된 대사 문자열만 전달. JSON 문법·지시문·행동 묘사·수치 상태를 읽지 않음.
 - 힌트 요청·활동 재개 제안처럼 Core가 정한 목적을 유지.
 - 허용된 경험만 언급. 검증기 결과 없이 성공을 확정하지 않음.
 
@@ -177,7 +224,7 @@ Core가 `action`, `purpose`, `target_identity_id`, 감정 요약, 허용된 기�
 
 문장 분리는 구두점 뒤 공백이 없어도 앞 문장을 보존하며, 숫자 사이의 점은 소수점으로 보존한다. `안녕.반가워.`는 두 문장, `답은 3.14야.`는 한 문장이다. 문장 수·120자 상한은 계속 적용하고 구두점만 있는 출력은 거부한다.
 
-80자는 목표다. 120자를 넘거나 허용 문장 수를 넘으면 완전한 문장 단위로 줄이되 의미가 변하면 채택하지 않는다. 기계적인 글자 중간 절단은 하지 않는다. 자르기 어려운 출력은 실패로 처리하고 반복 재생성을 하지 않는다. 내용 사실성은 문자열 검사만으로 보장되지 않으므로 별도 한국어 평가 사례로 검증한다.
+80자는 목표다. 120자를 넘거나 허용 문장 수를 넘으면 `invalid_output`으로 거부한다. 문장이나 문자를 잘라 성공으로 바꾸지 않으며 자동 재생성하지 않는다. 내용 사실성은 문자열 검사만으로 보장되지 않으므로 별도 한국어 평가 사례로 검증한다.
 
 전달할 과거 사실과 활동 결과는 가능한 한 서버가 작성한 짧은 사실 블록으로 제한한다. 특히 정답 여부는 활동 결과에서만 공급한다. 모델 출력만 보고 새로운 기억·관계 근거를 만들지 않는다.
 
@@ -376,6 +423,8 @@ Jev만 별도 승인된 원격 추론 예외이며 대사·음성 추론과 저�
 
 형식·취소·중복 검사는 fake provider와 실제 adapter 경계에서 반복 가능하게 만든다. 한국어 해석은 실제 Jev, 대사 품질과 GPU 자원은 실제 로컬 모델로 별도 검사한다. Fake provider 통과를 실제 모델 통과로 기록하지 않는다.
 
+최신 이유 설명 수정의 검증 자료는 `J:/ai/ai-character-runtime/disclosure-fix-20261011/`에 저장한다. 이전 참여 분리 자료 `participation-korean-fix-20261011/`는 당시 실패와 함께 보존한다. [현재 실행법](./RUNBOOK.md#현재-감정-런타임-검증--2026-10-11)과 [최종 검증 상태](./BUILD_HANDOFF.md)를 함께 확인한다. 과거 grounded-v2/evidence-bound 평문 후보의 PASS·FAIL은 일반 JSON 대사 계약의 새 검증 결과로 재사용하지 않는다.
+
 ### 13.2 측정할 값
 
 - 모델 태그·digest, Ollama/worker/패키지 버전, 프롬프트·preset·설정 버전.
@@ -403,3 +452,84 @@ Jev만 별도 승인된 원격 추론 예외이며 대사·음성 추론과 저�
 구현 전에 확보할 미확정 항목은 **참조 목소리와 전사문, 완전한 TTS snapshot, STT 환경·모델, token counter 파일, 두 모델 동시 상주 가능 여부**다. 목소리 선택은 준비 화면에서 처리할 수 있으며, 문서 작성 단계에서 임의의 파일을 선택하지 않는다.
 
 요청 결과·실제 전달·취소·출처 버전은 [DB 설계 명세](./DATABASE_SPEC.md)의 저장 계약과 [런타임 통신 명세](./RUNTIME_PROTOCOL.md)의 브라우저 메시지로 이어진다.
+
+<a id="planned-model-ports"></a>
+
+## 15. 교체 가능한 모델 경계 — 2026-10-11 구현
+
+이 절은 [IMPLEMENTATION_PLAN §5](./IMPLEMENTATION_PLAN.md#model-boundaries)를 구현한 현재 계약이다. Store의 직접 mapJevResponse 호출을 제거하고 공용 역할을 contracts/src/ai-ports.ts로 옮겼다. 현재 작업공간은 Jev/Gemma4 content-first이며 생략 기본 Qwen을 유지한다. 구조 검증과 표현 실패의 실제 범위는 [현재 인계](./BUILD_HANDOFF.md)를 따른다.
+
+### 15.1 계약과 검증 소유권
+
+- 공용 AI 포트/Context/TokenCounter는 contracts/src/ai-ports.ts에 정의돼 있다. imports는 구현→계약 방향이다. 대사, 사건 해석, 선택 활동 풀이를 분리하며 각 역할의 name/model/version·ready/readiness·실패 정보를 공용 소비자가 해석할 수 있게 한다. 기존 상태와 오류 표시 의미는 유지한다.
+- 대사 입력의 Plan은 Core가 결정한 purpose/target/expression/delivery/reengagement/길이를 보존한다. Context는 Store가 읽어온 현재 입력, 선택 기억·상대, 유효 침묵 기록과 출처의 readonly projection이다. 필드 하나를 지워 테스트를 맞추거나 어댑터가 지속 state를 수정할 수 있게 하지 않는다.
+- 대사 출력은 검증된 sentences이며 raw/sampling/model/tokenizer 식별은 평가/진단 기록으로 분리한다. JSON/text 같은 공급자 출력 문법·프롬프트·토큰 수 계산·실제 호출 수명은 어댑터 책임이다. Core는 Qwen chat template을 모른다. 기존 제한/취소 뒤 채택 금지/물리 요청 직렬화를 유지한다.
+- AppraisalEvaluation의 공통 appraisal은 유지한다. metadata에는 provider/model/promptVersion/latency/usage와 증거 envelope의 식별·원문을 보관하되 공용 타입에 Jev의 answers enum과 mappingVersion 목록을 넣지 않는다. 공급자 고유 schema는 해당 어댑터에 둔다. raw는 보관 가능한 자료이며 검증된 참여 권한 그 자체가 아니다.
+- 현재 런타임은 AppraisalEvent.revision을 전달하고 신규 증거를 version=2, provider, mappingVersion, eventId, identityId, eventRevision, payload envelope로 보관한다. revision이 생략된 호환 평가 호출은 version1로 보관할 수 있으나 v6의 추가 권한은 거부한다. metadata의 공급자/버전과 envelope가 일치해야 한다. payload는 등록된 공급자·버전 검증기가 strict parse하고 기존 공통 appraisal과 대조한다. 선언된 approved/verified boolean으로 검증을 대체하지 않는다.
+- Store에 AppraisalEvidenceVerifier를 주입한다. 실행 조립에서 검토된 공급자/버전 검증기만 등록하고 네트워크 없이 동작시킨다. 반환은 같은 사건·상대의 target/act에 한정한다. Store는 자신의 locked/commitAppraisal 안에서 현재 event revision·session·generation epoch·identity·출처·appraisal 일치를 최종 확인하고 Core에 근거를 전달한다. provider-specific confidence의 유효성은 어댑터, 어떤 명시적 참여에 쓸지는 기존 Core 정책이 소유한다.
+- Jev의 현재 strict parser·.8·유일 최댓값·uncertain 규칙은 동일하게 유지한다. 새 해석 공급자는 자체 확신/증거 기준을 검토한 어댑터가 필요하며 단순 LLM 자기보고 확률로 Jev의 .8 검증을 흉내 내지 않는다. 근거 누락·미등록 공급자/버전·검증 실패는 추가 참여 근거를 반환하지 않고 기존 오류/불확실성 처리를 따른다. opaque 원문 보관 여부와 참여 채택은 별개다. malformed 원문을 strict 검증 없이 참여 근거로 채택하면 HB03 실패다.
+
+### 15.2 저장·과거 기록·선택 설정
+
+기존 appraisals의 result/provider/model/prompt_version/provider_result 열을 사용한다. 새 envelope는 provider_result 안에 저장하고 과거 Jev raw는 다시 쓰지 않는다. envelope가 없는 기존 기록은 metadata.provider와 기존 mappingVersion으로 명시적인 legacy decoder를 선택한다. 지금 지원되는 과거 기록의 읽기/삭제 의미를 보존하며 현재 모델로 다시 추론하거나 새 mappingVersion을 찍지 않는다. 미지원 과거 원문은 보존 가능하지만 새로운 참여 근거로 채택할 수 없다. 삭제 시 원문과 envelope·출처 모두 기존 정책대로 제거한다. DB migration이 불필요한지는 기존 JSONB 제약으로 확인하고, 제약을 조용히 완화하거나 무단 backfill하지 않는다.
+
+기존 APPRAISAL_MODEL/DIALOGUE_MODEL 및 비용 flags를 유지하고 APPRAISAL_PROVIDER=jev, DIALOGUE_PROVIDER=ollama를 기본 선택자로 사용한다. apps/runtime/src/providers.ts의 factory는 운영에서 Jev jev-1.13.0과 Ollama qwen2.5:7b와 gemma4:12b-it-qat를 등록한다. 실사용 selector에 fixture를 등록하지 않는다. 대체 공급자는 검토된 factory 등록과 해당 설정/credential/profile을 추가하며 Core·Store·Stage는 그대로여야 한다. 미등록 선택자나 미지원 모델은 추론 전 명시적으로 거절하고 자동 fallback하지 않는다. 등록 과정에서 모델별 capabilities/tokenizer/온도/출력 제약을 점검한다.
+
+현재 실행 선택은 C1 검증 후 Jev/Gemma4로 바뀌었다. 실제 Jev 대체 공급자 개발·새 API 승인이나 운영 모델 자동 변경까지 이번 계획에 포함하지 않는다. 기존 설치 대사 후보는 EX 기준 통과와 채택 기록 후 운영 설정을 바꾼다. 실행 중 hot swap은 만들지 않으며 요청 정리·재시작 후 저장 상태에 기존 decay/recover를 적용한다.
+
+현재 decoder는 Jev v1–v9 원문 구조와 envelope v1/v2/v3를 읽는다. 운영 기본은 v6이고 v7/v8/v9는 실제 dev 게이트에서 탈락한 평가 전용 후보다. v4는 기존 참여 근거만 허용하고, v6의 새 감정·참여 근거는 현재 event/identity/revision과 일치하는 version2 envelope에서만 허용한다. 다른 버전을 v4로 재해석하거나 과거 행을 다시 쓰지 않는다. 공통 metadata는 공급자별 원문을 opaque 자료로 저장하고 strict 검증은 어댑터가 담당한다. Store는 verifier가 없거나 실패하면 추가 참여 근거를 주지 않는다. 운영 조립과 실제 Jev 평가 도구는 verifier를 명시적으로 주입한다. 기존 JSONB 열을 사용하므로 신규 migration/backfill은 없다.
+
+emotion-v1은 이전 dev 비교에서 거부된 평가 전용 프롬프트이며 운영에 적용하지 않았다. 당시 대사36건의 형식 통과와 실제 기본 조합의 4번째 입력 JSON 실패는 과거 기록으로 보존한다.
+
+2026-10-11 후속 생성 수정: Ollama에 보내는 sentences 문자열 pattern에서 raw 큰따옴표를 제외하고 굽은 인용부호는 허용한다. JSON 디코딩 이후 기존 validator는 올바르게 escape된 큰따옴표를 계속 허용하며 malformed 전체 거부·문장 수·길이·한국어 검사는 유지한다. 실패 원문을 자르거나 자동 재생성하지 않는다. 동일 실패 context/seed 회귀3/3과 실제 Jev7입력→Stage 기술 경로는 통과했다. emotion-v2도 dev12에서 탈락한 평가 전용 후보이며 운영 prompt는 유지한다. 현재/후보 총24건의 형식 성공은 감정 표현·사실 충실성 성공이 아니다. 상세 범위는 BUILD_HANDOFF 최신 절과 VALIDATION_PLAN §6을 따른다.
+
+개발 완료 목표 C1의 emotion-v3는 자료와 표현 지시를 분리한 대화 예시 기반 평가 전용 profile이다. 공용 TokenCounter의 Message.role에 assistant를 추가했으며 실제 tokenizer/model 토큰 수 일치를 확인했다. 세 기존 설치 모델 dev36건에서 적격 후보가 없어 운영에는 적용하지 않았다. 운영 모델/factory/재접근 공개 정책은 그대로다. 결과와 미완료 범위는 BUILD_HANDOFF 최신 절과 VALIDATION_PLAN §7을 따른다.
+
+최신 C1에서는 content-first/Gemma를 채택했다. 한 JSON의 content 초안은 어댑터 내부에만 남고 sentences만 공용 포트로 반환한다. 재접근 이유/숨김 요청은 기존 구성 그대로다. Gemma는 think=false, tokenizer의 enable_thinking=false를 맞춘다. factory를 정상 runtime·smoke·실제 Stage가 공유하며 저장24요청을 actual tokenizer로 재생해 seed 제외 동등성을 확인했다. runtime-data/ai-local.json의 비밀 아닌 DIALOGUE_MODEL/DIALOGUE_TOKENIZER_PATH/OLLAMA_BASE_URL을 선택 기본으로 읽고 명시적 환경변수가 우선한다. 다른 모델을 명시하면 저장된 모델의 tokenizer 기본을 가져오지 않는다. Qwen은 기존 QWEN_TOKENIZER_PATH fallback을 지원한다. 신규 모델은 미등록 상태로 거부한다. 실제 결과와 R-HIST1 한계는 VALIDATION_PLAN §8을 따른다.
+
+### 15.3 도입 이유와 범위
+
+모델 교체 시 파급되는 파일과 검증 범위를 줄이고, 감정/공개 정책을 모델별 prompt와 구분하기 위한 변경이다. ports/adapters의 외부 기술 격리 원칙은 [Cockburn의 원문](https://alistair.cockburn.us/hexagonal-architecture)을 참고한다. 구조 도입이 한국어 자연스러움 향상을 보장하지 않으므로 HB 구조 검사와 EX 실제 표현 검사를 별도로 수행한다. DB repository 전면 추상화·마이크로서비스·동적 plugin loader는 이번 목표에 필요하지 않다.
+
+### C2-S1B의 감정 전용 근거 (2026-10-11 구현)
+
+AppraisalEvidenceVerifier.verifyAffect는 선택적 공통 포트이며 `{kind:'praise',strength:1|2|3}`만 반환한다. Jev 어댑터가 raw의 모델·usage·버전·gateReasons·판정 일치와 confidence/분포를 재검증한다. 대상/행위/목표 관계/적대감은 기존 .8·유일 최빈값, 적대감 최빈0을 요구한다. 전체 uncertain일 때 정규화 strength 분포의95% tail 하한만 별도로 사용한다. strict appraisal은 그대로 보존하고 이미 확정된 appraisal은 기존 경로를 따른다. 관계 이력에는 새 권한이 없다. .95는 새 정책값이며 확률 교정이나 한국어 전반 정확도 주장이 아니다. 도메인 예외와 저장 경계는 CHARACTER_DOMAIN_SPEC 및 DATABASE_SPEC을 따른다.
+
+### S2 평가 전용 의미 비교 경계 — 2026-10-13
+
+JevRepetitionCandidate는 명시적 평가 진입점이며 운영 설정에 임시 토글을 추가하지 않았다. RecentPraise는 선택적 공통 context다. 완전한 snapshot에서만 현재 구체적 칭찬 여부와 이전 각 문장에 대한 same/distinct/unknown을 원래5질문에 더한다. 외부 state는 현재 utterance/공개 activity/이전 text 배열뿐이며 UUID/revision/groupId/asOf/내부 complete/기억은 전송하지 않는다. state16384bytes/request32000bytes를 초과하면 API 전에 비교를 전부 빼고5질문으로 축소한다. 응답65536bytes/15초/재시도 없음은 유지한다.
+
+추가 답의 낮은 confidence나 unknown은 grouping을 유보하며 기본 Appraisal/S1B 감정·참여를 막지 않는다. malformed 추가 답은 요청 전체 실패다. v3 envelope에는 현재 사건·상대·revision과 comparison={asOf,complete,sources:[eventId,revision]}를 결합한다. verifyRepetition이 버전/model/usage/기본 판정/답 key·개수/분포/유일 최빈/.8 및 snapshot 일치를 확인한다. Store가 현재 칭찬 자격과 출처 집합을 따로 확인하며 모델은 label이나 새 예산을 결정하지 않는다.
+
+실제 후보20건 중16건만 통과했으므로 v7을 운영 factory에 연결하지 않았다. 확인6건과 S2 Gemma/Stage는 미실행이다. 자세한 실패와 비용은 현재 인계를 따른다.
+
+### S2 v8 평가 전용 후보 — 2026-10-13
+
+JevRepetitionV8Candidate는 v7을 보존한 별도 평가 진입점이다. 기존5질문/concrete와 같은 요청 안에서 각 pair의 same_event/separate_event를 독립적인 yes/no/unknown으로 묻는다. 두 분포가 .8 이상·유일 최빈이고 yes/no이면 same, no/yes이면 distinct다. 양쪽 yes, 양쪽 no, 어느 한쪽 unknown/저확신/동률이면 unknown이다. 추가 불확실성은 원래 Appraisal.uncertain에 합치지 않는다. malformed 전체 실패와 단일 호출 정책은 그대로다.
+
+raw는 v8 전용 repetitionV8={concrete,comparisons:[{sameEvent,separateEvent}]}로 저장하고 v7 repetition과 혼합하거나 잘못된 버전으로 읽는 것을 거부한다. 공통 RepetitionEvidence와 envelope v3는 변경하지 않았다. 기존 v6/v7 raw 재계산48건은 동일했다.
+
+실제 v8 dev23/26으로 미채택했다. 운영 factory와 v6 기반 S1B/Stage helper는 바꾸지 않았고, 이 helper들을 후보 검증에 사용한 것처럼 보고하지 않는다. 확인6건과 S2 실제 Stage는 미실행이다. 세부 원문과 비용은 현재 인계를 따른다.
+
+### S2 후속 정책 후보 계획 — 당시 미구현
+
+2026-10-13 감사2차 후 IMPLEMENTATION_PLAN §14에 v9 한 후보를 계획했다. 외부 질문은 v8 그대로, same의 긍정 확신과 separate=no의 비모순 조건을 결합하며 distinct는 양쪽 .8을 유지한다. 버전별 raw 필드·verifier·평가 helper를 명시적으로 나누고 v8을 소급 재해석하지 않는다. 공통 포트/Core/Store/DB 경계는 유지한다. 현재 decoder는 여전히 v1–v8이고 운영은 v6다. v9 구현·후보 S1B·Stage·운영 승격은 완료하지 않았다.
+
+
+### S2 v9 정책 후보 BUILD — 미채택
+
+JevRepetitionV9Candidate는 v8과 같은 질문을 보내고 mappingVersion=jev-appraisal-v9 및 repetitionV9에 원문을 저장한다. same은 sameEvent의 유일 최빈 yes·confidence≥.8과 separateEvent의 유일 최빈 no를 요구하며, distinct는 두 답 모두≥.8인 no/yes만 허용한다. unknown·동률·yes 충돌을 무시하지 않는다. 공통 RepetitionEvidence·envelope v3·Core·Store 경계와 기존 v6/v7/v8 의미는 보존했다.
+
+2026-10-13 §14 정책 BUILD: v9의 기존 그룹 재사용 정책을 구현했다. 단위70+합성 DB·평가기61=131건과 타입 검사 PASS, 이전 v6/v7/v8 실응답74건 재계산도 동일했다. 실제 v9는 dev23/26으로 미채택했다. 기존 N07/R06은 해결됐지만 S10/N00의 구체성 확신 .79와 N04의 행위 오분류로 확인12건·실제 후보 S1B·Stage를 진행하지 않았다. 운영은 v6이며 후보/helper 승격은 대기다. 상세 원문과 중단 상태는 IMPLEMENTATION_PLAN §15 및 BUILD_HANDOFF를 따른다.
+
+## 16. 최근 대화 포트 연결 — 2026-10-13 R1 구현
+
+**후속 수정 구현:** 전체3328토큰 초과 때 이력을 줄이지 않는 결함을 수정했다. DialogueGenerator.fitConversation은 같은 요청 조립·tokenizer로 계수하며 추론 없이 오래된 교환부터 제외한다. Coordinator가 Store.fitResponseConversation의 출처/epoch/suffix 검증을 거친 뒤 전송한다. 예산 내에는 아래 동일 snapshot 계약을 유지하고, 초과 시만 생성 이력이 일부인 suffix가 된다. 원래 판단 refs/출력 의존성은 유지하고 response.conversation_refs는 실제 생성 이력을 저장한다. [구현 §23](./IMPLEMENTATION_PLAN.md#conversation-repair-build)·[집중 결과](./VALIDATION_PLAN.md#conversation-repair-evidence)를 따르며 새 실제 Jev/Stage는 미실행이다.
+
+AppraisalContext/DialogueContext에 선택적 ConversationSnapshot을 추가했다. 공용 계약은 packages/contracts/src/conversation.ts가 소유한다. Store는 동일 character/session/identity의 실제 observed 입력과 completed·shown/finished 대사를 최근4교환/8메시지로 조립하고 Coordinator는 판단 이력을 UTF-8 8192바이트로 교환 단위 제한한다. 판단 전에 생성 tokenizer를 호출하지 않는다. 생성 fit 단계는 history768토큰/전체3328토큰을 적용하고 필요하면 판단 snapshot의 오래된 교환을 제외한 suffix를 사용한다. 외부 history에는 익명 role/content만 보낸다. source ID/revision/epoch/order/digest는 내부 재검증과 삭제 전파에만 사용한다. 외부 사실/작업 완료의 증거로 assistant 발언을 승격하지 않는다.
+
+Jev v6의 기존5질문·decoder/권한은 유지하고 state.conversation에 익명 발언만 추가한다. 현재 event/identity/cutoff가 맞지 않거나 public state/request byte 제한을 넘으면 호출 전 거부한다. R3의 jev-conversation-v1/새 행위 질문/envelope4/수선 근거는 이번에 구현하지 않았다. R1의 실제 Jev 의미 품질을 mock 요청 검사로 검증했다고 쓰지 않는다.
+
+Ollama는 기존 생성 기본에도 전달된 recent history를 자료로 넣는다. B conversation-history-v1과 C conversation-direct-v1은 명시적 평가 옵션으로 만들었고 실제 dev에서 미채택했다. C는 sentences 직접 생성, B는 content-first를 유지하며 한 호출·같은 형식 검증/120자/한국어/물리 완료 경계를 쓴다. 후보 승격용 factory/local-config 변경은 하지 않았다. 최종 결과는 [IMPLEMENTATION_PLAN §21](./IMPLEMENTATION_PLAN.md#conversation-build-r1-r2)을 따른다.
+
+대사 원문을 복제하는 테이블은 없다. response_runs의 참조와 response_sources의 이전 응답 연결에는0004가 필요하므로 기존 DB의 runtime 실행 전 [RUNBOOK의 migration 안내](./RUNBOOK.md#runtime-conversation-start)를 따른다. 모델 자체 교체나 음성/RAG 연결을 이 계약 변경으로 자동 착수하지 않는다.

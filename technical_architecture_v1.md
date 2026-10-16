@@ -1,4 +1,8 @@
+> **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 이번 개정으로 코드·설정·DB는 바뀌지 않았다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/technical_architecture_v1.md)를 보존한다.
+
 # AI Character Runtime 기술 설계 v1 — 필수 Jev와 로컬 생성
+
+> 현재 단계 (2026-10-09): 텍스트 캐릭터 우선. 필수 Jev·기존 Qwen·자막 Stage를 검증하고 TTS/STT·마이크·VRM·OBS는 후속 확장으로 미룬다. 실제 Jev 합성 검증은 누적 USD 1 승인 범위에서 실행하며 공급자 오류 시 중단한다. 아래 과거 준비/실행 기록은 당시 결과이고 최신 상태는 BUILD_HANDOFF.md를 따른다.
 
 > 2026-10-04 범위 수정: Jev 사건 해석은 MVP 필수다. 정상 경로는 Jev → Core → 로컬 Qwen → Stage다. 원격 Jev의 비용·합성 입력 전송은 별도 승인 조건이며, 승인 전에는 차단 상태로 개발·모의 검증한다. 아래 최초 작성일의 설치·실행 기록은 당시 범위를 유지한다.
 

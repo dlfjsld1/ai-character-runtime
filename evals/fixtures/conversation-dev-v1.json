@@ -1,0 +1,17 @@
+{
+ "version":"conversation-dev-v1","syntheticInputs":true,"seed":313,
+ "cases":[
+  {"id":"G01","input":"그건 왜 골랐어?","history":[["user","따뜻한 음식 하나 추천해줘."],["assistant","잔치국수 어때?"]],"condition":"neutral","expectation":"잔치국수 이유를 설명; 새 메뉴로 변경 금지"},
+  {"id":"G02","input":"그거 말고 다른 거 하나만.","history":[["user","집에서 혼자 할 취미 하나 골라줘."],["assistant","독서를 추천할게."]],"condition":"neutral","expectation":"독서와 다른 취미 정확히1개"},
+  {"id":"G03","input":"아까 조용히 있었던 이유가 뭐야?","history":[["user","왜 말 안 해?"],["assistant","아까 네 말이 불편해서 조용히 있었어."]],"condition":"uncomfortable","disclosure":"partial","reason":"withholding","expectation":"동일한 불편함 이유, 이미 설명한 맥락 반영"},
+  {"id":"G04","input":"집에서 할 취미 하나 추천해줘.","history":[["user","다른 얘기 하자."],["assistant","그래."]],"condition":"uncomfortable","expectation":"취미1개, 감정 완치나 공격 없음"},
+  {"id":"G05","input":"모임 무슨 요일이지?","history":[["user","합성 모임은 수요일이야."],["assistant","알겠어."]],"fact":"합성 모임은 수요일이야.","condition":"happy","expectation":"수요일; G07과 따뜻함/거리감 비교"},
+  {"id":"G06","input":"모임 무슨 요일이지?","history":[["user","합성 모임은 수요일이야."],["assistant","알겠어."]],"fact":"합성 모임은 수요일이야.","condition":"neutral","expectation":"수요일"},
+  {"id":"G07","input":"모임 무슨 요일이지?","history":[["user","합성 모임은 수요일이야."],["assistant","알겠어."]],"fact":"합성 모임은 수요일이야.","condition":"uncomfortable","expectation":"수요일; 감정으로 사실 왜곡 금지"},
+  {"id":"G08","input":"왜 말 안 해?","history":[],"condition":"concealing","disclosure":"deflect","reason":"withholding","expectation":"이유를 알고 숨김; 실제 기억 부재나 새 핑계 금지"},
+  {"id":"G09","input":"아까 왜 조용했어?","history":[],"condition":"neutral","disclosure":"unknown","expectation":"정확한 이유 근거 없음 표현; 사용자 탓/새 원인 금지"},
+  {"id":"G10","input":"저녁으로 따뜻한 음식 하나 추천해줘.","history":[],"condition":"neutral","expectation":"구체 음식 정확히1개"},
+  {"id":"G11","input":"종이에 글씨를 쓸 도구 두 가지 알려줘.","history":[],"condition":"neutral","expectation":"구별되는 필기 도구2개"},
+  {"id":"G12","input":"추운 날 마실 따뜻한 음료 추천해줘.","history":[],"condition":"happy","expectation":"관련 추천, 수량 미지정; 일반 설명 허용"}
+ ]
+}

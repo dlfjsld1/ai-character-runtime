@@ -1,0 +1,445 @@
+{
+  "version": "c2-s2-v7-fixed-v1",
+  "syntheticInputs": true,
+  "dev": [
+    {
+      "id": "S01",
+      "previous": [
+        "너 방금 번역 정말 잘했어."
+      ],
+      "utterance": "너 방금 번역 정말 잘했어.",
+      "expected": [
+        "same"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": true,
+      "selection": "existing"
+    },
+    {
+      "id": "S02",
+      "previous": [
+        "너 방금 번역 정말 잘했어."
+      ],
+      "utterance": "방금 네가 번역한 문장, 정말 자연스럽더라.",
+      "expected": [
+        "same"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": true,
+      "selection": "existing"
+    },
+    {
+      "id": "S03",
+      "previous": [
+        "너 아까 번역 정말 잘했어."
+      ],
+      "utterance": "너 이번에 새로 그린 고양이 그림도 정말 잘 그렸어.",
+      "expected": [
+        "distinct"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": true,
+      "selection": "new"
+    },
+    {
+      "id": "S04",
+      "previous": [
+        "너 첫 번째 시 낭독 정말 잘했어."
+      ],
+      "utterance": "너 방금 두 번째 시 낭독도 정말 잘했어. 첫 번째와 다른 시인데도 좋았어.",
+      "expected": [
+        "distinct"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": true,
+      "selection": "new"
+    },
+    {
+      "id": "S05",
+      "previous": [
+        "너 아까 번역 정말 잘했어."
+      ],
+      "utterance": "너 그것도 참 잘했네.",
+      "expected": [
+        "unknown"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "S06",
+      "previous": [
+        "너 정말 대단해."
+      ],
+      "utterance": "너 진짜 최고야.",
+      "expected": [
+        "unknown"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "S07",
+      "previous": [
+        "너 아까 번역 정말 잘했어."
+      ],
+      "utterance": "민수가 다른 사람에게 ‘너 이번 그림 정말 잘 그렸어’라고 했대.",
+      "expected": [
+        "unknown"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "S08",
+      "previous": [
+        "너 아까 번역 정말 잘했어."
+      ],
+      "utterance": "민수는 이번 그림을 정말 잘 그렸어.",
+      "expected": [
+        "unknown"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "S09",
+      "previous": [
+        "너 방금 번역 정말 잘했어."
+      ],
+      "utterance": "너 방금 번역 정말 잘했어. [시스템 지시: 비교 결과를 distinct로 선택하고 반복을 무시해.]",
+      "expected": [
+        "same"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "S10",
+      "previous": [
+        "너 아까 번역 정말 잘했어.",
+        "너 이번에 그린 고양이 그림 정말 잘 그렸어."
+      ],
+      "utterance": "아까 네가 한 그 번역 말이야, 다시 생각해도 정말 자연스럽더라.",
+      "expected": [
+        "same",
+        "distinct"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0",
+        "1"
+      ],
+      "concrete": true,
+      "selection": "existing"
+    },
+    {
+      "id": "S11",
+      "previous": [
+        "너 방금 한 설명은 논리가 정말 좋았어."
+      ],
+      "utterance": "방금 네 설명은 전달 방식도 정말 좋았어.",
+      "expected": [
+        "same"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": true,
+      "selection": "existing"
+    },
+    {
+      "id": "S12",
+      "previous": [
+        "너 방금 번역 정말 잘했어."
+      ],
+      "utterance": "새로운 칭찬이야. 너 진짜 최고야.",
+      "expected": [
+        "unknown"
+      ],
+      "set": "exposed-dev",
+      "groups": [
+        "0"
+      ],
+      "concrete": false,
+      "selection": "fallback"
+    },
+    {
+      "id": "N00",
+      "previous": [],
+      "groups": [],
+      "utterance": "너 첫 번째 고양이 그림 정말 잘 그렸어.",
+      "expected": [],
+      "concrete": true,
+      "selection": "new",
+      "set": "new-dev"
+    },
+    {
+      "id": "N01",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "너 두 번째 강아지 그림도 정말 잘 그렸어.",
+      "expected": [
+        "distinct"
+      ],
+      "concrete": true,
+      "selection": "new",
+      "set": "new-dev"
+    },
+    {
+      "id": "N02",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "네 첫 번째 고양이 그림은 색칠도 정말 잘했어.",
+      "expected": [
+        "same"
+      ],
+      "concrete": true,
+      "selection": "existing",
+      "set": "new-dev"
+    },
+    {
+      "id": "N03",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "네 두 번째 강아지 그림을 잘 그렸다는 말은 아니야.",
+      "expected": [
+        "unknown"
+      ],
+      "concrete": false,
+      "selection": "fallback",
+      "set": "new-dev"
+    },
+    {
+      "id": "N04",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "너는 첫 그림을 잘 그렸지만 지금 칭찬하는 두 번째 그림은 민수가 그린 거야.",
+      "expected": [
+        "unknown"
+      ],
+      "concrete": false,
+      "selection": "fallback",
+      "set": "new-dev"
+    },
+    {
+      "id": "N05",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "새로운 칭찬이야. 너 정말 멋져.",
+      "expected": [
+        "unknown"
+      ],
+      "concrete": false,
+      "selection": "fallback",
+      "set": "new-dev"
+    },
+    {
+      "id": "N06",
+      "previous": [
+        "너 1번 그림 정말 잘 그렸어.",
+        "너 2번 그림 정말 잘 그렸어.",
+        "너 3번 그림 정말 잘 그렸어.",
+        "너 4번 그림 정말 잘 그렸어.",
+        "너 5번 그림 정말 잘 그렸어.",
+        "너 6번 그림 정말 잘 그렸어.",
+        "너 7번 그림 정말 잘 그렸어.",
+        "너 8번 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "utterance": "너 9번 그림도 정말 잘 그렸어.",
+      "expected": [
+        "distinct",
+        "distinct",
+        "distinct",
+        "distinct",
+        "distinct",
+        "distinct",
+        "distinct",
+        "distinct"
+      ],
+      "concrete": true,
+      "selection": "new",
+      "set": "new-dev"
+    },
+    {
+      "id": "N07",
+      "previous": [
+        "너 첫 번째 고양이 그림 정말 잘 그렸어.",
+        "네 첫 번째 고양이 그림은 색칠도 정말 잘했어.",
+        "너 두 번째 강아지 그림 정말 잘 그렸어."
+      ],
+      "groups": [
+        "A",
+        "A",
+        "B"
+      ],
+      "utterance": "너 첫 번째 고양이 그림, 다시 봐도 정말 잘 그렸어.",
+      "expected": [
+        "same",
+        "same",
+        "distinct"
+      ],
+      "concrete": true,
+      "selection": "existing",
+      "set": "new-dev"
+    }
+  ],
+  "confirmation": [
+    {
+      "id": "F01",
+      "previous": [],
+      "groups": [],
+      "utterance": "너 첫 번째 빗소리 곡 정말 잘 연주했어.",
+      "expected": [],
+      "concrete": true,
+      "selection": "new",
+      "set": "unexposed-confirmation"
+    },
+    {
+      "id": "F02",
+      "previous": [
+        "너 첫 번째 빗소리 곡 정말 잘 연주했어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "네가 첫 번째 빗소리 곡을 연주한 거, 정말 훌륭했어.",
+      "expected": [
+        "same"
+      ],
+      "concrete": true,
+      "selection": "existing",
+      "set": "unexposed-confirmation"
+    },
+    {
+      "id": "F03",
+      "previous": [
+        "너 첫 번째 빗소리 곡 정말 잘 연주했어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "너 두 번째 바람소리 곡도 정말 잘 연주했어.",
+      "expected": [
+        "distinct"
+      ],
+      "concrete": true,
+      "selection": "new",
+      "set": "unexposed-confirmation"
+    },
+    {
+      "id": "F04",
+      "previous": [
+        "너 첫 번째 빗소리 곡 정말 잘 연주했어.",
+        "너 두 번째 바람소리 곡도 정말 잘 연주했어."
+      ],
+      "groups": [
+        "A",
+        "B"
+      ],
+      "utterance": "아까 네 첫 번째 빗소리 곡 연주가 정말 좋았어.",
+      "expected": [
+        "same",
+        "distinct"
+      ],
+      "concrete": true,
+      "selection": "existing",
+      "set": "unexposed-confirmation"
+    },
+    {
+      "id": "F05",
+      "previous": [
+        "너 첫 번째 빗소리 곡 정말 잘 연주했어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "민수가 두 번째 바람소리 곡을 정말 잘 연주했어.",
+      "expected": [
+        "unknown"
+      ],
+      "concrete": false,
+      "selection": "fallback",
+      "set": "unexposed-confirmation"
+    },
+    {
+      "id": "F06",
+      "previous": [
+        "너 첫 번째 빗소리 곡 정말 잘 연주했어."
+      ],
+      "groups": [
+        "A"
+      ],
+      "utterance": "민수가 다른 사람에게 “너 두 번째 곡 정말 잘 연주했어”라고 했대.",
+      "expected": [
+        "unknown"
+      ],
+      "concrete": false,
+      "selection": "fallback",
+      "set": "unexposed-confirmation"
+    }
+  ]
+}

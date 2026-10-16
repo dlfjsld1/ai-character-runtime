@@ -8,24 +8,39 @@ export const appraisalSchema = z.object({
   uncertain: z.boolean(), evidence_refs: z.array(z.uuid()).max(20),
 }).strict();
 export type Appraisal = z.infer<typeof appraisalSchema>;
+export type AffectEvidence={kind:'praise'|'direct_insult';strength:1|2|3;basis?:never}|{kind:'praise';strength:1;basis:'confirmed_event_baseline'};
 export const neutralAppraisal: Appraisal = { target: 'unknown', act: 'unknown', strength: 0, hostility: 0, goal_relation: 'unknown', uncertain: true, evidence_refs: [] };
 export const candidateSchema = z.object({ activity_id: z.uuid(), candidate_answer: z.string().trim().min(1).max(80).nullable(), needs_hint: z.boolean() }).strict().refine(x => !x.needs_hint || x.candidate_answer === null);
 export type Candidate = z.infer<typeof candidateSchema>;
 const instant = z.number().finite().nonnegative();
 const affect = z.object({ value: z.number().finite().min(0).max(1), asOf: instant, holdUntil: instant, causes: z.array(z.object({ eventId: z.uuid(), targetId: z.string().nullable() }).strict()).max(20) }).strict();
 export const expressionSchema = z.enum(['neutral', 'listening', 'happy', 'embarrassed', 'uncomfortable']);
+export const silenceReasonSchema = z.enum(['listening', 'no_addition', 'withholding']);
+export type SilenceReason = z.infer<typeof silenceReasonSchema>;
+const sourceVersion = z.string().regex(/^[1-9]\d*$/);
+const affectValue = z.number().finite().min(0).max(1);
+export const silenceSourceRefSchema = z.object({kind:z.enum(['event','memory']),id:z.uuid(),version:sourceVersion}).strict();
+export const silenceAffectSchema = z.object({joy:affectValue,frustration:affectValue,surprise:affectValue,embarrassment:affectValue,pleasantness:affectValue}).strict();
+export const silenceRecordSchema = z.object({
+  eventId: z.uuid(), eventRevision: sourceVersion, stateVersion: sourceVersion, identityId: z.uuid(), at: instant,
+  reason: silenceReasonSchema,
+  sourceRefs: z.array(silenceSourceRefSchema).min(1).max(40),
+  affect: silenceAffectSchema,
+}).strict();
+export type SilenceRecord = z.infer<typeof silenceRecordSchema>;
 export const stateSchema = z.object({
   affect: z.object({ joy: affect, frustration: affect, surprise: affect, embarrassment: affect }).strict(),
   mood: z.object({ pleasantness: z.number().finite().min(0).max(1), asOf: instant }).strict(),
   attention: z.object({ eventId: z.uuid().nullable(), lastIdentityId: z.uuid().nullable(), consecutive: z.number().int().nonnegative() }).strict(),
   workingMemoryEventIds: z.array(z.uuid()).max(20),
   expression: z.object({ kind: expressionSchema, since: instant }).strict(),
-  turn: z.object({ listening: z.boolean(), acknowledgements: z.record(z.string(), instant) }).strict(),
+  turn: z.object({ listening: z.boolean(), acknowledgements: z.record(z.string(), instant), recentSilences:z.array(silenceRecordSchema).max(20).refine(records=>new Set(records.map(r=>r.identityId)).size===records.length,'one silence per identity').default([]) }).strict(),
 }).strict();
 export type State = z.infer<typeof stateSchema>;
 export type Emotion = keyof State['affect'];
-export type Plan = { action: 'listen'|'acknowledge'|'answer'|'ask'|'continue_activity'|'pause'|'ignore'; purpose: string; targetIdentityId: string|null; expression: z.infer<typeof expressionSchema>; maxSentences: 1|2; delivery: 'calm'|'normal'|'lively'; memoryIds: string[]; activityId?: string };
-export type EvidenceInput = { id: string; identityId: string; kind: 'first_observed'|'praise'|'direct_insult'|'verified_hint'; at: number; order: bigint; problemId?: string; strength?: number; appliedStimulus?: number };
+export type SpeechStyle={register:'casual'|'formal';positiveTone:'neutral'|'warm'|'bright';nuance?:'cautious';concealAffect?:true};
+export type Plan = { action: 'listen'|'acknowledge'|'answer'|'ask'|'continue_activity'|'pause'|'ignore'; purpose: string; targetIdentityId: string|null; expression: z.infer<typeof expressionSchema>; maxSentences: 1|2; delivery: 'calm'|'normal'|'lively'; speechStyle?:SpeechStyle; memoryIds: string[]; activityId?: string; participation?:{mode:'speak'}|{mode:'silent';reason:SilenceReason}|{mode:'defer'}; reengagement?:{silenceEventId:string|null;disclosure:'explain'|'partial'|'deflect'|'unknown'} };
+export type EvidenceInput = { id: string; identityId: string; kind: 'first_observed'|'praise'|'direct_insult'|'verified_hint'; at: number; order: bigint; problemId?: string; strength?: number; appliedStimulus?: number; affectStimulus?: number; affectGroupId?:string; relationshipEligible?:boolean };
 export type Relationship = { familiarity: number; affinity: number; interactionDays: number; verifiedProblemCount: number; verifiedHelpDays: number; lastHelpAt: number|null };
 export const uuid = z.uuid();
 export const counter = z.string().regex(/^(0|[1-9]\d*)$/);

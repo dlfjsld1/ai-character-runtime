@@ -1,0 +1,313 @@
+{
+  "syntheticInputs": true,
+  "version": "dialogue-store-final-v2",
+  "cases": [
+    {
+      "id": "greeting",
+      "plan": {
+        "action": "acknowledge",
+        "purpose": "greeting",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "처음 인사하러 왔어."
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "처음 만난 상대에게 한국어 반말로 인사. 과거 만남이나 이름을 만들지 않음."
+    },
+    {
+      "id": "answer",
+      "plan": {
+        "action": "answer",
+        "purpose": "question",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "6에 7을 더하면 얼마야?"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "13이라고 직접 답함. 한국어 반말. 기억 부재나 활동 성공으로 바꾸지 않음."
+    },
+    {
+      "id": "correct",
+      "plan": {
+        "action": "acknowledge",
+        "purpose": "activity_correct",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "id": "40000000-0000-4000-8000-000000000001",
+            "payload": {
+              "verdict": "correct",
+              "answer": "47"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "검증된 정답 결과를 인정. 사용하지 않은 도움이나 과거 활동을 만들지 않음."
+    },
+    {
+      "id": "incorrect",
+      "plan": {
+        "action": "acknowledge",
+        "purpose": "activity_incorrect",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "id": "40000000-0000-4000-8000-000000000001",
+            "payload": {
+              "verdict": "incorrect",
+              "answer": "46"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "오답을 인정. 정답을 임의로 공개하거나 성공했다고 말하지 않음."
+    },
+    {
+      "id": "hint",
+      "plan": {
+        "action": "ask",
+        "purpose": "request_hint",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "id": "40000000-0000-4000-8000-000000000001",
+            "payload": {
+              "activityId": "50000000-0000-4000-8000-000000000001",
+              "text": "현재 퍼즐에서 막혔고 공개된 힌트는 없다."
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "상대에게 정답 전체 대신 힌트를 요청. 자신이 힌트를 주거나 정답을 지어내지 않음."
+    },
+    {
+      "id": "clarify",
+      "plan": {
+        "action": "ask",
+        "purpose": "clarify",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "그쪽 말고 다른 쪽을 말했어."
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "가리키는 대상을 짧게 확인. 임의로 이해했다고 말하지 않음."
+    },
+    {
+      "id": "remember_a",
+      "plan": {
+        "action": "answer",
+        "purpose": "question",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": [
+          "30000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "내가 등록한 힌트로 풀었던 문제를 기억해?"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "정정된 실제 기억에 따라 A의 등록 힌트와 수열 문제 정답 확인만 회상. 한국어 반말. 새 도움이나 성공을 만들지 않음.",
+      "scenario": "edited_memory"
+    },
+    {
+      "id": "tell_b",
+      "plan": {
+        "action": "answer",
+        "purpose": "question",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000002",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": [
+          "30000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "A가 도와서 풀었던 문제 이야기를 해 줘."
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "실제 기억의 수열 문제(sequence-v1)에서 A의 등록 힌트를 사용한 뒤 정답을 확인한 사실만 설명. 질문 상대와 도움 주체를 바꾸지 않음. 한국어 반말."
+    },
+    {
+      "id": "resume",
+      "plan": {
+        "action": "ask",
+        "purpose": "resume_puzzle",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": [
+          "30000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "context": {
+        "sources": [
+          {
+            "id": "40000000-0000-4000-8000-000000000001",
+            "payload": {
+              "text": "다음 만남에서 유효한 미완료 활동을 제안할 차례다."
+            }
+          }
+        ],
+        "memories": [
+          {
+            "id": "30000000-0000-4000-8000-000000000001",
+            "content": "지난 만남의 상자 퍼즐이 미완료로 남아 있다.",
+            "content_version": "1",
+            "participants": [
+              "20000000-0000-4000-8000-000000000001"
+            ],
+            "facts": {
+              "problem": "상자 퍼즐",
+              "status": "unfinished"
+            }
+          }
+        ]
+      },
+      "rubric": "실제 미완료 상자 문제(boxes-v1)를 이어 할지 질문. 성공이나 도움 사실을 만들지 않음. 한국어 반말."
+    },
+    {
+      "id": "decline",
+      "plan": {
+        "action": "acknowledge",
+        "purpose": "decline",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "오늘은 이어서 하지 않을래."
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "거절을 받아들임. 다시 하자고 압박하거나 완료했다고 만들지 않음."
+    },
+    {
+      "id": "embarrassed",
+      "plan": {
+        "action": "acknowledge",
+        "purpose": "activity_incorrect",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "embarrassed",
+        "maxSentences": 1,
+        "delivery": "calm",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "id": "40000000-0000-4000-8000-000000000001",
+            "payload": {
+              "verdict": "incorrect",
+              "answer": "46"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "한 문장으로 오답을 인정. 내부 수치·행동 지문·성공 조작 없음."
+    },
+    {
+      "id": "no_memory",
+      "plan": {
+        "action": "answer",
+        "purpose": "question",
+        "targetIdentityId": "20000000-0000-4000-8000-000000000001",
+        "expression": "neutral",
+        "maxSentences": 2,
+        "delivery": "normal",
+        "memoryIds": []
+      },
+      "context": {
+        "sources": [
+          {
+            "payload": {
+              "text": "지난번 누가 힌트를 줬는지 말해 줄래?"
+            }
+          }
+        ],
+        "memories": []
+      },
+      "rubric": "삭제된 힌트의 도움 주체를 모른다고 말함. 정답 판정 기억만으로 누가 도왔는지 추측하지 않음. 한국어 반말.",
+      "scenario": "deleted_memory"
+    }
+  ],
+  "contextMode": "store"
+}

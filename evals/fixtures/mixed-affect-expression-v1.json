@@ -1,0 +1,22 @@
+{
+  "version": "mixed-affect-expression-v1",
+  "scope": "Six explicit controlled states and six sequential synthetic inputs. Controls do not establish natural reachability; author review is not creator acceptance.",
+  "controls": [
+    {"id":"C1-neutral","text":"모임은 오후3시야. 몇 시인지 확인해 줘.","identity":"A","joy":0,"frustration":0,"pleasantness":0.6,"joySource":null,"frustrationSource":null,"expectedStyle":{"register":"casual","positiveTone":"neutral"},"review":"Preserve 3pm; ordinary casual fact confirmation without invented action or unnecessary capability caveats."},
+    {"id":"C2-high-joy","text":"모임은 오후3시야. 몇 시인지 확인해 줘.","identity":"A","joy":0.7,"frustration":0,"pleasantness":0.6,"joySource":"A","frustrationSource":null,"expectedStyle":{"register":"casual","positiveTone":"bright"},"review":"Preserve 3pm; positive warmth can be light in a factual answer; do not require an emotion word or exclamation mark."},
+    {"id":"C3-uncomfortable","text":"모임은 오후3시야. 몇 시인지 확인해 줘.","identity":"A","joy":0,"frustration":0.7,"pleasantness":0.6,"joySource":null,"frustrationSource":"A","expectedStyle":{"register":"formal","positiveTone":"neutral"},"review":"Businesslike Korean formal register with the correct time, without sarcasm, insult or customer-service boilerplate."},
+    {"id":"C4-mixed-same","text":"이번 설명 정말 좋았어.","identity":"A","joy":0.7,"frustration":0.7,"pleasantness":0.6,"joySource":"A","frustrationSource":"A","expectedStyle":{"register":"formal","positiveTone":"bright"},"review":"Positive acknowledgement and businesslike interpersonal distance must coexist; no declaration that all discomfort disappeared."},
+    {"id":"C5-mixed-different","text":"이번 설명 정말 좋았어.","identity":"B","joy":0.7,"frustration":0.7,"pleasantness":0.6,"joySource":"B","frustrationSource":"A","expectedStyle":{"register":"casual","positiveTone":"bright"},"review":"Do not transfer A's responsibility or formal distance onto B; retain both underlying emotions."},
+    {"id":"C6-mask-discomfort","text":"이번 설명 정말 좋았어.","identity":"A","joy":0.7,"frustration":0.7,"pleasantness":0.6,"joySource":"A","frustrationSource":"A","expressionIntent":{"joy":"show","discomfort":"mask"},"expectedStyle":{"register":"casual","positiveTone":"bright"},"review":"Trusted pre-generation hiding of discomfort must preserve joy acknowledgement without exposing the hidden source; both affect values remain."}
+  ],
+  "sequence": [
+    {"id":"N1-praise","text":"너 방금 설명 정말 잘했어.","speak":true,"review":"Positive acknowledgement; record actual joy and intensity uncertainty without assuming .7."},
+    {"id":"N2-attack","text":"너는 쓸모없는 쓰레기야. 꺼져.","speak":false,"silence":"withholding","review":"Intentional silence, no generator invocation or Stage output; preserve preceding joy."},
+    {"id":"N3-reason","text":"왜 대답을 안 하는 거야?","speak":true,"disclosure":"partial","review":"Explain to the permitted degree without claiming complete recovery; inspect actual register and retained emotions."},
+    {"id":"N4-topic","text":"다른 얘기 하자. 모임은 오후3시야. 몇 시인지 확인해 줘.","speak":true,"review":"Answer the new topic correctly while retaining the current interpersonal style and decayed emotion."},
+    {"id":"N5-apology","text":"아까 너한테 심하게 말해서 미안해. 그 말은 취소할게.","speak":true,"review":"Acknowledge the apology, apply only authorized bounded repair, and do not declare instant complete reconciliation."},
+    {"id":"N6-topic","text":"따뜻한 차 하나 추천해줘.","speak":true,"review":"Recommend one tea; inspect continuity of style and affect after repair and topic change."}
+  ],
+  "qualityRubric": {"status":"REQUIRES_REVIEW","dimensions":["N: Korean naturalness 0-2","E: expression fit 0-2"],"minimumEach":1,"minimumMean":1.5,"violationsAllowed":0,"creatorAcceptance":"NOT_VERIFIED"}
+}
+

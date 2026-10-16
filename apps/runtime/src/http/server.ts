@@ -4,19 +4,19 @@ import staticPlugin from '@fastify/static';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import {resolve} from 'node:path';
 import { z } from 'zod';
 import type { WebSocket } from 'ws';
 import { authSchema,envelopeSchema,messageSchemas,uuid,counter,RuntimeError } from '../../../../packages/contracts/src/domain.ts';
 import { Store } from '../../../../packages/database/src/store.ts';
 import { decay,expression } from '../../../../packages/character-core/src/index.ts';
-import type { Provider } from '../../../../packages/adapters/src/ollama.ts';
-import type { AppraisalProvider } from '../../../../packages/adapters/src/appraisal.ts';
+import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../../packages/contracts/src/ai-ports.ts';
 import { Coordinator,type OutputOwner } from '../coordinator/index.ts';
 type Role='studio'|'stage';
 type Credential={role:Role;clientId:string;expires:number};
 type Connection={socket:WebSocket;credential:Credential;id:string;clientId:string;sent:bigint;received:bigint;sessionId:string|null;ready:boolean;queued:number;queuedBytes:number;lastHeartbeat:number;pending:Promise<unknown>;rate:{at:number;count:number}};
 const serialize=(value:unknown)=>JSON.stringify(value,(_key,item)=>typeof item==='bigint'?item.toString():item);
-export async function createServer(store:Store,provider:Provider,appraiser:AppraisalProvider,options:{serveStatic?:boolean;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
+export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
   if(provider.ready)await provider.ready().catch(()=>{}); // one startup preparation; never infer on health polls
   const app=Fastify({logger:false,bodyLimit:65536});
   app.setSerializerCompiler(()=>serialize);
@@ -34,7 +34,7 @@ export async function createServer(store:Store,provider:Provider,appraiser:Appra
   async function snapshot(conn:Connection){const session=await store.currentSession(),s=await store.state();
     send(conn,'session.snapshot',{status:session?.status??'waiting',stateVersion:s.version,generationEpoch:s.generationEpoch,outputEpoch:session?.output_epoch??'0',outputOwnerClientId:outputOwner?.clientId??null,ready:{text:true,voice:false}});
     if(conn.credential.role==='studio'){const activity=await store.activity();const relationships=(await store.db.pool.query('SELECT r.*,i.display_name FROM relationships r JOIN identities i ON i.id=r.identity_id WHERE character_id=$1 ORDER BY i.display_name',[store.characterId])).rows;const activeResponse=(await store.db.pool.query("SELECT id,plan,status FROM response_runs WHERE character_id=$1 AND status IN ('planned','generating','synthesizing','delivering')",[store.characterId])).rows[0]??null;send(conn,'state.snapshot',{activeResponse,computedAt:new Date(store.clock()).toISOString(),stateVersion:s.version,generationEpoch:s.generationEpoch,state:{...decay(s.body,store.clock()),expression:expression(decay(s.body,store.clock()),store.clock())},activity,relationships});}
-    else send(conn,'expression.set',{stateVersion:s.version,generationEpoch:s.generationEpoch,expression:expression(decay(s.body,store.clock()),store.clock()).kind,intensity:1,transitionMs:200});
+    else send(conn,'expression.set',{stateVersion:s.version,generationEpoch:s.generationEpoch,expression:'neutral',intensity:1,transitionMs:200});
   }
   const coordinator=new Coordinator(store,provider,{
     owner:()=>outputOwner&&ownerSocket?.socket.readyState===1?outputOwner:null,
@@ -42,7 +42,7 @@ export async function createServer(store:Store,provider:Provider,appraiser:Appra
     sendOwner:(type,payload)=>{if(ownerSocket)send(ownerSocket,type,payload);},
     inputStatus:(eventId,status)=>{for(const conn of connections.values())if(conn.credential.role==='studio')send(conn,'input.status',{eventId,status});},
     failure:code=>{for(const conn of connections.values())send(conn,'runtime.status',{status:'degraded',code});},
-  },appraiser);
+  },appraiser,options.solver);
   app.addHook('onRequest',async(request,reply)=>{
     const path=request.url.split('?')[0];reply.header('Cache-Control','no-store');
     if(path.startsWith('/api/')||path==='/health/ready'){
@@ -123,7 +123,7 @@ export async function createServer(store:Store,provider:Provider,appraiser:Appra
     socket.on('close',()=>{clearTimeout(authTimer);if(conn){connections.delete(conn.clientId);if(ownerSocket===conn){const lostOwner=outputOwner,lostSession=conn.sessionId;ownerSocket=null;if(!closing)void ownership(async()=>{if(outputOwner!==lostOwner||!lostSession)return;await coordinator.cancelAll(lostSession,'stage_disconnected');await coordinator.control(()=>store.cancel(lostSession,randomUUID(),'stage_disconnected'));await coordinator.sink.changed();}).catch(()=>{});}}});
   });
   const heartbeat=setInterval(()=>{for(const conn of connections.values()){if(conn.credential.expires<=Date.now()){conn.socket.close(1008,'token_expired');continue;}if(Date.now()-conn.lastHeartbeat>5000){conn.socket.close(1008,'heartbeat_timeout');continue;}send(conn,'heartbeat.ping',{nonce:randomUUID(),lastSequence:conn.received});}},1000);
-  if(options.serveStatic!==false){const root=fileURLToPath(new URL('../../../studio/dist/',import.meta.url));if(existsSync(root)){await app.register(staticPlugin,{root,prefix:'/'});app.get('/studio',async(_req,reply)=>reply.sendFile('index.html'));app.get('/stage',async(_req,reply)=>reply.sendFile('index.html'));}}
+  if(options.serveStatic!==false){const root=options.staticRoot?resolve(options.staticRoot):fileURLToPath(new URL('../../../studio/dist/',import.meta.url));if(existsSync(root)){await app.register(staticPlugin,{root,prefix:'/'});app.get('/studio',async(_req,reply)=>reply.sendFile('index.html'));app.get('/stage',async(_req,reply)=>reply.sendFile('index.html'));}}
   if(options.timer!==false)coordinator.start();
   app.addHook('onClose',async()=>{closing=true;clearInterval(heartbeat);await ownershipTail;await coordinator.stop();for(const conn of connections.values())conn.socket.close(1000,'server_shutdown');});
   return {app,coordinator,studioCode,instanceId};
