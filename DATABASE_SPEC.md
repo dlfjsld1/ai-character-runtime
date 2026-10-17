@@ -1,3 +1,9 @@
+## 2026-10-17 H1 지정 자료 계약
+
+`0005_knowledge.sql`은 `sessions.knowledge_revision`, `response_runs.knowledge_context`, `knowledge_documents`, `knowledge_chunks`를 추가한다. 문서는 character/session/identity 범위와 revision을 가진다. 수정·삭제 시 예전 청크 본문을 제거하고 컬렉션 revision을 올린다. 검색 결과가0개여도 컬렉션 revision에 의존한다. 응답 생성 전·출력 커밋 전·최근 대화 재사용 전 현재 근거를 확인한다. 자료 변경은 기존 response source 폐쇄를 통해 파생 일반 답변까지 무효화하며 원문 스냅샷과 대사를 제거한다. 이미 표현된 감정 값을 삭제만으로 초기화하지 않는다.
+
+새 계약은 [H1 진행·검증](./docs/HOME_ASSISTANT_H1_RESULT.md)을 따른다. 경험 memories와 검색 문서는 별도 수명이며 자동 승격하지 않는다. 현재 자료 범위는 단일 만남의 지정 상대이며 가족별 기억이나 장기 공유를 구현했다는 뜻이 아니다.
+
 > **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 기획 개정 당시 코드·설정·DB는 바뀌지 않았으며, 후속 구현 상태는 아래 명시한 2026-10-11 계약과 현재 인계를 따른다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/DATABASE_SPEC.md)를 보존한다.
 
 # AI Character Runtime — DB 설계 명세

@@ -10,6 +10,9 @@ import { apply,applyRepair,decay,socialEffect,socialAffect,selectPraiseGroup,cho
 import { normalizeAnswer,judge } from '../../adapters/src/puzzle.ts';
 import type {AppraisalEvidenceVerifier,DialogueContext,RecentPraise,PraiseGroupSource} from '../../contracts/src/ai-ports.ts';
 import {conversationSnapshotSchema,conversationRefsSchema,conversationContextSchema,isConversationSuffix,canAttemptRepair,type ConversationSnapshot,type ConversationRefs,type ConversationContext,type ConversationEvidence} from '../../contracts/src/conversation.ts';
+import type {KnowledgeSearchResult} from '../../contracts/src/knowledge.ts';
+import type {DialogueKnowledge,KnowledgeAnswer} from '../../contracts/src/ai-ports.ts';
+import {currentKnowledgeRevision,listKnowledgeDocuments,putKnowledgeDocument,deleteKnowledgeDocument,type KnowledgePut} from './knowledge-store.ts';
 type Client=pg.PoolClient;
 type Row=Record<string,any>;
 export type VersionedState={body:State;version:bigint;generationEpoch:bigint;configVersion:bigint;snapshotAt:Date};
@@ -49,7 +52,7 @@ export class Store {
       await this.bump(c,s,event,s.body);return {eventId:event.id,sessionId,status:'committed'};
     });
   }
-  async acceptChat(sessionId:string,requestId:string,payload:{identityId:string;text:string;replyToEventId?:string}) {
+  async acceptChat(sessionId:string,requestId:string,payload:{identityId:string;text:string;replyToEventId?:string;intent?:'knowledge'}) {
     return this.db.transaction(async c=>{
       const session=(await c.query('SELECT status FROM sessions WHERE character_id=$1 AND id=$2 FOR UPDATE',[this.characterId,sessionId])).rows[0];
       if(!session||session.status!=='active')throw new RuntimeError('session_closed');
@@ -84,7 +87,7 @@ export class Store {
       if(typeof e.payload?.text!=='string'||!e.payload.text.length)continue;
       turns.push({role:'user',text:e.payload.text,source:{kind:'event',id:e.id,revision:String(e.revision)},order:e.state_version});
       const response=(await c.query("SELECT r.* FROM response_runs r WHERE r.character_id=$1 AND r.session_id=$2 AND r.trigger_event_id=$3 AND r.status='completed' AND r.plan IS NOT NULL AND r.segment_count>0 AND (SELECT count(*) FROM speech_segments ss WHERE ss.response_id=r.id)=r.segment_count AND NOT EXISTS(SELECT 1 FROM speech_segments ss WHERE ss.response_id=r.id AND (ss.text IS NULL OR ss.text_shown_at IS NULL OR ss.delivery_status<>'finished'))",[this.characterId,current.session_id,e.phase_id])).rows[0];
-      if(response){const segments=(await c.query('SELECT text FROM speech_segments WHERE response_id=$1 ORDER BY segment_index',[response.id])).rows;turns.push({role:'assistant',text:segments.map(s=>s.text).join(' '),source:{kind:'response',id:response.id,generationEpoch:response.generation_epoch},order:e.state_version});}
+      if(response&&(!response.knowledge_context||await this.knowledgeValid(c,current.session_id,current.identity_id,response.knowledge_context))){const segments=(await c.query('SELECT text FROM speech_segments WHERE response_id=$1 ORDER BY segment_index',[response.id])).rows;turns.push({role:'assistant',text:segments.map(s=>s.text).join(' '),source:{kind:'response',id:response.id,generationEpoch:response.generation_epoch},order:e.state_version});}
     }
     return conversationSnapshotSchema.parse({version:1,sessionId:current.session_id,identityId:current.identity_id,cutoffEventId:current.id,turns,truncated:rows.length>4});
   }
@@ -97,9 +100,10 @@ export class Store {
     for(const {textDigest,...turn} of refs.turns){let text:string|undefined;
       const row=(await c.query(turn.source.kind==='event'
         ?"SELECT e.payload->>'text' AS text,e.revision,t.state_version FROM events e JOIN events p ON p.parent_event_id=e.id AND p.kind='appraisal.applied' JOIN transitions t ON t.source_event_id=p.id WHERE e.character_id=$1 AND e.session_id=$2 AND e.identity_id=$3 AND e.id=$4 AND e.data_status='active' AND e.attention_status='observed' AND e.kind='chat.final'"
-        :"SELECT r.generation_epoch,t.state_version,r.segment_count,(SELECT count(*) FROM speech_segments ss WHERE ss.response_id=r.id) AS actual_count,(SELECT string_agg(ss.text,' ' ORDER BY ss.segment_index) FROM speech_segments ss WHERE ss.response_id=r.id) AS text FROM response_runs r JOIN events p ON p.id=r.trigger_event_id AND p.kind='appraisal.applied' JOIN events e ON e.id=p.parent_event_id JOIN transitions t ON t.source_event_id=p.id WHERE r.character_id=$1 AND r.session_id=$2 AND e.identity_id=$3 AND r.id=$4 AND r.status='completed' AND r.plan IS NOT NULL AND e.data_status='active' AND NOT EXISTS(SELECT 1 FROM speech_segments ss WHERE ss.response_id=r.id AND (ss.text IS NULL OR ss.text_shown_at IS NULL OR ss.delivery_status<>'finished'))",
+        :"SELECT r.knowledge_context,r.generation_epoch,t.state_version,r.segment_count,(SELECT count(*) FROM speech_segments ss WHERE ss.response_id=r.id) AS actual_count,(SELECT string_agg(ss.text,' ' ORDER BY ss.segment_index) FROM speech_segments ss WHERE ss.response_id=r.id) AS text FROM response_runs r JOIN events p ON p.id=r.trigger_event_id AND p.kind='appraisal.applied' JOIN events e ON e.id=p.parent_event_id JOIN transitions t ON t.source_event_id=p.id WHERE r.character_id=$1 AND r.session_id=$2 AND e.identity_id=$3 AND r.id=$4 AND r.status='completed' AND r.plan IS NOT NULL AND e.data_status='active' AND NOT EXISTS(SELECT 1 FROM speech_segments ss WHERE ss.response_id=r.id AND (ss.text IS NULL OR ss.text_shown_at IS NULL OR ss.delivery_status<>'finished'))",
         [this.characterId,refs.sessionId,refs.identityId,turn.source.id])).rows[0];
       if(!row||row.state_version!==turn.order||BigInt(turn.order)>=BigInt(cutoff.state_version))return null;
+      if(turn.source.kind==='response'&&row.knowledge_context&&!await this.knowledgeValid(c,refs.sessionId,refs.identityId,row.knowledge_context))return null;
       if(turn.source.kind==='event'?String(row.revision)!==turn.source.revision:row.generation_epoch!==turn.source.generationEpoch||Number(row.actual_count)!==row.segment_count||!row.segment_count)return null;
       text=row.text;if(typeof text!=='string'||!text.length||await this.digest(text)!==textDigest)return null;
       turns.push({...turn,text});
@@ -342,8 +346,78 @@ export class Store {
     await this.project(c,s);await this.bump(c,s,phase,body,{stimulus:effect.stimulus,category:effect.category,...(affectEvidence?{affectEvidence}:{}),...(conversationEvidence?{conversationEvidence}:{}),...(repairUsed?{repairUsed,repair:{amount:repair.amount,inputEventId:e.id}}:{}),action:plan.action,participation:plan.participation,silence,reengagement:plan.reengagement},appraisalId);
     const response=['ignore','listen'].includes(plan.action)?null:await this.response(c,s,e.session_id,phase,plan,[e,...(reasonSources?.events??[]),...conversationSources],conversation.data);return {status:'committed',response};
   });}
+  async knowledgeDocuments(sessionId:string,identityId:string){return this.locked(c=>listKnowledgeDocuments(c,{characterId:this.characterId,sessionId,identityId}));}
+  async knowledgeRevision(sessionId:string,identityId:string){return this.locked(c=>currentKnowledgeRevision(c,{characterId:this.characterId,sessionId,identityId}));}
+  async mutateKnowledge(sessionId:string,identityId:string,requestId:string,input:KnowledgePut|{documentId:string;expectedRevision:string;delete:true},beforeInvalidate?:(responses:Row[])=>void){return this.locked(async(c,s)=>{
+    await this.session(c,sessionId);const namespace=`studio:knowledge:${sessionId}`,inputHash=await this.digest(JSON.stringify({identityId,input}));
+    const prior=(await c.query('SELECT * FROM events WHERE character_id=$1 AND source_namespace=$2 AND source_key=$3',[this.characterId,namespace,requestId])).rows[0];
+    if(prior){if(prior.payload.inputHash!==inputHash)throw new RuntimeError('idempotency_conflict');return {status:'duplicate',eventId:prior.id,result:prior.payload.result};}
+    const scope={characterId:this.characterId,sessionId,identityId};
+    const result='delete' in input?await deleteKnowledgeDocument(c,scope,input):await putKnowledgeDocument(c,scope,input);
+    // Even an empty retrieval depends on the collection revision. Added material
+    // can change an absence or conflict answer while its model call is running.
+    const knowledgeIds=(await c.query('SELECT id FROM response_runs WHERE character_id=$1 AND session_id=$2 AND knowledge_context IS NOT NULL',[this.characterId,sessionId])).rows.map(row=>row.id);
+    const active=knowledgeIds.length?(await c.query(`SELECT id,generation_epoch FROM response_runs WHERE character_id=$1 AND status IN ${activeResponses}`,[this.characterId])).rows:[];
+    // Reuse source-response closure: later ordinary replies may quote a search
+    // answer. Redact those derived answers and their appraisal context as well.
+    if(knowledgeIds.length)await this.invalidateOutputs(c,s,[],[],knowledgeIds);
+    const event=await this.event(c,sessionId,'knowledge.changed',requestId,{inputHash,result},identityId,null,namespace);
+    await this.bump(c,s,event,decay(s.body,this.now(s)));
+    beforeInvalidate?.(active);return {status:'committed',eventId:event.id,result};
+  });}
+  private async cancelKnowledgeIn(c:Client,id:string){
+    await c.query(`UPDATE response_runs SET status='cancelled',cancel_reason='knowledge_changed',finished_at=$2 WHERE id=$1 AND status IN ${activeResponses}`,[id,new Date(this.clock())]);
+    await c.query("UPDATE speech_segments SET delivery_status='cancelled' WHERE response_id=$1 AND delivery_status<>'finished'",[id]);
+  }
+  private async knowledgeValid(c:Client,sessionId:string,identityId:string,knowledge:DialogueKnowledge){
+    if(!knowledge||typeof knowledge.query!=='string'||!Array.isArray(knowledge.chunks)||knowledge.chunks.length>5)return false;
+    const session=(await c.query("SELECT knowledge_revision FROM sessions WHERE id=$1 AND character_id=$2 AND status='active'",[sessionId,this.characterId])).rows[0];
+    if(!session||String(session.knowledge_revision)!==knowledge.revision)return false;
+    const seen=new Set<string>();
+    for(const chunk of knowledge.chunks){
+      if(!chunk||typeof chunk.documentId!=='string'||typeof chunk.revision!=='string'||typeof chunk.chunkId!=='string')return false;
+      const key=`${chunk.documentId}:${chunk.revision}:${chunk.chunkId}`;if(seen.has(key))return false;seen.add(key);
+      const row=(await c.query(`SELECT d.title,c.body,c.ordinal FROM knowledge_documents d JOIN knowledge_chunks c ON c.document_id=d.id AND c.revision=d.revision
+        WHERE d.id::text=$1 AND d.revision::text=$2 AND c.chunk_id=$3 AND d.character_id=$4 AND d.session_id=$5 AND d.identity_id=$6 AND d.deleted_at IS NULL`,[chunk.documentId,chunk.revision,chunk.chunkId,this.characterId,sessionId,identityId])).rows[0];
+      if(!row||row.title!==chunk.title||row.body!==chunk.text||row.ordinal!==chunk.ordinal)return false;
+    }return true;
+  }
+  async commitKnowledge(selected:NonNullable<Awaited<ReturnType<Store['select']>>>,result:KnowledgeSearchResult,revision:string){return this.locked(async(c,s)=>{
+    const e=(await c.query("SELECT * FROM events WHERE character_id=$1 AND id=$2 AND attention_status='selected' AND data_status='active'",[this.characterId,selected.event.id])).rows[0];
+    if(!e||BigInt(e.revision)!==selected.revision||s.generationEpoch!==selected.generationEpoch||s.configVersion!==selected.configVersion)throw new RuntimeError('stale_source');
+    if(e.payload.intent!=='knowledge'||result.query!==e.payload.text)throw new RuntimeError('invalid_knowledge_source');
+    const knowledge:DialogueKnowledge={query:result.query,chunks:result.chunks,revision};
+    if(!await this.knowledgeValid(c,e.session_id,e.identity_id,knowledge))throw new RuntimeError('knowledge_changed');
+    const phase=await this.event(c,e.session_id,'appraisal.applied',`knowledge_applied:${e.id}:${e.revision}`,{eventId:e.id},e.identity_id,e.id);
+    const body=decay(s.body,this.now(s));body.attention.eventId=null;
+    const plan:Plan={...dialoguePlan(body,'knowledge_answer',e.identity_id),action:'answer',maxSentences:2,participation:{mode:'speak'}};
+    await c.query("UPDATE events SET attention_status='observed',applied_at=$2 WHERE id=$1",[e.id,new Date(this.now(s))]);
+    await this.bump(c,s,phase,body,{action:'answer',purpose:'knowledge_answer'});
+    const response=await this.response(c,s,e.session_id,phase,plan,[e]);if(!response)throw new RuntimeError('output_busy');
+    await c.query('UPDATE response_runs SET knowledge_context=$2 WHERE id=$1',[response.id,knowledge]);return {status:'committed',response};
+  });}
+  async failKnowledge(eventId:string,code:string){return this.locked(async(c,s)=>{
+    const e=(await c.query("SELECT * FROM events WHERE id=$1 AND character_id=$2 AND attention_status='selected'",[eventId,this.characterId])).rows[0];if(!e)return;
+    await c.query("UPDATE events SET attention_status='expired' WHERE id=$1",[e.id]);
+    const phase=await this.event(c,e.session_id,'knowledge.failed',`knowledge_failed:${e.id}:${e.revision}`,{eventId,code},e.identity_id,e.id),body=decay(s.body,this.now(s));
+    if(body.attention.eventId===e.id)body.attention.eventId=null;await this.bump(c,s,phase,body,{failureCode:code});
+  });}
+  async latestKnowledgeAnswer(sessionId:string,identityId:string){return this.locked(async(c)=>{
+    await currentKnowledgeRevision(c,{characterId:this.characterId,sessionId,identityId});
+    const r=(await c.query("SELECT * FROM response_runs WHERE character_id=$1 AND session_id=$2 AND plan->>'targetIdentityId'=$3 AND knowledge_context IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",[this.characterId,sessionId,identityId])).rows[0];
+    if(!r||!await this.knowledgeValid(c,sessionId,identityId,r.knowledge_context))return null;
+    const answer=r.knowledge_context.answer as KnowledgeAnswer|undefined;
+    // No unspoken or cancelled generated answer is presented as a delivered fact.
+    if(!['delivering','completed'].includes(r.status)||!answer)return {responseId:r.id,status:r.status,sentences:[],citations:[]};
+    const shown=(await c.query('SELECT text FROM speech_segments WHERE response_id=$1 AND text_shown_at IS NOT NULL ORDER BY segment_index',[r.id])).rows.map(row=>row.text);
+    return {responseId:r.id,status:r.status,sentences:shown,answerStatus:answer.status,citations:shown.length?this.knowledgeCitations(r.knowledge_context,answer):[]};
+  });}
+  private knowledgeCitations(knowledge:DialogueKnowledge,answer:KnowledgeAnswer){
+    if(!['answered','not_found','conflict'].includes(answer.status)||!Array.isArray(answer.citationIds)||new Set(answer.citationIds).size!==answer.citationIds.length||answer.status==='not_found'&&answer.citationIds.length!==0||answer.status==='answered'&&!answer.citationIds.length||answer.status==='conflict'&&answer.citationIds.length<2)throw new RuntimeError('invalid_knowledge_answer',503);
+    return answer.citationIds.map(id=>{if(!/^K[1-5]$/.test(id))throw new RuntimeError('invalid_knowledge_citation',503);const chunk=knowledge.chunks[Number(id.slice(1))-1];if(!chunk)throw new RuntimeError('invalid_knowledge_citation',503);return chunk;});
+  }
   async busy(){return !!(await this.db.pool.query(`SELECT 1 FROM response_runs WHERE character_id=$1 AND status IN ${activeResponses}`,[this.characterId])).rowCount;}
-  async validResponse(c:Client,id:string,s:VersionedState){const r=(await c.query(`SELECT r.* FROM response_runs r JOIN sessions ses ON ses.id=r.session_id WHERE r.id=$1 AND r.character_id=$2 AND r.status IN ${activeResponses} AND ses.status='active' AND r.generation_epoch=$3 AND NOT EXISTS(SELECT 1 FROM response_sources rs LEFT JOIN events e ON e.id=rs.event_id LEFT JOIN memories m ON m.id=rs.memory_id WHERE rs.response_id=r.id AND ((rs.event_id IS NOT NULL AND (e.data_status<>'active' OR e.revision<>rs.source_version)) OR (rs.memory_id IS NOT NULL AND (m.status<>'active' OR m.content_version<>rs.source_version))))`,[id,this.characterId,s.generationEpoch.toString()])).rows[0];if(r?.conversation_refs&&!await this.readConversation(c,r.conversation_refs))return null;return r??null;}
+  async validResponse(c:Client,id:string,s:VersionedState){const r=(await c.query(`SELECT r.* FROM response_runs r JOIN sessions ses ON ses.id=r.session_id WHERE r.id=$1 AND r.character_id=$2 AND r.status IN ${activeResponses} AND ses.status='active' AND r.generation_epoch=$3 AND NOT EXISTS(SELECT 1 FROM response_sources rs LEFT JOIN events e ON e.id=rs.event_id LEFT JOIN memories m ON m.id=rs.memory_id WHERE rs.response_id=r.id AND ((rs.event_id IS NOT NULL AND (e.data_status<>'active' OR e.revision<>rs.source_version)) OR (rs.memory_id IS NOT NULL AND (m.status<>'active' OR m.content_version<>rs.source_version))))`,[id,this.characterId,s.generationEpoch.toString()])).rows[0];if(r?.knowledge_context&&!await this.knowledgeValid(c,r.session_id,r.plan?.targetIdentityId,r.knowledge_context)){await this.cancelKnowledgeIn(c,r.id);return null;}if(r?.conversation_refs&&!await this.readConversation(c,r.conversation_refs))return null;return r??null;}
   async dialogueIdentities(ids:(string|null|undefined)[]){
     const referenced=[...new Set(ids.filter((id):id is string=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)))];
     return (await this.db.pool.query('SELECT id,display_name AS "displayName" FROM identities WHERE id=ANY($1::uuid[]) ORDER BY id',[referenced])).rows as {id:string;displayName:string}[];
@@ -358,6 +432,7 @@ export class Store {
   });}
   private async responseContextIn(c:Client,s:VersionedState,id:string){
     const r=(await c.query('SELECT * FROM response_runs WHERE id=$1 AND character_id=$2',[id,this.characterId])).rows[0];if(!r)throw new RuntimeError('response_not_found',404);
+    if(r.knowledge_context&&!await this.knowledgeValid(c,r.session_id,r.plan?.targetIdentityId,r.knowledge_context))throw new RuntimeError('knowledge_changed');
     const allSources=(await c.query("SELECT e.id,e.kind,e.payload,e.parent_event_id FROM response_sources rs JOIN events e ON e.id=rs.event_id WHERE rs.response_id=$1 AND e.data_status='active' AND e.revision=rs.source_version",[id])).rows;
     const originalHistory=(await c.query("SELECT ref->>'id' AS id FROM transitions t JOIN appraisals a ON a.id=t.appraisal_id CROSS JOIN LATERAL jsonb_array_elements(a.context_refs) ref WHERE t.source_event_id=$1 AND a.character_id=$2 AND ref->>'kind'='event'",[r.trigger_event_id,this.characterId])).rows.map(row=>row.id);
     const memories=(await c.query("SELECT m.id,m.content,m.content_version,m.facts,(SELECT jsonb_agg(identity_id) FROM memory_participants p WHERE p.memory_id=m.id) AS participants FROM response_sources rs JOIN memories m ON m.id=rs.memory_id WHERE rs.response_id=$1 AND m.status='active' AND m.content_version=rs.source_version",[id])).rows;
@@ -371,13 +446,19 @@ export class Store {
     const currentInput=sources.find(source=>source.id===inputId)??null;
     const identities=await this.dialogueIdentities([r.plan?.targetIdentityId,...sources.map(e=>e.payload?.identityId),...memories.flatMap(m=>[...(m.participants??[]),m.facts?.identityId])]);
     const conversation=r.conversation_refs?await this.readConversation(c,r.conversation_refs):undefined;if(r.conversation_refs&&!conversation)throw new RuntimeError('stale_source');
-    return {response:r,context:{currentInput,sources,memories,identities,silence,conversation:conversation??undefined,emotion:this.emotion(decay(s.body,this.now(s)))} satisfies DialogueContext};
+    return {response:r,context:{...(r.knowledge_context?{knowledge:r.knowledge_context}:{}),currentInput,sources,memories,identities,silence,conversation:conversation??undefined,emotion:this.emotion(decay(s.body,this.now(s)))} satisfies DialogueContext};
   }
-  async generated(id:string,sentences:string[],owner:{clientId:string;outputEpoch:bigint}|null){return this.locked(async(c,s)=>{const r=await this.validResponse(c,id,s);if(!r)return null;if(!owner){await c.query("UPDATE response_runs SET status='failed',cancel_reason='stage_unavailable',finished_at=$2 WHERE id=$1",[id,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');return null;}
+  async generated(id:string,sentences:string[],owner:{clientId:string;outputEpoch:bigint}|null,answer?:KnowledgeAnswer){return this.locked(async(c,s)=>{const r=await this.validResponse(c,id,s);if(!r)return null;if(!owner){await c.query("UPDATE response_runs SET status='failed',cancel_reason='stage_unavailable',finished_at=$2 WHERE id=$1",[id,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');return null;}
     const session=await this.session(c,r.session_id);if(BigInt(session.output_epoch)!==owner.outputEpoch)return null;
+    let knowledge: {status:KnowledgeAnswer['status'];citations:ReturnType<Store['knowledgeCitations']>}|undefined;
+    if(r.knowledge_context){
+      if(!answer||JSON.stringify(answer.sentences)!==JSON.stringify(sentences))throw new RuntimeError('invalid_knowledge_answer',503);
+      knowledge={status:answer.status,citations:this.knowledgeCitations(r.knowledge_context,answer)};
+      await c.query('UPDATE response_runs SET knowledge_context=$2 WHERE id=$1',[id,{...r.knowledge_context,answer}]);
+    }else if(answer)throw new RuntimeError('invalid_knowledge_answer',503);
     await c.query("UPDATE response_runs SET status='delivering',segment_count=$2 WHERE id=$1",[id,sentences.length]);const segments=[];
     for(let i=0;i<sentences.length;i++){const segmentId=randomUUID();await c.query("INSERT INTO speech_segments(id,character_id,response_id,segment_index,text,synthesis_status,delivery_status,output_epoch,playback_client_id) VALUES($1,$2,$3,$4,$5,'ready','sent',$6,$7)",[segmentId,this.characterId,id,i,sentences[i],owner.outputEpoch.toString(),owner.clientId]);segments.push({id:segmentId,text:sentences[i],index:i});}
-    return {response:r,segments,outputEpoch:owner.outputEpoch};
+    return {response:r,segments,outputEpoch:owner.outputEpoch,...(knowledge?{knowledge}:{})};
   });}
   async failResponse(id:string,code:string){return this.locked(async(c,s)=>{await c.query(`UPDATE response_runs SET status='failed',cancel_reason=$3,finished_at=$4 WHERE id=$1 AND character_id=$2 AND status IN ${activeResponses}`,[id,this.characterId,code,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');});}
   private async resolveAttempt(c:Client,responseId:string,status:'not_delivered'|'unknown') {const a=(await c.query("UPDATE agenda_attempts SET delivery_status=$2,resolved_at=$3 WHERE response_id=$1 AND delivery_status='reserved' RETURNING agenda_id",[responseId,status,new Date(this.clock())])).rows[0];if(a)await c.query("UPDATE agendas SET status=$2,closed_reason=$3 WHERE id=$1 AND status='reserved'",[a.agenda_id,status==='not_delivered'?'pending':'expired',status]);}
@@ -567,9 +648,9 @@ export class Store {
   });}
   async timeline(sessionId:string,limit=50){return (await this.db.pool.query('SELECT id,kind,identity_id,attention_status,data_status,revision,received_at,payload FROM events WHERE character_id=$1 AND session_id=$2 ORDER BY received_at DESC,id DESC LIMIT $3',[this.characterId,sessionId,Math.min(limit,100)])).rows;}
   async command(requestId:string){return (await this.db.pool.query("SELECT id AS event_id,session_id,kind FROM events WHERE character_id=$1 AND source_key=$2 AND source_namespace LIKE 'studio:%' ORDER BY received_at DESC LIMIT 1",[this.characterId,requestId])).rows[0]??null;}
-  private async invalidateOutputs(c:Client,s:VersionedState,memoryIds:string[],eventIds:string[]){
+  private async invalidateOutputs(c:Client,s:VersionedState,memoryIds:string[],eventIds:string[],initialResponses:string[]=[]){
     // Resolve the closure before clearing any plan, appraisal refs or historical reason.
-    const responses=new Set<string>(),appraisals=new Set<string>(),reasons=new Set<string>();
+    const responses=new Set<string>(initialResponses),appraisals=new Set<string>(),reasons=new Set<string>();
     for(const record of s.body.turn.recentSilences)if(eventIds.includes(record.eventId)||record.sourceRefs.some(ref=>(ref.kind==='event'?eventIds:memoryIds).includes(ref.id)))reasons.add(record.eventId);
     let previous=-1;
     while(previous!==responses.size+appraisals.size+reasons.size){
@@ -585,7 +666,7 @@ export class Store {
     await c.query("UPDATE appraisals SET result=NULL,provider_result=NULL,context_refs='[]'::jsonb,status='stale' WHERE character_id=$1 AND id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     await c.query("UPDATE transitions SET effects=CASE WHEN effects ? 'repairUsed' THEN jsonb_build_object('repairUsed',effects->'repairUsed') ELSE NULL END,replay_status='source_redacted' WHERE character_id=$1 AND appraisal_id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     const affected=[...responses].map(id=>({id}));
-    for(const r of affected){await c.query("UPDATE response_runs SET status=CASE WHEN status IN ('planned','generating','synthesizing','delivering') THEN 'cancelled' ELSE status END,plan=NULL,conversation_refs=NULL,cancel_reason='source_invalidated' WHERE id=$1",[r.id]);await c.query("UPDATE speech_segments SET text=NULL,delivery_status=CASE WHEN delivery_status IN ('finished','unknown') THEN delivery_status ELSE 'cancelled' END WHERE response_id=$1",[r.id]);await this.resolveAttempt(c,r.id,'unknown');}
+    for(const r of affected){await c.query("UPDATE response_runs SET status=CASE WHEN status IN ('planned','generating','synthesizing','delivering') THEN 'cancelled' ELSE status END,plan=NULL,conversation_refs=NULL,knowledge_context=NULL,cancel_reason='source_invalidated' WHERE id=$1",[r.id]);await c.query("UPDATE speech_segments SET text=NULL,delivery_status=CASE WHEN delivery_status IN ('finished','unknown') THEN delivery_status ELSE 'cancelled' END WHERE response_id=$1",[r.id]);await this.resolveAttempt(c,r.id,'unknown');}
     await c.query("UPDATE response_runs SET status='cancelled',cancel_reason='generation_invalidated',finished_at=$2 WHERE character_id=$1 AND status IN ('planned','generating','synthesizing','delivering')",[this.characterId,new Date(this.now(s))]);
     s.generationEpoch++;
     await c.query("UPDATE agendas SET status='expired',closed_reason='source_invalidated' WHERE character_id=$1 AND source_memory_id=ANY($2::uuid[]) AND status IN ('pending','reserved','offered')",[this.characterId,memoryIds]);

@@ -12,11 +12,13 @@ import { Store } from '../../../../packages/database/src/store.ts';
 import { decay,expression } from '../../../../packages/character-core/src/index.ts';
 import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../../packages/contracts/src/ai-ports.ts';
 import { Coordinator,type OutputOwner } from '../coordinator/index.ts';
+import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
+import {knowledgePutSchema} from '../../../../packages/database/src/knowledge-store.ts';
 type Role='studio'|'stage';
 type Credential={role:Role;clientId:string;expires:number};
 type Connection={socket:WebSocket;credential:Credential;id:string;clientId:string;sent:bigint;received:bigint;sessionId:string|null;ready:boolean;queued:number;queuedBytes:number;lastHeartbeat:number;pending:Promise<unknown>;rate:{at:number;count:number}};
 const serialize=(value:unknown)=>JSON.stringify(value,(_key,item)=>typeof item==='bigint'?item.toString():item);
-export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
+export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{knowledge?:KnowledgeRetriever;solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
   if(provider.ready)await provider.ready().catch(()=>{}); // one startup preparation; never infer on health polls
   const app=Fastify({logger:false,bodyLimit:65536});
   app.setSerializerCompiler(()=>serialize);
@@ -42,7 +44,7 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
     sendOwner:(type,payload)=>{if(ownerSocket)send(ownerSocket,type,payload);},
     inputStatus:(eventId,status)=>{for(const conn of connections.values())if(conn.credential.role==='studio')send(conn,'input.status',{eventId,status});},
     failure:code=>{for(const conn of connections.values())send(conn,'runtime.status',{status:'degraded',code});},
-  },appraiser,options.solver);
+  },appraiser,options.solver,options.knowledge);
   app.addHook('onRequest',async(request,reply)=>{
     const path=request.url.split('?')[0];reply.header('Cache-Control','no-store');
     if(path.startsWith('/api/')||path==='/health/ready'){
@@ -68,6 +70,17 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
   app.get('/api/sessions/:id/timeline',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id);return {data:await store.timeline(id,z.coerce.number().int().min(1).max(100).optional().parse((req.query as any).limit)??50)};});
   app.get('/api/characters/:id/memories',async req=>{auth(req,'studio');if((req.params as any).id!==store.characterId)throw new RuntimeError('forbidden',403);return {data:await store.memories()};});
   app.get('/api/commands/:id',async req=>{auth(req,'studio');return {data:await store.command(uuid.parse((req.params as any).id))};});
+  app.get('/api/sessions/:id/knowledge',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=uuid.parse((req.query as any).identityId);return {data:await store.knowledgeDocuments(id,identityId)};});
+  app.get('/api/sessions/:id/knowledge-answer',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=uuid.parse((req.query as any).identityId);return {data:await store.latestKnowledgeAnswer(id,identityId)};});
+  const knowledgeBarrier=(responses:Record<string,any>[])=>{for(const response of responses)coordinator.barrier(response.id,'knowledge_changed',BigInt(response.generation_epoch));};
+  app.post('/api/sessions/:id/knowledge',async req=>{
+    auth(req,'studio');const id=uuid.parse((req.params as any).id),{identityId,...input}=knowledgePutSchema.extend({identityId:uuid}).parse(req.body);
+    const result=await coordinator.control(()=>store.mutateKnowledge(id,identityId,requestId(req),input,knowledgeBarrier));await coordinator.sink.changed();return {data:result.result};
+  });
+  app.delete('/api/sessions/:id/knowledge/:documentId',async req=>{
+    auth(req,'studio');const id=uuid.parse((req.params as any).id),documentId=uuid.parse((req.params as any).documentId),identityId=uuid.parse((req.query as any).identityId),expectedRevision=counter.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,''));
+    const result=await coordinator.control(()=>store.mutateKnowledge(id,identityId,requestId(req),{documentId,expectedRevision,delete:true},knowledgeBarrier));await coordinator.sink.changed();return {data:result.result};
+  });
   async function mutateSource(req:any,memory:boolean,content?:string,sourceIds?:string[]) {
     auth(req,'studio');const key=requestId(req),id=uuid.parse(req.params.id);
     const expected=content===undefined?counter.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,'')):counter.parse(req.body.expectedVersion);

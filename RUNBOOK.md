@@ -1,3 +1,13 @@
+## 2026-10-17 H1 개발 실행 범위
+
+H1은 [계획](./docs/HOME_ASSISTANT_H1_PLAN.md)과 [검증 결과](./docs/HOME_ASSISTANT_H1_RESULT.md)를 따른다. 이 checkout에는 migration0005가 추가됐으므로 이전 MVP DB를 그대로 실행하면 schema_migration_required가 날 수 있다. 기존 MVP DB를 자동 초기화/마이그레이션하지 않는다. 현재 검사는 J:의 별도 합성 DB와 빌드를 사용한다.
+
+실제 H1 검증12건은 종료했다. 기존 MVP 프로필은 이번 승인에 맞춰 총 USD3.50만 반영했으며 UI·DB와 모델 설정은 그대로다. 최신 H1 결과의 소스/화면/DB는 별도 J: 증거 폴더에 보존했다. 아래 USD3·잔여액은 과거 실행 당시 기록이다.
+
+H1 UI에서는 새 만남 → 직접 고른 MD/TXT 자료 가져오기 → 입력 종류 ‘자료 검색’ → 질문 → Stage 출력 선택 순서로 사용한다. 자료는 현재 만남·선택 상대에만 연결되고 새 만남으로 자동 복사하지 않는다. 교체에는 현재 revision, 삭제에는 If-Match가 적용된다. CLI는 `node --experimental-transform-types scripts/import-knowledge.ts --session UUID --identity UUID --file exact.md`이며 동일 로컬 Studio의 `STUDIO_ACCESS_TOKEN` 환경 변수가 필요하다. 토큰을 채팅·명령 인자·Git에 넣지 않는다.
+
+복구 원칙: migration0001–0004는 변경하지 않는다. 기존 데이터에 적용하기 전에 별도 복제 DB에서 migrate와 assertMigrations를 확인하고 백업한다. 이번 합성 DB의 rollback은 새 H1 DB를 폐기하고 보존된 MVP DB/태그를 사용하는 방식이며, 기존 DB에서 컬럼·테이블을 자동 삭제하지 않는다. 운영 DB migration은 이번 검사의 증거가 아니다.
+
 > **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 범위 개정은 문서만 변경했으며, 이후 승인된 구현과 검증 상태는 [현재 인계](./BUILD_HANDOFF.md)를 따른다. 아래 날짜별 설치·실행 기록은 당시 환경과 결과를 보존한 것이며 현재 서버 생존 상태를 뜻하지 않는다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/RUNBOOK.md)를 보존한다.
 
 ## 현재 실행 후보 — 2026-10-16 말투 지속 반영

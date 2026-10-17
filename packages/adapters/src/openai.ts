@@ -1,9 +1,9 @@
 import {readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {RuntimeError,type Plan} from '../../contracts/src/domain.ts';
-import type {DialogueGenerator,Message} from '../../contracts/src/ai-ports.ts';
+import type {DialogueGenerator,DialogueContext,Message} from '../../contracts/src/ai-ports.ts';
 import {budgetConversation,dropOldestExchange,type ConversationSnapshot} from '../../contracts/src/conversation.ts';
-import {buildDialogueRequest,decodeDialogueOutput} from './dialogue-request.ts';
+import {buildDialogueRequest,decodeDialogueOutput,buildKnowledgeRequest,decodeKnowledgeOutput} from './dialogue-request.ts';
 
 // Frozen standard-price upper bounds: includes the higher cache-write input rate.
 export const openaiCandidate={model:'gpt-6-sol',inputUsdPerMillion:2.5,outputUsdPerMillion:10,outputTokens:256,temperature:.2,reasoning:'none'} as const;
@@ -148,7 +148,7 @@ export class OpenAIDialogue implements DialogueGenerator {
   }
   private async countInput(input:Message[]|string){return (await this.request('count',{model:this.model,input})).input_tokens as number;}
   private compose(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});}
-  private payload(request:ReturnType<typeof buildDialogueRequest>){return {model:this.model,input:request.messages,store:false,reasoning:{effort:'none'},temperature:.2,max_output_tokens:256,text:{format:{type:'json_schema',name:'character_dialogue',strict:true,schema:openaiSchema(request.format)}}};}
+  private payload(request:{messages:Message[];format?:object}){return {model:this.model,input:request.messages,store:false,reasoning:{effort:'none'},temperature:.2,max_output_tokens:256,text:{format:{type:'json_schema',name:'character_dialogue',strict:true,schema:openaiSchema(request.format)}}};}
   private async countPayload(body:ReturnType<OpenAIDialogue['payload']>){
     // InputTokenCountParams excludes store/temperature/max_output_tokens.
     // Preserve all input-bearing fields, including the structured output schema.
@@ -157,6 +157,11 @@ export class OpenAIDialogue implements DialogueGenerator {
   }
   async fitConversation(plan:Plan,context:object){
     this.preparedCount=undefined;
+    if(plan.purpose==='knowledge_answer'){
+      const body=this.payload(buildKnowledgeRequest(plan,context)),inputTokens=await this.countPayload(body);
+      if(inputTokens>3328)throw new RuntimeError('context_limit',503);
+      this.preparedCount={body:JSON.stringify(body),inputTokens};return {conversation:undefined,inputTokens};
+    }
     const original=(context as {conversation?:ConversationSnapshot}).conversation;
     let conversation=original?await budgetConversation(original,t=>this.counter.countText(t)):undefined;
     for(;;){const body=this.payload(this.compose(plan,{...context,conversation})),inputTokens=await this.countPayload(body);if(inputTokens<=3328){this.preparedCount={body:JSON.stringify(body),inputTokens};return {conversation,inputTokens};}
@@ -170,5 +175,12 @@ export class OpenAIDialogue implements DialogueGenerator {
     if(inputTokens>3328)throw new RuntimeError('context_limit',503);
     const text=await this.request('dialogue',body,inputTokens);
     return decodeDialogueOutput(request,text,plan.maxSentences);
+  }
+  async answerKnowledge(plan:Plan,context:DialogueContext){
+    const prepared=this.preparedCount;this.preparedCount=undefined;
+    const request=buildKnowledgeRequest(plan,context),body=this.payload(request);
+    const inputTokens=prepared?.body===JSON.stringify(body)?prepared.inputTokens:await this.countPayload(body);
+    if(inputTokens>3328)throw new RuntimeError('context_limit',503);
+    return decodeKnowledgeOutput(request,await this.request('dialogue',body,inputTokens),plan.maxSentences);
   }
 }

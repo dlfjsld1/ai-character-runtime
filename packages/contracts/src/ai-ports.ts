@@ -1,12 +1,16 @@
 import type { Appraisal, Candidate, Plan, SilenceRecord, AffectEvidence } from './domain.ts';
 import type { AppraisalEvaluation, AppraisalMetadata } from './appraisal.ts';
 import type {ConversationSnapshot,ConversationContext,ConversationEvidence} from './conversation.ts';
+import type {KnowledgeChunk} from './knowledge.ts';
 
 export type Message={role:'system'|'user'|'assistant';content:string};
 export interface TokenCounter { count(messages:Message[]):Promise<number>; countText(text:string):Promise<number> }
 export type DialogueSource={readonly id?:string;readonly revision?:string;readonly identity_id?:string|null;readonly payload?:Readonly<Record<string,unknown>>};
 export type DialogueMemory={readonly id?:string;readonly content?:string|null;readonly content_version?:string;readonly facts?:Readonly<Record<string,unknown>>|null;readonly participants?:readonly string[]|null};
+export type DialogueKnowledge={readonly query:string;readonly chunks:readonly KnowledgeChunk[];readonly revision:string};
+export type KnowledgeAnswer={sentences:string[];status:'answered'|'not_found'|'conflict';citationIds:string[]};
 export type DialogueContext={
+  readonly knowledge?:DialogueKnowledge;
   readonly conversation?:ConversationSnapshot;
   readonly currentInput?:DialogueSource|null;
   readonly sources?:readonly DialogueSource[];
@@ -21,6 +25,7 @@ export interface DialogueGenerator {
   readiness?():{status:string;inferenceVerified:boolean;preparationError:string|null};
   fitConversation(plan:Plan,context:DialogueContext):Promise<{conversation:ConversationSnapshot|undefined;inputTokens:number}>;
   dialogue(plan:Plan,context:DialogueContext):Promise<string[]>;
+  answerKnowledge?(plan:Plan,context:DialogueContext):Promise<KnowledgeAnswer>;
 }
 export interface ActivitySolver { solve(activityId:string,context:object):Promise<Candidate> }
 export type AppraisalEvent={id:string;text:string;identityId:string;revision?:string};

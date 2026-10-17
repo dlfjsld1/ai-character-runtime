@@ -1,3 +1,5 @@
+**2026-10-17 H1 마감.** 게시 기준 태그는 `v0.2.0-home-assistant-h1`이다. MVP 태그 이후 지정 자료 검색을 구현했다. [H1 계획](./docs/HOME_ASSISTANT_H1_PLAN.md)과 [현재 검증 결과](./docs/HOME_ASSISTANT_H1_RESULT.md)를 따른다. 실제 API→Stage12건의 전달·사실/출처를 확인했고 문장부호 결함1건을 기록했다. 사용자가 문장부호 문제를 후속으로 남기고 H1을 명시적으로 수용했다. 아래 MVP와 이전 검증 기록은 각 날짜의 결과다.
+
 # AI Character Runtime
 
 **2026-10-17: 텍스트 MVP 마감.** 사용자가 현재 수준을 명시적으로 수용했다. [완료 범위·후속 과제](./docs/MVP_CLOSEOUT.md), [게시 전 보안 점검](./docs/PUBLICATION_REVIEW.md), [다음 H1 지정 자료 검색 계획](./docs/HOME_ASSISTANT_H1_PLAN.md)을 따른다. 기준 태그는 v0.1.0-text-mvp다. 아래 수용 미확인·검증 기록은 10-16까지의 당시 상태이며 사용자 점수를 소급 작성하지 않는다.

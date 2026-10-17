@@ -44,7 +44,7 @@ export type EvidenceInput = { id: string; identityId: string; kind: 'first_obser
 export type Relationship = { familiarity: number; affinity: number; interactionDays: number; verifiedProblemCount: number; verifiedHelpDays: number; lastHelpAt: number|null };
 export const uuid = z.uuid();
 export const counter = z.string().regex(/^(0|[1-9]\d*)$/);
-export const chatSchema = z.object({ identityId: uuid, text: z.string().trim().refine(s => [...s].length >= 1 && [...s].length <= 1000 && Buffer.byteLength(s, 'utf8') <= 4096), replyToEventId: uuid.optional() }).strict();
+export const chatSchema = z.object({ identityId: uuid, text: z.string().trim().refine(s => [...s].length >= 1 && [...s].length <= 1000 && Buffer.byteLength(s, 'utf8') <= 4096), replyToEventId: uuid.optional(), intent:z.literal('knowledge').optional() }).strict();
 export const envelopeSchema = z.object({ protocolVersion: z.literal(1), messageId: uuid, connectionId: uuid, sequence: counter, sessionId: uuid.nullable(), requestId: uuid.optional(), type: z.string().min(1), payload: z.unknown() }).strict();
 export const authSchema = z.object({ protocolVersion: z.literal(1), type: z.literal('auth'), accessToken: z.string().min(32).max(128), clientInstanceId: uuid }).strict();
 export const reportSchema = z.object({ responseId: uuid, segmentId: uuid, generationEpoch: counter, outputEpoch: counter }).strict();

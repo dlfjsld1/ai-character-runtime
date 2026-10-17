@@ -6,6 +6,7 @@ import { neutralAppraisal,type Plan,RuntimeError } from '../../../../packages/co
 import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../../packages/contracts/src/ai-ports.ts';
 import { appraisalEvaluationSchema,type AppraisalMetadata } from '../../../../packages/contracts/src/appraisal.ts';
 import {budgetAppraisalConversation} from '../../../../packages/contracts/src/conversation.ts';
+import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
 export type OutputOwner={clientId:string;outputEpoch:bigint};
 export interface Sink {
   owner():OutputOwner|null;
@@ -25,7 +26,7 @@ export class Coordinator {
   private timer:ReturnType<typeof setInterval>|null=null;
   private dispatching=0;
   private ticking=0;
-  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver){}
+  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever){}
   start(){this.timer=setInterval(()=>{void this.tick().catch(()=>this.sink.failure('db_unavailable'));},1000);}
   async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
   control<T>(fn:()=>Promise<T>):Promise<T>{const result=this.queue.then(fn,fn);this.queue=result.catch(()=>{});return result;}
@@ -48,6 +49,17 @@ export class Coordinator {
       const session=await this.store.currentSession();if(!session)break;const rows=await this.store.candidates(session.id);const state=await this.store.state();
       const selected=selectAttention(rows.map(e=>({id:e.id,identityId:e.identity_id,receivedAt:e.received_at.getTime(),priority:e.payload.replyToEventId?1:0})),this.store.clock(),state.body.attention.lastIdentityId,state.body.attention.consecutive);if(!selected)break;
       const request=await this.control(()=>this.store.select(selected.id));if(!request)continue;
+      if(request.event.payload.intent==='knowledge'){
+        this.sink.inputStatus(selected.id,'searching');await this.sink.changed();
+        try{
+          if(!this.knowledge||!this.provider.answerKnowledge)throw new RuntimeError('knowledge_unavailable',503);
+          const revision=await this.store.knowledgeRevision(session.id,request.event.identity_id);
+          const result=await this.knowledge.search({scope:{characterId:this.store.characterId,sessionId:session.id,identityId:request.event.identity_id},query:request.event.payload.text,limit:5});
+          if(this.stopped)break;
+          const committed=await this.control(()=>this.store.commitKnowledge(request,result,revision));
+          this.sink.inputStatus(selected.id,'observed');await this.sink.changed();void this.dispatch(committed.response.id);break;
+        }catch(e){const code=e instanceof RuntimeError?e.code:'knowledge_search_failed';await this.store.failKnowledge(selected.id,code);this.sink.inputStatus(selected.id,'failed');this.sink.failure(code);await this.sink.changed();continue;}
+      }
       this.sink.inputStatus(selected.id,'selected');await this.sink.changed();let appraisal=neutralAppraisal,failureCode:string|undefined;
       let metadata:AppraisalMetadata={provider:this.appraiser.name,model:this.appraiser.model,promptVersion:this.appraiser.promptVersion};
       try{const readiness=this.appraiser.readiness();if(readiness.status==='blocked'||readiness.status==='unavailable')throw new RuntimeError(readiness.errorCode??'appraisal_unavailable',503);request.conversation=budgetAppraisalConversation(request.conversation);request.conversationContext.history=request.conversation;const activity=await this.store.activity();const result=appraisalEvaluationSchema.parse(await this.appraiser.evaluate({id:request.event.id,text:request.event.payload.text,identityId:request.event.identity_id,revision:String(request.revision)},{activity:activity?{prompt:activity.public_prompt,status:activity.status}:null,recentPraise:request.praiseSnapshot.context,conversation:request.conversation,conversationContext:request.conversationContext}));appraisal=result.appraisal;metadata=result.metadata;}
@@ -69,18 +81,20 @@ export class Coordinator {
       const fit=await this.provider.fitConversation(initial.response.plan as Plan,initial.context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
       const prepared=await this.control(()=>this.store.fitResponseConversation(id,fit.conversation));if(!prepared)return;
       const {response,context}=prepared;
-      const sentences=await this.provider.dialogue(response.plan as Plan,context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
-      const generated=await this.control(()=>this.store.generated(id,sentences,this.sink.owner()));if(!generated)return;
+      if(context.knowledge&&!this.provider.answerKnowledge)throw new RuntimeError('knowledge_unavailable',503);
+      const answer=context.knowledge?await this.provider.answerKnowledge!(response.plan as Plan,context):undefined;
+      const sentences=answer?answer.sentences:await this.provider.dialogue(response.plan as Plan,context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
+      const generated=await this.control(()=>this.store.generated(id,sentences,this.sink.owner(),answer));if(!generated)return;
       const common={responseId:id,generationEpoch:generated.response.generation_epoch,outputEpoch:generated.outputEpoch.toString()};
       // The transaction above committed every segment before the first send.
       if(this.blockedOutputs.has(id)||this.stopped)return;
-      this.sink.sendOwner('response.start',{...common,expression:stageExpression(response.plan),intensity:1});
+      this.sink.sendOwner('response.start',{...common,expression:stageExpression(response.plan),intensity:1,...(generated.knowledge?{knowledge:generated.knowledge}:{})});
       for(const segment of generated.segments)this.sink.sendOwner('speech.segment',{...common,segmentId:segment.id,segmentIndex:segment.index,text:segment.text,modality:'text'});
       this.sink.sendOwner('response.sealed',{...common,segmentCount:generated.segments.length});await this.sink.changed();
     }catch(e){const code=e instanceof RuntimeError?e.code:'invalid_output';await this.store.failResponse(id,code).catch(()=>{});this.sink.failure(code);await this.sink.changed();}finally{this.dispatching--;}
   }
   // This process-wide output barrier is raised before awaiting any DB operation.
-  barrier(responseId:string,reason:string,generationEpoch=0n){this.blockedOutputs.add(responseId);this.sink.sendOwner('response.cancel',{responseId,reason,invalidatedGenerationEpoch:generationEpoch.toString(),newGenerationEpoch:(generationEpoch+1n).toString(),outputEpoch:(this.sink.owner()?.outputEpoch??0n).toString()});}
+  barrier(responseId:string,reason:string,generationEpoch=0n,advanceEpoch=true){this.blockedOutputs.add(responseId);this.sink.sendOwner('response.cancel',{responseId,reason,invalidatedGenerationEpoch:generationEpoch.toString(),newGenerationEpoch:(generationEpoch+(advanceEpoch?1n:0n)).toString(),outputEpoch:(this.sink.owner()?.outputEpoch??0n).toString()});}
   async cancel(sessionId:string,requestId:string,responseId:string,reason='operator_stop'){
     const {response}=await this.store.responseContext(responseId);if(response.session_id!==sessionId||!['planned','generating','synthesizing','delivering'].includes(response.status))throw new RuntimeError('stale_response');
     this.barrier(responseId,reason,BigInt(response.generation_epoch));const result=await this.control(()=>this.store.cancel(sessionId,requestId,reason,responseId));await this.sink.changed();return result;

@@ -3,10 +3,10 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { appraisalSchema,candidateSchema,RuntimeError,type Plan } from '../../contracts/src/domain.ts';
-import type {Message,TokenCounter,Provider} from '../../contracts/src/ai-ports.ts';
+import type {Message,TokenCounter,Provider,DialogueContext} from '../../contracts/src/ai-ports.ts';
 import {conversationSnapshotSchema,budgetConversation,dropOldestExchange} from '../../contracts/src/conversation.ts';
 export type {Message,TokenCounter,Provider} from '../../contracts/src/ai-ports.ts';
-import {buildDialogueRequest,decodeDialogueOutput,type DialoguePromptOptions} from './dialogue-request.ts';
+import {buildDialogueRequest,decodeDialogueOutput,buildKnowledgeRequest,decodeKnowledgeOutput,type DialoguePromptOptions} from './dialogue-request.ts';
 export {validateDialogue} from './dialogue-request.ts';
 export type DialogueEvaluation=DialoguePromptOptions&{model:'qwen2.5:7b'|'gemma4:12b-it-qat'|'qwen3.5:9b-q4_K_M';seed:number;think?:false};
 export class PythonTokenCounter implements TokenCounter {
@@ -111,6 +111,11 @@ export class OllamaProvider implements Provider {
     return result;
   }
   async fitConversation(plan:Plan,context:object){
+    if(plan.purpose==='knowledge_answer'){
+      const request=buildKnowledgeRequest(plan,context),inputTokens=await this.counter.count(request.messages);
+      if(inputTokens>3328)throw new RuntimeError('input_too_long',413);
+      return {conversation:undefined,inputTokens};
+    }
     const original=(context as {conversation?:unknown}).conversation;
     let conversation=original===undefined?undefined:await budgetConversation(conversationSnapshotSchema.parse(original),text=>this.counter.countText(text));
     for(;;){const request=this.buildDialogueRequest(plan,{...context,conversation});const inputTokens=await this.counter.count(request.messages);
@@ -123,6 +128,10 @@ export class OllamaProvider implements Provider {
   async dialogue(plan:Plan,context:object) {
     const request=this.buildDialogueRequest(plan,context);
     return decodeDialogueOutput(request,await this.chat(request.messages,request.format,true,.2,'dialogue'),plan.maxSentences);
+  }
+  async answerKnowledge(plan:Plan,context:DialogueContext){
+    const request=buildKnowledgeRequest(plan,context);
+    return decodeKnowledgeOutput(request,await this.chat(request.messages,request.format,false,.2,'dialogue'),plan.maxSentences);
   }
   async solve(activityId:string,context:object) {
     if(this.probeOptions.evaluation)throw new RuntimeError('dialogue_evaluation_only',400);

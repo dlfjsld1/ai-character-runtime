@@ -1,3 +1,11 @@
+## 2026-10-17 H1 자료 검색 확장
+
+기존 protocolVersion1의 `chat.submit`에 optional `intent: "knowledge"`를 추가한다. 생략하면 기존 일반 대화다. 검색 입력은 읽기 전용 요청으로 처리하고 감정 판단 호출이나 사회적 침묵을 검색의 선행 조건으로 삼지 않는다. Core의 현재 말투·감정 및 원인 검증은 유지한다.
+
+Studio 인증으로 `GET/POST /api/sessions/:id/knowledge`, `DELETE /api/sessions/:id/knowledge/:documentId`, `GET /api/sessions/:id/knowledge-answer`를 사용한다. 목록/답변/삭제는 identityId 쿼리, 가져오기는 identityId와 title/body 및 선택 documentId/expectedRevision을 받는다. 변경은 Idempotency-Key, 삭제는 If-Match revision이 필요하다. Stage 역할에는 자료 API 권한이 없다. 파일 경로를 서버가 받아 읽는 API는 없다.
+
+검색의 `response.start`에는 optional `knowledge: {status, citations}`가 추가된다. status는 answered/not_found/conflict이고 citations는 서버가 검증·구성한 documentId/revision/chunkId/title/text/ordinal이다. Stage는 현재 자막 동안만 인용을 보여주고 취소·세대 전환·연결 종료 시 제거한다. 일반 대사의 wire·ACK 계약은 유지한다. 실제 검증 범위는 [H1 결과](./docs/HOME_ASSISTANT_H1_RESULT.md)를 따른다.
+
 > **2026-10-11 범위 개정 안내.** 제품 목표·현재 MVP·성공 기준은 [기획 v3](./PRODUCT_PLAN_V3.md), [MVP](./MVP_SPEC.md), [검증 계획](./VALIDATION_PLAN.md)을 따른다. [수정 이유](./PLANNING_CHANGELOG.md)에 사용자 근거를 기록했다. 아래 기술 계약·실행 명령·수치는 현행 코드 또는 과거 실행의 참고이며, 퍼즐·장기 회상·음성·방송의 옛 필수 조건은 현재 완료 기준이 아니다. 최초 기획 개정 당시 코드·설정·DB는 바뀌지 않았으며, 후속 구현 상태는 아래 명시한 2026-10-11 계약과 현재 인계를 따른다. [개정 직전 문서](./docs/archive/2026-10-11-before-emotion-runtime-v3/RUNTIME_PROTOCOL.md)를 보존한다.
 
 # AI Character Runtime — 런타임 통신 명세

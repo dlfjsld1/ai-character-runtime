@@ -2,7 +2,7 @@
 
 ## 현재 실행 순서 — 2026-10-17
 
-[명시적 사용자 수용으로 텍스트 MVP 마감](./docs/MVP_CLOSEOUT.md). Goal 1–3은 마감하며 Goal 4–6은 보류한 선택 연구다. 다음 착수 후보는 [홈 비서 H1-A→H1-B→H1-C](./docs/HOME_ASSISTANT_H1_PLAN.md)이고 현재 계획만 작성했다. 이하 말투 지속·G3-U 대기와 과거 계획은 해당 시점 기록으로 보존한다.
+[명시적 사용자 수용으로 텍스트 MVP 마감](./docs/MVP_CLOSEOUT.md). Goal 1–3은 마감하며 Goal 4–6은 보류한 선택 연구다. 현재 작업은 [홈 비서 H1-A→H1-B→H1-C](./docs/HOME_ASSISTANT_H1_PLAN.md)다. H1-A/B 구현·로컬 검증을 진행했고 총 USD3.50 승인 후 H1-C 실제 공급자12건의 전달·사실/출처 검수를 마쳤다. 사용자가 문장부호 결함1건을 후속으로 남기고 H1 마감을 승인했다. 완료 기준과 실제 증거는 [H1 결과](./docs/HOME_ASSISTANT_H1_RESULT.md)를 따른다. 이하 말투 지속·G3-U 대기와 과거 계획은 해당 시점 기록으로 보존한다.
 
 <a id="register-continuity-20261016"></a>
 ## 현재 보완 — 말투 지속과 감정 숨김 분리
