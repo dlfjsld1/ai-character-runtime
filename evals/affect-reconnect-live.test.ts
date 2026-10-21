@@ -2,8 +2,9 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname,resolve} from 'node:path';
-import {prepareC2P,executeC2P,inspectC2P,runC2P,requireC2PDevelopment,buildC2P,c2pPolicy} from './affect-reconnect-live.ts';
+import {prepareC2P,executeC2P,inspectC2P,runC2P,requireC2PDevelopment,buildC2P,c2pPolicy,c2pAuthorization} from './affect-reconnect-live.ts';
 import {affectHash} from './affect-cases.ts';
+import {createHash} from 'node:crypto';
 
 const config=vi.hoisted(()=>({text:'',reads:0}));
 vi.mock('node:fs',async importOriginal=>{
@@ -14,13 +15,16 @@ vi.mock('node:fs',async importOriginal=>{
   }};
 });
 const dirs:string[]=[];const read=(p:string)=>JSON.parse(readFileSync(p,'utf8')),write=(p:string,v:unknown)=>writeFileSync(p,JSON.stringify(v,null,2));
-afterEach(()=>{for(const p of dirs.splice(0)){expect(dirname(resolve(p))).toBe(resolve(tmpdir()));rmSync(p,{recursive:true,force:true});}config.text='';config.reads=0;vi.unstubAllGlobals();});
+const realOrigin=c2pAuthorization.originEntriesHash;
+afterEach(()=>{(c2pAuthorization as any).originEntriesHash=realOrigin;for(const p of dirs.splice(0)){expect(dirname(resolve(p))).toBe(resolve(tmpdir()));rmSync(p,{recursive:true,force:true});}config.text='';config.reads=0;vi.unstubAllGlobals();});
 function setup(split:'dev'|'confirm'='dev'){const root=mkdtempSync(join(tmpdir(),'c2p-'));dirs.push(root);const prepared=join(root,'prepared'),b=prepareC2P(split,prepared);return {root,prepared,b};}
 const reply=(raw:unknown)=>Response.json({model:'deepseek-flash',usage:{prompt_tokens:1000,completion_tokens:100},choices:[{finish_reason:'stop',message:{role:'assistant',content:JSON.stringify(raw)}}]});
 function liveArgs(t:ReturnType<typeof setup>,output='live'){return {mode:'live' as const,prepared:t.prepared,output:join(t.root,output),approvedHash:t.b.requestHash,approvedUsd:t.b.spec.policy.totalUsd,approvedCalls:t.b.spec.policy.maxCalls};}
 async function paidFixture(t:ReturnType<typeof setup>){
   const mock=join(t.root,'mock');await executeC2P({mode:'mock',prepared:t.prepared,output:mock});
-  const ledger=join(t.root,'paid-synthetic.json');write(ledger,read(join(mock,'ledger-before.json')));
+  const ledger=join(t.root,'paid-synthetic.json'),synthetic=read(join(mock,'ledger-before.json'));write(ledger,synthetic);
+  // Fake ledgers cannot carry the real 64-entry origin; pin the synthetic origin instead.
+  (c2pAuthorization as any).originEntriesHash=createHash('sha256').update(JSON.stringify(synthetic.entries.slice(0,c2pAuthorization.originCalls))).digest('hex');
   config.text=`LOCAL_ONLY=false\nALLOW_PAID_PROVIDERS=true\nDEEPSEEK_API_KEY=synthetic-c2p-key\nDEEPSEEK_BUDGET_AUTHORIZATION=test only\nDEEPSEEK_BUDGET_PATH=${ledger}\nDEEPSEEK_BUDGET_USD=${t.b.spec.policy.totalUsd}\nDEEPSEEK_MAX_CALLS=${t.b.spec.policy.maxCalls}\n`;
   const rows=read(join(mock,'results.json'));let n=0;
   const fetch=vi.fn(async()=>{const r=rows[Math.floor(n/2)][n++%2?'appraisal':'outcome'];return reply(JSON.parse(r.response.content));});vi.stubGlobal('fetch',fetch);
@@ -93,6 +97,19 @@ it.each(['unrelated','amount','usage','id','order'])('confirmation requires revi
     manifest.devGate=null;write(join(o.output,'manifest.json'),manifest);
     await expect(inspectC2P(o.output)).rejects.toThrow('c2p_development_ledger_changed');
   }
+});
+it('stops mid-run before the scene whose reservation would exceed the additional USD0.20 approval since the 64-entry origin',async()=>{
+  const t=setup(),f=await paidFixture(t),ledger=read(f.ledger),o=liveArgs(t),n=c2pAuthorization.originCalls;
+  // Same project total, but USD0.12 already used since the origin; large in-bound usage then exhausts the 0.20 approval.
+  ledger.entries[0].usd-=.0523362;ledger.entries[n].usd+=.0523362;write(f.ledger,ledger);
+  (c2pAuthorization as any).originEntriesHash=createHash('sha256').update(JSON.stringify(ledger.entries.slice(0,n))).digest('hex');
+  let k=0;const fetch=vi.fn(async()=>{const stage=k%2?'appraisal':'outcome',r=f.rows[Math.floor(k/2)][stage];k++;
+    return Response.json({model:'deepseek-flash',usage:{prompt_tokens:stage==='outcome'?3000:8000,completion_tokens:2000},choices:[{finish_reason:'stop',message:{role:'assistant',content:r.response.content}}]});});
+  vi.stubGlobal('fetch',fetch);
+  const r:any=await executeC2P(o);expect(r.status).toBe('C2P_STOPPED');expect(r.comparison.calls).toBeGreaterThan(0);expect(r.comparison.calls).toBeLessThan(24);expect(r.comparison.calls%2).toBe(0);
+  expect(r.authorization.spentAfter).toBeLessThanOrEqual(c2pAuthorization.additionalUsd);
+  expect(r.authorization.spentAfter+buildC2P('dev').current.requests[r.comparison.calls/2]!.reservationUsd).toBeGreaterThan(c2pAuthorization.additionalUsd);
+  await inspectC2P(o.output);
 });
 it('valid semantic failure stays in the 12-scene denominator and blocks dev acceptance',async()=>{
   const t=setup(),out=join(t.root,'mock');const r=await executeC2P({mode:'mock',prepared:t.prepared,output:out},(id,s,_,raw:any)=>{if(id==='A01'&&s==='appraisal')raw.appraisals[0].congruence=-.7;return reply(raw);});

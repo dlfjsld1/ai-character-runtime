@@ -22,8 +22,12 @@ const read=(p:string)=>JSON.parse(readFileSync(p,'utf8'));
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const write=(p:string,v:unknown)=>writeFileSync(p,JSON.stringify(v,null,2));
 function inside(p:string){assert(p,'c2p_path_required');const absolute=resolve(p),part=relative(base,absolute);assert(part&&part!=='..'&&!part.startsWith(`..${sep}`)&&!part.startsWith(sep)&&!part.includes(':'),'c2p_artifact_path');return absolute;}
-// Starts from the 2026-10-18 ledger (159 completed entries, USD0.1161756); cap raised to 0.35 by user approval 2026-10-21.
-export const c2pPolicy={dev:{totalUsd:.35,priorCalls:159,maxCalls:183},confirm:{totalUsd:.35,priorCalls:183,maxCalls:207}} as const;
+// Starts from the 2026-10-21 ledger (183 completed entries, USD0.1307526) under the user-approved 0.35 cap.
+export const c2pPolicy={dev:{totalUsd:.35,priorCalls:183,maxCalls:207},confirm:{totalUsd:.35,priorCalls:207,maxCalls:231}} as const;
+// The user's cumulative additional USD0.20 approval counts from the first 64 entries (2026-10-17 C2-P dev1 ledger).
+export const c2pAuthorization={originCalls:64,originEntriesHash:'0a0a9be0ffafebdd9305ea35f50cd6a6a8517b7e62df40cbcc16c5619b41eac0',additionalUsd:.20} as const;
+const sinceOrigin=(ledger:any)=>ledger.entries.slice(c2pAuthorization.originCalls).reduce((sum:number,e:any)=>sum+e.usd,0);
+const authorizationOf=(before:any,after:any)=>({originCalls:c2pAuthorization.originCalls,additionalUsd:c2pAuthorization.additionalUsd,spentBefore:sinceOrigin(before),spentAfter:sinceOrigin(after)});
 export function buildC2P(split:Split){
   const current=buildReconnectPreparation(split),runnerHash=createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex');
   const spec={version:'c2p-v1',prepared:current.prepared,runnerHash,policy:c2pPolicy[split],newCalls:24,model:deepseekCandidate.model};
@@ -81,12 +85,13 @@ export async function executeC2P(o:RunOptions,testTransport?:C2PTestTransport){
   try{
     if(o.mode==='mock'){
       mkdirSync(root);owned=true;before={version:1,provider:'deepseek',model:deepseekCandidate.model,inputUsdPerMillion:.3,outputUsdPerMillion:1.2,limitUsd:policy.totalUsd,
-        entries:Array.from({length:policy.priorCalls},(_,i)=>({id:'synthetic-prior-'+i,authorization:'synthetic historical placeholder',status:'completed',usd:i===0?.1161756:0,inputBound:1000,maxOutputTokens:2048}))};write(ledgerPath,before);
+        entries:Array.from({length:policy.priorCalls},(_,i)=>({id:'synthetic-prior-'+i,authorization:'synthetic historical placeholder',status:'completed',usd:i===0?.0630888:i===c2pAuthorization.originCalls?.0676638:0,inputBound:1000,maxOutputTokens:2048}))};write(ledgerPath,before);
     }else before=read(ledgerPath);
     assert.equal(before.entries.length,policy.priorCalls,'c2p_prior_calls_changed');assert(!before.entries.some((e:any)=>e.authorization.endsWith(attempt)),'c2p_attempt_already_recorded');
     // Bind confirmation to the reviewed development history while holding the run lock.
     // Hash entries only: the separately approved total limit can increase.
     if(devGate)assert.equal(hash(before.entries),devGate.ledgerEntriesHash,'c2p_development_ledger_changed');
+    if(o.mode==='live')assert.equal(hash(before.entries.slice(0,c2pAuthorization.originCalls)),c2pAuthorization.originEntriesHash,'c2p_authorization_origin_changed');
     budget=new DeepSeekBudget(ledgerPath,policy.totalUsd,policy.maxCalls,attempt);
     assert.equal(budget.availability(),null);assert(budget.summary().remainingGuardUsd>=b.spec.prepared.reservationUsd,'c2p_full_split_budget_required');
     if(!owned){mkdirSync(root);owned=true;}
@@ -100,7 +105,8 @@ export async function executeC2P(o:RunOptions,testTransport?:C2PTestTransport){
       async function probe(stage:Stage,fixed:EventInterpretation['outcome']=null){
         const rec=row[stage];let settled:Promise<void>|undefined;
         try{
-          if(stage==='outcome')ensureReconnectSceneBudget(budget,b.current.requests[i]!.reservationUsd);
+          if(stage==='outcome'){ensureReconnectSceneBudget(budget,b.current.requests[i]!.reservationUsd);
+            assert(sinceOrigin(read(ledgerPath))+b.current.requests[i]!.reservationUsd<=c2pAuthorization.additionalUsd+1e-12,'c2p_authorization_exceeded');}
           rec.body=deepseekPayload(stage==='outcome'?prepareOutcomeProbe(input).request:prepareAppraisalProbe(input,fixed).request,2048);
           assert(deepseekInputBound(rec.body)<=deepseekCandidate.inputBound,'c2p_context_limit');save();
           let finish:()=>void=()=>{};settled=new Promise<void>(done=>{finish=done;});
@@ -126,7 +132,7 @@ export async function executeC2P(o:RunOptions,testTransport?:C2PTestTransport){
     }
     const after=read(ledgerPath);assert.deepEqual(after.entries.slice(0,before.entries.length),before.entries,'c2p_history_changed');write(resolve(root,'ledger-after.json'),after);
     const manifest={status:rows.some(r=>r.result?.status==='unavailable')?'C2P_STOPPED':'C2P_REVIEW_REQUIRED',mode:o.mode,spec:b.spec,requestHash:b.requestHash,devGate,
-      realProviderCalls:o.mode==='live'?counts(rows).calls:0,comparison:counts(rows),summary:budget.summary()};write(resolve(root,'manifest.json'),manifest);
+      realProviderCalls:o.mode==='live'?counts(rows).calls:0,comparison:counts(rows),summary:budget.summary(),authorization:authorizationOf(before,after)};write(resolve(root,'manifest.json'),manifest);
     write(resolve(root,'review-template.json'),{version:'c2p-review-v1',runHash:hash({manifest,rows}),requestHash:b.requestHash,reviewer:'',cases:rows.map(r=>({id:r.id,accepted:null,reason:''}))});return manifest;
   }finally{if(lock!==undefined){closeSync(lock);unlinkSync(lockPath);}}
 }
@@ -138,6 +144,7 @@ export async function inspectC2P(recorded:string){
   assert.equal(manifest.realProviderCalls,manifest.mode==='live'?counts(rows).calls:0);
   const before=read(resolve(root,'ledger-before.json')),after=read(resolve(root,'ledger-after.json'));
   assert.equal(before.entries.length,b.spec.policy.priorCalls);assert.deepEqual(after.entries.slice(0,before.entries.length),before.entries);
+  assert.deepEqual(manifest.authorization,authorizationOf(before,after),'c2p_authorization_changed');assert(manifest.authorization.spentAfter<=c2pAuthorization.additionalUsd+1e-12,'c2p_authorization_exceeded');
   if(manifest.mode==='live'&&b.spec.prepared.split==='confirm')assert.equal(manifest.devGate?.ledgerEntriesHash,hash(before.entries),'c2p_development_ledger_changed');
   assert.deepEqual(after.entries.slice(before.entries.length),rows.flatMap(r=>[r.outcome.entry,r.appraisal.entry].filter(Boolean)),'c2p_ledger_changed');
   const budget=new DeepSeekBudget(resolve(root,'ledger-after.json'),b.spec.policy.totalUsd,b.spec.policy.maxCalls,'offline replay');assert.deepEqual(manifest.summary,budget.summary());

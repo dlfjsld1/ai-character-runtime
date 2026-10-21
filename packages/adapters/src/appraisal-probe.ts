@@ -3,7 +3,7 @@ import {validateAffectRequest,validateEventInterpretation,type EventInterpretati
 import type {Message} from '../../contracts/src/ai-ports.ts';
 import {createEventReferenceCodec,EVENT_REFERENCE_CODEC_VERSION} from './event-reference-codec.ts';
 
-export const APPRAISAL_PROBE_VERSION='fixed-outcome-appraisal-v2';
+export const APPRAISAL_PROBE_VERSION='fixed-outcome-appraisal-v3';
 const envelope=z.object({status:z.enum(['appraised','irrelevant','uncertain']),appraisals:z.array(z.unknown()).max(8)}).strict();
 const instructions=`너는 이미 확인된 사실과 전체 맥락이 캐릭터의 성향·목표에 주는 의미를 평가한다. 응답 문장은 생성하지 않는다.
 fixedOutcome은 앞 단계가 확정한 읽기 전용 사실이다. 출력하거나 수정하지 않는다. 출력은 status와 appraisals만 포함한다.
@@ -14,6 +14,7 @@ episodeId는 평가 범위다. fixedOutcome이 used이며 favorable/unfavorable/
 actorId는 평가하는 행위의 주체, targetId는 대상이다. 현재 발화자와 구분한다. 인용·반대·피해 보고를 사용자 동조나 가해로 바꾸지 않는다. 과거 주장보다 현재 정정을 검토하고 claim.truth의 host 확인 범위를 넘어 진위를 확정하지 않는다.
 agency는 기여 주체(self/other/external/unknown), stance는 동조/보고/인용/질문/정정/불명확이다. 근거가 없으면 주체·대상은 null, agency는 unknown으로 남긴다.
 자기 제안의 효과를 평가할 때 actorId는 평가하는 제안의 주체, targetId는 그 효과의 대상이며 자기 제안의 기여가 근거에 드러나면 agency는 self다. 보고자·실행자를 자동으로 제안 기여자에 넣지 않는다. 반대로 episode가 있다는 이유만으로 자기 공이나 책임을 확정하지 않는다. 현재 관측이 사용자의 독립적인 행동, 타인의 도움, 외부 사건에 기여를 돌리면 그 행위·원인의 주체와 대상을 평가하고 other/external을 보존한다. 원인이 불명확하면 unknown 또는 uncertain으로 남긴다. 불리한 자기 제안 결과를 사용자에 대한 적대나 가해로 해석하지 않는다.
+현재 입력이 캐릭터의 이전 설명·주장을 정정하거나 반박하면 평가하는 행위는 그 이전 설명이다. actorId는 그 설명의 주체인 캐릭터, targetId는 설명을 들은 상대다. host가 claim.truth로 반박을 확인했으면 agency는 self, 확인하지 않았으면 unknown이다. 정정·반박·의문을 제기한 사용자를 부정 평가의 기여 주체(other)로 두지 않는다.
 relevance/importance/certainty는 0..1, congruence는 충족(+1)에서 충돌(-1)이다. controllability는 0..1 또는 불명이면 null이다. expectedness는 사전 기대와 맞는 정도이며 이전 expectation 또는 전달된 response 인용이 없으면 expectation과 함께 null이다. 결과를 보고 과거 기대를 만들지 않는다.
 concern.source는 persona/goal의 정확한 원문 인용이다. evidence에는 현재 input 인용이 필요하고 episodeId가 있으면 해당 episode 인용도 필요하다. null 범위의 근거에 episode를 넣지 않는다. sourceId/revision은 주어진 참조만 복사하며 본문·인용은 변경하지 않는다.
 관련성이 분명하면 appraised와 근거 있는 appraisals, 명백히 무관하면 irrelevant와 빈 배열, 의미/귀속을 확정할 수 없으면 uncertain과 빈 배열을 반환한다.

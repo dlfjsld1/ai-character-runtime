@@ -3,7 +3,7 @@
 <a id="cx-stage-preparation"></a>
 ## 현재: CX 실제 생성8회→DB→Stage 검증 완료
 
-2026-10-21: 사용자 승인으로 원장 `limitUsd`를0.25→0.35로 올리고 C2-P 개발24호출을 실행했다([결과](../plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-dev2-result)). 현재 원장183항목·차감0.1307526이다. 기존 cap0.25와 시작151항목을 전제하는 CX 실행기(`contextual-expression-live.ts`, `contextual-stage.ts`)는 이 원장을 거부하므로 재사용하려면 새 준비·승인이 필요하다.
+2026-10-21: 사용자 승인으로 원장 `limitUsd`를0.25→0.35로 올리고 C2-P 개발24호출을 실행했다([결과](../plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-dev2-result)). 이어 정정 귀속 수정 후 24호출을 추가로 실행해 현재 원장은207항목·차감0.1459173, 최초64항목 이후0.0828285/추가 승인0.20이다. C2-P 실행기는 기준점 hash와 추가0.20 한도를 장면마다 검사한다. 기존 cap0.25와 시작151항목을 전제하는 CX 실행기(`contextual-expression-live.ts`, `contextual-stage.ts`)는 이 원장을 거부하므로 재사용하려면 새 준비·승인이 필요하다.
 
 [실제 실행 결과](../plans/OUTCOME_AFFECT_PLAN.md#contextual-stage-live-20261018): `evals/contextual-stage.ts`로 실제 DeepSeek 생성8회·침묵1건·8세그먼트·16 ACK를 검증했다. 판단·감정 조건은 합성 통제이며 실제 판단 호출은0이다. 원문 재생도 일치했다. 기술 전달 PASS이고 CX-SF01·표현 여운·경어 품질은 후속이다. 제품 설정·소스·키 파일을 변경하지 않았다. 초기 준비·모의에는 실제 키/원장 접근이 없었으며 이번에는 명시적 실호출 승인으로 기존 키와 원장을 사용했다.
 
