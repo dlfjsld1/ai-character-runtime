@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {appendEventAffect,projectEventAffect,removeEventAffectSources,eventAffectPolicy} from './public.ts';
+import {appendEventAffect,projectEventAffect,removeEventAffectSources,eventAffectStimuli,eventAffectPolicy} from './public.ts';
 import type {EventAffectRecord} from './public.ts';
 import {affectRequest,affectMeaning,affectSource,affectId,affectNow} from '../../../evals/affect-fixture.ts';
 
@@ -126,4 +126,11 @@ it('OA15: public Core entry points contain no provider, database or network impo
     expect(code).not.toMatch(/(?:from\s*|import\s*\()['"][^'"]*(?:adapters|database|node:|http)/);
     expect(code).not.toMatch(/\b(?:fetch|Date\.now|Math\.random)\s*\(/);
   }
+});
+it('O2 stimuli: positive is joy, self-attributed conflict is embarrassment, other negative is untargeted discomfort',()=>{
+  const map=(patch:Parameters<typeof affectMeaning>[1])=>{const r=appendEventAffect([],affectRequest(),affectMeaning(affectRequest(),patch),affectId(10));return eventAffectStimuli(r.records[0]!,r.snapshot);};
+  const positive=map({congruence:1});expect(positive.joy).toBeGreaterThan(0);expect(positive.frustration+positive.embarrassment).toBe(0);
+  const self=map({congruence:-.8,agency:'self',actorId:affectId(2),targetId:affectId(1)});expect(self).toMatchObject({joy:0,frustration:0});expect(self.embarrassment).toBeGreaterThan(0);
+  for(const agency of ['other','external','unknown'] as const){const other=map({congruence:-.8,agency});expect(other).toMatchObject({joy:0,embarrassment:0});expect(other.frustration).toBeGreaterThan(0);}
+  const none=appendEventAffect([],affectRequest(),{status:'irrelevant',outcome:null,appraisals:[]},affectId(10));expect(eventAffectStimuli(none.records[0]!,none.snapshot)).toEqual({joy:0,frustration:0,embarrassment:0});
 });

@@ -1,6 +1,7 @@
 import {RuntimeError,type Plan} from '../../contracts/src/domain.ts';
 import type {DialogueContext,DialogueGenerator,EventInterpreter,Message} from '../../contracts/src/ai-ports.ts';
-import type {EventInterpretationRequest,EventInterpretation} from '../../contracts/src/affect-appraisal.ts';
+import {eligibleAffectEpisodes,type EventInterpretationRequest,type EventInterpretation} from '../../contracts/src/affect-appraisal.ts';
+import {SplitEventInterpreter} from './split-event-interpreter.ts';
 import {budgetConversation,dropOldestExchange} from '../../contracts/src/conversation.ts';
 import {StructuredEventInterpreter,eventInterpreterVersion,type EventInterpretationDiagnostic} from './event-interpreter.ts';
 import type {EventWireFormat} from './event-reference-codec.ts';
@@ -113,4 +114,13 @@ export class DeepSeekAppraisalProbe extends DeepSeekChat {
       try{return prepared.decode(text);}catch{throw new RuntimeError('appraisal_probe_invalid_output',503);}
     });
   }
+}
+// Runtime composition of the evaluated split interpreter. With no eligible
+// episode the fixed outcome is null by contract, so only the appraisal stage is
+// billed. A fresh probe per stage keeps one failed call from stopping later
+// turns; the shared ledger still gates every reservation.
+export function createDeepSeekEventInterpreter(options:DeepSeekOptions):EventInterpreter{
+  return new SplitEventInterpreter(
+    async request=>eligibleAffectEpisodes(request).length?(await new DeepSeekOutcomeProbe(options).probe(request)).outcome:null,
+    (request,outcome)=>new DeepSeekAppraisalProbe(options).probe(request,outcome));
 }

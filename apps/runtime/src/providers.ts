@@ -1,11 +1,11 @@
 import {RuntimeError} from '../../../packages/contracts/src/domain.ts';
 import type {LocalConfig} from '../../../packages/contracts/src/local-config.ts';
-import type {DialogueGenerator,ActivitySolver,AppraisalProvider,AppraisalEvidenceVerifier} from '../../../packages/contracts/src/ai-ports.ts';
+import type {DialogueGenerator,ActivitySolver,AppraisalProvider,AppraisalEvidenceVerifier,EventInterpreter} from '../../../packages/contracts/src/ai-ports.ts';
 import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/ollama.ts';
 import {JevAppraisalProvider} from '../../../packages/adapters/src/jev.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
-import {DeepSeekDialogue} from '../../../packages/adapters/src/deepseek.ts';
+import {DeepSeekDialogue,createDeepSeekEventInterpreter} from '../../../packages/adapters/src/deepseek.ts';
 import {DeepSeekBudget} from '../../../packages/adapters/src/deepseek-budget.ts';
 import {OpenAIInteractionV3Candidate,interactionV3EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v3.ts';
 import {OpenAIInteractionV4Candidate,interactionV4EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v4.ts';
@@ -14,7 +14,7 @@ import {OpenAIInteractionV5Candidate,interactionV5EvidenceVerifier} from '../../
 
 function openaiBudget(config:LocalConfig){return new DialogueBudget(config.DIALOGUE_BUDGET_PATH,config.DIALOGUE_BUDGET_USD,undefined,config.OPENAI_BUDGET_AUTHORIZATION?{authorization:config.OPENAI_BUDGET_AUTHORIZATION,maxDecisionCalls:config.OPENAI_MAX_DECISION_CALLS,maxDialogueCalls:config.OPENAI_MAX_DIALOGUE_CALLS,...(config.OPENAI_ACKNOWLEDGED_COUNT_ENTRY_ID?{acknowledgedCountEntryId:config.OPENAI_ACKNOWLEDGED_COUNT_ENTRY_ID}:{}),...(config.OPENAI_ACKNOWLEDGED_DIALOGUE_ENTRY_ID?{acknowledgedDialogueEntryId:config.OPENAI_ACKNOWLEDGED_DIALOGUE_ENTRY_ID}:{})}:undefined);}
 
-export type RuntimeProviders={dialogue:DialogueGenerator;solver?:ActivitySolver;appraiser:AppraisalProvider;evidenceVerifier:AppraisalEvidenceVerifier};
+export type RuntimeProviders={dialogue:DialogueGenerator;solver?:ActivitySolver;appraiser:AppraisalProvider;evidenceVerifier:AppraisalEvidenceVerifier;interpreter?:EventInterpreter};
 type Factory<T>=(config:LocalConfig,environment:NodeJS.ProcessEnv)=>T;
 export type ProviderRegistry={dialogue:Record<string,Factory<Pick<RuntimeProviders,'dialogue'|'solver'>>>;appraisal:Record<string,Factory<Pick<RuntimeProviders,'appraiser'|'evidenceVerifier'>>>};
 export function createOllamaDialogue(config:Pick<LocalConfig,'DIALOGUE_MODEL'|'OLLAMA_BASE_URL'|'OMNIVOICE_PYTHON'>,environment:NodeJS.ProcessEnv,probeOptions:ConstructorParameters<typeof OllamaProvider>[4]={}){
@@ -48,7 +48,11 @@ const registeredProviders:ProviderRegistry={
       return {appraiser:new OpenAIInteractionV4Candidate({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DIALOGUE_API_KEY,budget:openaiBudget(config)}),evidenceVerifier:interactionV4EvidenceVerifier};
     }},
 };
+// O2 default: event affect runs whenever paid DeepSeek is fully authorized,
+// independently of the dialogue provider. Local-only setups never call it.
+export function deepseekConfigured(config:LocalConfig){return !config.LOCAL_ONLY&&config.ALLOW_PAID_PROVIDERS&&!!config.DEEPSEEK_API_KEY&&config.DEEPSEEK_BUDGET_USD>0&&!!config.DEEPSEEK_BUDGET_PATH&&config.DEEPSEEK_MAX_CALLS>0&&!!config.DEEPSEEK_BUDGET_AUTHORIZATION;}
+function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION),deadlineMs:20000});}
 export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv=process.env,registry:ProviderRegistry=registeredProviders):RuntimeProviders {
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
-  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment)};
+  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment),...(deepseekConfigured(config)?{interpreter:deepseekInterpreter(config)}:{})};
 }

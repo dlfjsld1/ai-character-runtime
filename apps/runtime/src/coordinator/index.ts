@@ -3,7 +3,8 @@ import { performance } from 'node:perf_hooks';
 import { Store } from '../../../../packages/database/src/store.ts';
 import { selectAttention,stageExpression } from '../../../../packages/character-core/src/index.ts';
 import { neutralAppraisal,type Plan,RuntimeError } from '../../../../packages/contracts/src/domain.ts';
-import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../../packages/contracts/src/ai-ports.ts';
+import type {DialogueGenerator,ActivitySolver,AppraisalProvider,EventInterpreter} from '../../../../packages/contracts/src/ai-ports.ts';
+import type {EventAffectAttempt} from '../../../../packages/database/src/store.ts';
 import { appraisalEvaluationSchema,type AppraisalMetadata } from '../../../../packages/contracts/src/appraisal.ts';
 import {budgetAppraisalConversation} from '../../../../packages/contracts/src/conversation.ts';
 import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
@@ -26,7 +27,7 @@ export class Coordinator {
   private timer:ReturnType<typeof setInterval>|null=null;
   private dispatching=0;
   private ticking=0;
-  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever){}
+  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever,public interpreter?:EventInterpreter){}
   start(){this.timer=setInterval(()=>{void this.tick().catch(()=>this.sink.failure('db_unavailable'));},1000);}
   async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
   control<T>(fn:()=>Promise<T>):Promise<T>{const result=this.queue.then(fn,fn);this.queue=result.catch(()=>{});return result;}
@@ -61,15 +62,27 @@ export class Coordinator {
         }catch(e){const code=e instanceof RuntimeError?e.code:'knowledge_search_failed';await this.store.failKnowledge(selected.id,code);this.sink.inputStatus(selected.id,'failed');this.sink.failure(code);await this.sink.changed();continue;}
       }
       this.sink.inputStatus(selected.id,'selected');await this.sink.changed();let appraisal=neutralAppraisal,failureCode:string|undefined;
+      // Event affect runs beside the social appraisal; its failure never blocks the turn.
+      const eventAffect=this.interpretAffect(request);
       let metadata:AppraisalMetadata={provider:this.appraiser.name,model:this.appraiser.model,promptVersion:this.appraiser.promptVersion};
       try{const readiness=this.appraiser.readiness();if(readiness.status==='blocked'||readiness.status==='unavailable')throw new RuntimeError(readiness.errorCode??'appraisal_unavailable',503);request.conversation=budgetAppraisalConversation(request.conversation);request.conversationContext.history=request.conversation;const activity=await this.store.activity();const result=appraisalEvaluationSchema.parse(await this.appraiser.evaluate({id:request.event.id,text:request.event.payload.text,identityId:request.event.identity_id,revision:String(request.revision)},{activity:activity?{prompt:activity.public_prompt,status:activity.status}:null,recentPraise:request.praiseSnapshot.context,conversation:request.conversation,conversationContext:request.conversationContext}));appraisal=result.appraisal;metadata=result.metadata;}
       catch(e){failureCode=e instanceof RuntimeError?e.code:'invalid_output';this.sink.failure(failureCode);}
       const activity=await this.store.activity();const dialogueReady=this.provider.readiness?.();
       const memories=failureCode||dialogueReady?.status==='blocked'||dialogueReady?.status==='unavailable'?[]:await this.memoryBudget(request.event.identity_id,activity?.id);
       if(this.stopped)break;
-      const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id)));
+      const affect=await eventAffect;if(this.stopped)break;
+      const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id),affect));
       this.sink.inputStatus(selected.id,result.status==='stale'?'expired':'observed');await this.sink.changed();if(result.response){void this.dispatch(result.response.id);break;}
     }}finally{this.draining=false;}
+  }
+  private async interpretAffect(request:NonNullable<Awaited<ReturnType<Store['select']>>>):Promise<EventAffectAttempt|undefined>{
+    if(!this.interpreter)return;
+    const promptVersion=this.interpreter.promptVersion;
+    try{
+      const built=await this.store.affectRequest(request);if(!built)return;
+      const started=performance.now(),result=await this.interpreter.interpret(built);
+      return {request:built,result,promptVersion,latencyMs:Math.round(performance.now()-started)};
+    }catch{return {request:null,result:{status:'unavailable',reason:'transport_failed',promptVersion},promptVersion,latencyMs:0};}
   }
   async memoryBudget(identityId?:string,activityId?:string){const rows=await this.store.memories(identityId,activityId);const result:any[]=[];const seen=new Set<string>();let tokens=0;
     const labels=await this.store.dialogueIdentities(rows.flatMap(m=>[...(m.participants??[]),m.facts?.identityId]));

@@ -88,6 +88,18 @@ export function appendEventAffect(history:readonly EventAffectRecord[],request:E
   return {status:previous?'revised' as const:'applied' as const,records,snapshot:projectEventAffect(records,input.now,policy)};
 }
 
+// Maps one applied event's contribution onto the legacy State channels. This
+// path never names the speaker as a target: interpersonal distance stays with
+// the verified social act. A self-attributed conflict is embarrassment, not blame.
+export function eventAffectStimuli(record:EventAffectRecord,snapshot:EventAffectSnapshot){
+  const levels=zero();
+  for(const c of snapshot.contributions)if(c.eventId===record.eventId)for(const channel of channels)levels[channel]+=c.levels[channel];
+  const strongest=record.interpretation.appraisals.filter(a=>a.congruence<0)
+    .sort((a,b)=>b.relevance*b.importance*b.certainty*-b.congruence-a.relevance*a.importance*a.certainty*-a.congruence)[0];
+  const self=strongest?.agency==='self';
+  return {joy:levels.positive,frustration:self?0:levels.negative,embarrassment:self?levels.negative:0};
+}
+
 export function removeEventAffectSources(records:readonly EventAffectRecord[],sourceIds:ReadonlySet<string>):EventAffectRecord[]{
   const removed=new Set(sourceIds);
   let changed=true;

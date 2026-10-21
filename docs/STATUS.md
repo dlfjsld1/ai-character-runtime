@@ -1,6 +1,6 @@
 # 현재 진행 상태
 
-기준: 2026-10-21(C2-P 재평가 반영). 그 밖의 항목은 2026-10-18 기준. 이전 실행의 수치는 해당 소스와 환경에 한정됩니다. 새 표현 평가로 C2-P의 사실·감정 해석 판정을 바꾸지 않았습니다.
+기준: 2026-10-21(C2-P 재평가·O2 1단계 반영). 그 밖의 항목은 2026-10-18 기준. 이전 실행의 수치는 해당 소스와 환경에 한정됩니다. 새 표현 평가로 C2-P의 사실·감정 해석 판정을 바꾸지 않았습니다.
 
 | 범위 | 상태 | 근거와 남은 일 |
 |---|---|---|
@@ -12,6 +12,7 @@
 | C2-L 감정 재연결 | 로컬 범위 감사 PASS | [상세 결과·CA01–06](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2l-build). 실제 감정 의미 품질·운영 DB·Stage 연결은 미검증 |
 | C2-P 개발 실제 평가 | A06 계약 오류로 중단, 전체 미통과 | [실제 결과와 원문 검토](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-dev-result). 12회 호출·6장면 시도, 나머지6장면 미실행. 확인 평가는 미승인·미실행 |
 | C2-P 의미 실패 수정 | 로컬 범위 재감사 PASS | [BUILD·CR01–06와 감사](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-repair-build). 기존 집중192/192 보존, 감사 집중47·타입·모의 재생 확인. 실제 모델 개선은 미검증 |
+| O2 1단계 운영 연결 | 로컬 구현·검증, 실제 대화 미검증 | [O2 1단계](plans/OUTCOME_AFFECT_PLAN.md#o2-slice1-20261021). 사용자 결정으로 C2-P 미통과에도 기본 경로로 연결. 현재 입력 감정만, DeepSeek 설정 시 턴당 1회. 신규 7/7·단위 741/741·통합 908(기존 실패 3). episode·UI·실제 대화 검증 남음 |
 | C2-P 수정 후 실제 개발 평가 | 개발 FAIL 8/12, 수정 종료 | [마지막 재평가](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-dev3-result)·[dev2 6/12](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2p-dev2-result). 정정 시 사용자 귀속 해소. 남은 실패: 과생성 A04(무해)·A06, A07 agency unknown, A12 stance. 확인 미실행. 원장207항목·0.1459173/0.35, 기준점 이후0.0828/0.20 |
 | 문맥에 맞는 삐짐·감정 표현 | 실제8회 DB·Stage 전달 통과 / 표현 품질 후속 유지 | [실제 전달 결과](plans/OUTCOME_AFFECT_PLAN.md#contextual-stage-live-20261018). 실제8생성·침묵1건·8세그먼트·16 ACK 일치. [이전 표현22응답 평가](plans/OUTCOME_AFFECT_PLAN.md#contextual-expression-surface-20261018)의 격식·부분 숨김 결과와 구분. CX-SF01·감정 여운·어색한 경어는 후속 |
 

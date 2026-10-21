@@ -10,7 +10,7 @@ import type { WebSocket } from 'ws';
 import { authSchema,envelopeSchema,messageSchemas,uuid,counter,RuntimeError } from '../../../../packages/contracts/src/domain.ts';
 import { Store } from '../../../../packages/database/src/store.ts';
 import { decay,expression } from '../../../../packages/character-core/src/index.ts';
-import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../../packages/contracts/src/ai-ports.ts';
+import type {DialogueGenerator,ActivitySolver,AppraisalProvider,EventInterpreter} from '../../../../packages/contracts/src/ai-ports.ts';
 import { Coordinator,type OutputOwner } from '../coordinator/index.ts';
 import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
 import {knowledgePutSchema} from '../../../../packages/database/src/knowledge-store.ts';
@@ -19,7 +19,7 @@ type Role='studio'|'stage';
 type Credential={role:Role;clientId:string;expires:number};
 type Connection={socket:WebSocket;credential:Credential;id:string;clientId:string;sent:bigint;received:bigint;sessionId:string|null;ready:boolean;queued:number;queuedBytes:number;lastHeartbeat:number;pending:Promise<unknown>;rate:{at:number;count:number}};
 const serialize=(value:unknown)=>JSON.stringify(value,(_key,item)=>typeof item==='bigint'?item.toString():item);
-export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{syntheticIdentities?:boolean;knowledge?:KnowledgeRetriever;solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
+export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{syntheticIdentities?:boolean;knowledge?:KnowledgeRetriever;solver?:ActivitySolver;interpreter?:EventInterpreter;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
   if(provider.ready)await provider.ready().catch(()=>{}); // one startup preparation; never infer on health polls
   const app=Fastify({logger:false,bodyLimit:65536});
   app.setSerializerCompiler(()=>serialize);
@@ -48,7 +48,7 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
     sendOwner:(type,payload)=>{if(ownerSocket)send(ownerSocket,type,payload);},
     inputStatus:(eventId,status)=>{for(const conn of connections.values())if(conn.credential.role==='studio')send(conn,'input.status',{eventId,status});},
     failure:code=>{for(const conn of connections.values())send(conn,'runtime.status',{status:'degraded',code});},
-  },appraiser,options.solver,options.knowledge);
+  },appraiser,options.solver,options.knowledge,options.interpreter);
   app.addHook('onRequest',async(request,reply)=>{
     const path=request.url.split('?')[0];reply.header('Cache-Control','no-store');
     if(path.startsWith('/api/')||path==='/health/ready'){

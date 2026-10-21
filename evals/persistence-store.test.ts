@@ -113,7 +113,7 @@ it('P12 migrate H1 data in an isolated schema, rerun without loss, and retain ol
   expect((await c.query('SELECT * FROM character_state')).rows).toEqual(state);
   expect((await c.query('SELECT retention FROM knowledge_documents WHERE id=$1',[id])).rows[0].retention).toBe('session');
   expect((await c.query('SELECT body FROM knowledge_chunks WHERE document_id=$1',[id])).rows[0].body).toBe('H1 원문');
-  expect((await c.query('SELECT count(*) FROM schema_migrations')).rows[0].count).toBe('6');
+  expect((await c.query('SELECT count(*) FROM schema_migrations')).rows[0].count).toBe('7');
   await c.query('DROP SCHEMA '+schema+' CASCADE');
  });
  await assertMigrations(db);

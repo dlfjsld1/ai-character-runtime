@@ -15,10 +15,15 @@ import type {DialogueKnowledge,KnowledgeAnswer} from '../../contracts/src/ai-por
 import {currentKnowledgeRevision,knowledgeFences,listKnowledgeDocuments,putKnowledgeDocument,deleteKnowledgeDocument,type KnowledgePut} from './knowledge-store.ts';
 import {readPersonalFacts,changePersonalFact} from './personal-fact-store.ts';
 import {personalFactChangeSchema,personalFactSnapshotSchema,type PersonalFactChange} from '../../contracts/src/personal-facts.ts';
+import {eventAffectRecordSchema,type AffectSource,type EventAffectRecord,type EventInterpretationRequest,type EventInterpretationResult} from '../../contracts/src/affect-appraisal.ts';
+import {appendEventAffect,projectEventAffect,removeEventAffectSources,eventAffectStimuli,eventAffectPolicy} from '../../character-core/src/event-affect.ts';
 type Client=pg.PoolClient;
 type Row=Record<string,any>;
 export type VersionedState={body:State;version:bigint;generationEpoch:bigint;configVersion:bigint;snapshotAt:Date};
 const activeResponses="('planned','generating','synthesizing','delivering')";
+export type EventAffectAttempt={request:EventInterpretationRequest|null;result:EventInterpretationResult;promptVersion:string;latencyMs:number};
+// Contributions halve every 20 minutes; older records cannot move the snapshot.
+const affectWindowMs=6*3600000;
 export class Store {
   constructor(public db:Database,public characterId=CHARACTER_ID,public clock=()=>Date.now(),private evidenceVerifier?:AppraisalEvidenceVerifier){}
   async state():Promise<VersionedState>{const rows=await this.db.orm.select().from(characterState).where(eq(characterState.characterId,this.characterId));const r=rows[0];if(!r)throw new RuntimeError('character_not_found',404);return {...r,body:stateSchema.parse(r.body)};}
@@ -81,6 +86,57 @@ export class Store {
     await this.bump(c,s,phase,body);const asOf=s.snapshotAt.getTime(),conversation=await this.recentConversation(c,e);return {event:e,generationEpoch:s.generationEpoch,revision:BigInt(e.revision),configVersion:s.configVersion,praiseSnapshot:await this.praiseSnapshot(c,e.identity_id,asOf),conversation,conversationContext:await this.conversationContext(c,s,e,conversation,asOf)};
   });}
   private async conversationCutoff(c:Client,eventId:string){return (await c.query("SELECT t.state_version FROM transitions t JOIN events p ON p.id=t.source_event_id WHERE t.character_id=$1 AND p.kind='attention.selected' AND p.parent_event_id=$2",[this.characterId,eventId])).rows[0]?.state_version;}
+  private async affectRecords(c:Client|pg.Pool,ownerId:string,now:number):Promise<EventAffectRecord[]>{
+    const rows=(await c.query("SELECT record FROM affective_appraisals WHERE character_id=$1 AND owner_id=$2 AND status='active' AND created_at>$3 AND created_at<=$4 ORDER BY created_at DESC,id DESC LIMIT 100",[this.characterId,ownerId,new Date(now-affectWindowMs),new Date(now)])).rows;
+    return rows.reverse().map(r=>eventAffectRecordSchema.parse(r.record));
+  }
+  // Read-only snapshot for the event interpreter: the selected input, the
+  // version-bound persona values and the delivered conversation it may read.
+  async affectRequest(selected:NonNullable<Awaited<ReturnType<Store['select']>>>):Promise<EventInterpretationRequest|null>{
+    const pool=this.db.pool,e=selected.event,configVersion=selected.configVersion.toString();
+    const persona=(await pool.query('SELECT id,kind,text,created_at FROM character_persona_values WHERE character_id=$1 AND config_version=$2 ORDER BY ordinal',[this.characterId,configVersion])).rows;
+    if(!persona.length||typeof e.payload?.text!=='string'||!e.identity_id)return null;
+    const scope={ownerId:e.identity_id as string,characterId:this.characterId},current=e.received_at.getTime();
+    const label=(await pool.query('SELECT display_name FROM identities WHERE id=$1',[e.identity_id])).rows[0]?.display_name??'사용자';
+    const source=(id:string,revision:string,kind:AffectSource['kind'],text:string,at:number,speakerId:string|null):AffectSource=>({id,revision,kind,scope,text:text.slice(0,8000),at,speakerId,delivered:kind==='response',truth:'unresolved'});
+    const sources:AffectSource[]=[source(e.id,String(e.revision),'input',e.payload.text,current,e.identity_id),...persona.map(v=>source(v.id,configVersion,v.kind,v.text,Math.min(v.created_at.getTime(),current),null))];
+    const turns=selected.conversation.turns,eventIds=turns.filter(t=>t.source.kind==='event').map(t=>t.source.id),responseIds=turns.filter(t=>t.source.kind==='response').map(t=>t.source.id);
+    const timed=[...(await pool.query('SELECT id,received_at AS at FROM events WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,eventIds])).rows,...(await pool.query('SELECT id,COALESCE(finished_at,created_at) AS at FROM response_runs WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,responseIds])).rows];
+    const times=new Map<string,number>(timed.map(r=>[r.id,Math.min(r.at.getTime(),current)]));
+    for(const t of turns){const at=times.get(t.source.id);if(at===undefined||t.source.id===e.id)continue;
+      sources.push(t.source.kind==='event'?source(t.source.id,t.source.revision,'input',t.text,at,e.identity_id):source(t.source.id,'1','response',t.text,at,this.characterId));}
+    const now=Math.max(this.clock(),current),records=(await this.affectRecords(pool,e.identity_id,now)).filter(r=>r.eventId!==e.id);
+    return {scope,eventId:e.id,eventRevision:String(e.revision),configVersion,eventKind:'input',now,sources:sources.slice(0,40),speakerId:e.identity_id,
+      actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:'캐릭터'}],experience:{status:'empty',revision:'1',truncated:false},
+      currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
+  }
+  private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object}>{
+    if(!attempt)return {body};
+    const base={promptVersion:attempt.promptVersion,latencyMs:attempt.latencyMs};
+    if(attempt.result.status!=='interpreted'||!attempt.request)return {body,effect:{...base,status:'unavailable',reason:attempt.result.status==='unavailable'?attempt.result.reason:'invalid_input'}};
+    const request=attempt.request;
+    const refs=(list:{sourceId:string;revision:string}[])=>JSON.stringify(list.map(r=>r.sourceId+':'+r.revision).sort());
+    const history=request.eventId===e.id?(await this.affectRecords(c,e.identity_id,request.now)).filter(r=>r.eventId!==e.id):[];
+    if(request.eventId!==e.id||request.eventRevision!==String(e.revision)||request.configVersion!==s.configVersion.toString()||request.scope.ownerId!==e.identity_id||request.scope.characterId!==this.characterId||refs(history.map(r=>({sourceId:r.eventId,revision:r.eventRevision})))!==refs(request.stateSourceRefs))return {body,effect:{...base,status:'stale'}};
+    let appended:ReturnType<typeof appendEventAffect>;
+    try{appended=appendEventAffect(history,request,attempt.result.interpretation,e.id);}catch{return {body,effect:{...base,status:'invalid'}};}
+    if(appended.status!=='applied'||(await c.query('SELECT 1 FROM affective_appraisals WHERE character_id=$1 AND event_id=$2 AND event_revision=$3',[this.characterId,e.id,e.revision])).rowCount)return {body,effect:{...base,status:'duplicate'}};
+    const record=appended.records.find(r=>r.eventId===e.id)!,raw=eventAffectStimuli(record,appended.snapshot);
+    // The verified social act owns its channel for this input: no double count,
+    // and its interpersonal target is never replaced by an untargeted cause.
+    const stimuli={joy:socialCategory==='praise'?0:raw.joy,frustration:socialCategory==='direct_insult'?0:raw.frustration,embarrassment:raw.embarrassment};
+    await c.query("INSERT INTO affective_appraisals(id,character_id,owner_id,event_id,event_revision,config_version,policy_version,prompt_version,status,record,stimuli,latency_ms,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10,$11,$12)",[randomUUID(),this.characterId,e.identity_id,e.id,e.revision,s.configVersion.toString(),eventAffectPolicy.version,attempt.promptVersion,record,stimuli,attempt.latencyMs,new Date(record.at)]);
+    const applied=Object.values(stimuli).some(v=>v>0)?apply(body,{eventId:e.id,targetId:null,now,stimuli}):body;
+    return {body:applied,effect:{...base,status:'applied',interpretation:record.interpretation.status,stimuli}};
+  }
+  private async removeEventAffect(c:Client,s:VersionedState,ids:string[]){
+    if(!ids.length)return;
+    const rows=(await c.query("SELECT record FROM affective_appraisals WHERE character_id=$1 AND status='active'",[this.characterId])).rows;
+    const records=rows.map(r=>eventAffectRecordSchema.parse(r.record)),kept=new Set(removeEventAffectSources(records,new Set(ids)).map(r=>r.eventId));
+    const removed=records.filter(r=>!kept.has(r.eventId)).map(r=>r.eventId);if(!removed.length)return;
+    await c.query("UPDATE affective_appraisals SET status='deleted',record=NULL,stimuli=NULL,deleted_at=$3 WHERE character_id=$1 AND status='active' AND event_id=ANY($2::uuid[])",[this.characterId,removed,new Date(this.now(s))]);
+    for(const a of Object.values(s.body.affect))a.causes=a.causes.filter(x=>!(x.targetId===null&&removed.includes(x.eventId)));
+  }
   private async recentConversation(c:Client,current:Row):Promise<ConversationSnapshot>{
     const cutoff=await this.conversationCutoff(c,current.id);
     const rows=(await c.query("SELECT e.*,t.state_version,p.id AS phase_id FROM events e JOIN events p ON p.parent_event_id=e.id AND p.kind='appraisal.applied' JOIN transitions t ON t.source_event_id=p.id WHERE e.character_id=$1 AND e.session_id=$2 AND e.identity_id=$3 AND e.kind='chat.final' AND e.attention_status='observed' AND e.data_status='active' AND t.state_version<$4 ORDER BY t.state_version DESC,e.id DESC LIMIT 5",[this.characterId,current.session_id,current.identity_id,cutoff])).rows;
@@ -213,6 +269,10 @@ export class Store {
       }
       extraSources=[...extraSources,...distance,...positive];
     }
+    // Untargeted event affect shapes delivery too; bind its accepted inputs so
+    // deleting one invalidates this output like any other cause.
+    const affectCauses=[...new Set(Object.values(s.body.affect).flatMap(a=>a.causes.filter(cause=>cause.targetId===null).map(cause=>cause.eventId)))];
+    if(affectCauses.length)extraSources=[...extraSources,...(await c.query("SELECT e.id,e.revision FROM affective_appraisals a JOIN events e ON e.character_id=a.character_id AND e.id=a.event_id AND e.revision=a.event_revision WHERE a.character_id=$1 AND a.status='active' AND a.event_id=ANY($2::uuid[]) AND e.data_status='active'",[this.characterId,affectCauses])).rows];
     const id=randomUUID();await c.query("INSERT INTO response_runs(id,character_id,session_id,trigger_event_id,generation_epoch,config_version,status,plan,deadline_at) VALUES($1,$2,$3,$4,$5,$6,'planned',$7,$8)",[id,this.characterId,sessionId,trigger.id,s.generationEpoch.toString(),s.configVersion.toString(),plan,new Date(this.now(s)+30000)]);
     for(const e of [trigger,...extraSources])await c.query('INSERT INTO response_sources(id,character_id,response_id,event_id,source_version) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[randomUUID(),this.characterId,id,e.id,e.revision]);
     for(const memoryId of plan.memoryIds){const m=(await c.query("SELECT * FROM memories WHERE character_id=$1 AND id=$2 AND status='active'",[this.characterId,memoryId])).rows[0];if(!m)throw new RuntimeError('stale_source');await c.query('INSERT INTO response_sources(id,character_id,response_id,memory_id,source_version) VALUES($1,$2,$3,$4,$5)',[randomUUID(),this.characterId,id,m.id,m.content_version]);}
@@ -273,7 +333,7 @@ export class Store {
       if(evidence&&((evidence.kind==='praise'&&appraisal.act==='praise')||(evidence.kind==='direct_insult'&&appraisal.act==='criticism'))&&[1,2,3].includes(evidence.strength))return evidence;
     }catch{/* Unsupported evidence cannot authorize an emotional increase. */}
   }
-  async commitAppraisal(selected:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:Appraisal,metadata:AppraisalMetadata,memoryIds:string[]=[]){metadata=appraisalMetadataSchema.parse(metadata);return this.locked(async(c,s)=>{
+  async commitAppraisal(selected:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:Appraisal,metadata:AppraisalMetadata,memoryIds:string[]=[],eventAffect?:EventAffectAttempt){metadata=appraisalMetadataSchema.parse(metadata);return this.locked(async(c,s)=>{
     const e=(await c.query('SELECT * FROM events WHERE id=$1 AND character_id=$2 FOR UPDATE',[selected.event.id,this.characterId])).rows[0];
     const session=(await c.query('SELECT status FROM sessions WHERE id=$1',[e.session_id])).rows[0];
     if(e.data_status!=='active'||e.attention_status!=='selected'||BigInt(e.revision)!==selected.revision||s.generationEpoch!==selected.generationEpoch||session.status!=='active')return {status:'stale',response:null};
@@ -321,6 +381,7 @@ export class Store {
     await this.evidence(c,s,e.session_id,e.identity_id,`first_observed:${koreanDate(now)}`,'first_observed',[{event:e,role:'observed'}],e.id);
     if(effect.category)await this.evidence(c,s,e.session_id,e.identity_id,`${effect.category}:${e.id}`,effect.category,[{event:e,role:'appraisal'}],e.id,{strength:appraisal.strength,...(affectEvidence?{relationshipEligible:false}:{})},{stimulus:relationshipEffect.stimulus,habituation:relationshipEffect.habituation,affect:{version:3,stimulus:effect.stimulus,habituation:effect.habituation,groupId:groupId??null}});
     let body=apply(s.body,{eventId:e.id,targetId:e.identity_id,now,stimuli:effect.category==='praise'?{joy:effect.stimulus}:effect.category==='direct_insult'?{frustration:effect.stimulus}:{},holdEligible:effect.n===0});body.attention.eventId=null;
+    const affectApplied=await this.applyEventAffect(c,s,e,body,now,eventAffect,effect.category);body=affectApplied.body;
     const repair=applyRepair(body,now,effect.category!=='direct_insult'&&canAttemptRepair(conversationEvidence)&&conversationEvidence?.repairTarget==='candidate'&&await this.repairEligible(c,body,conversationContext,now));body=repair.state;
     const repairUsed=repair.amount>0?{candidateEventId:conversationContext.repairCandidate!.eventId,candidateRevision:conversationContext.repairCandidate!.revision}:undefined;
     const previous=body.turn.recentSilences.find(record=>record.identityId===e.identity_id)??null;
@@ -354,7 +415,7 @@ export class Store {
     if(reasonSources)plan.memoryIds=[...new Set([...plan.memoryIds,...reasonSources.memoryIds])];
     if(conversationMemoryIds.length)plan.memoryIds=[...new Set([...plan.memoryIds,...conversationMemoryIds])];
     if(!['ignore','listen'].includes(plan.action)){body.turn.acknowledgements[`${e.identity_id}:${effect.category??appraisal.act}`]=now;}
-    await this.project(c,s);await this.bump(c,s,phase,body,{stimulus:effect.stimulus,category:effect.category,...(affectEvidence?{affectEvidence}:{}),...(conversationEvidence?{conversationEvidence}:{}),...(repairUsed?{repairUsed,repair:{amount:repair.amount,inputEventId:e.id}}:{}),action:plan.action,participation:plan.participation,silence,reengagement:plan.reengagement},appraisalId);
+    await this.project(c,s);await this.bump(c,s,phase,body,{stimulus:effect.stimulus,category:effect.category,...(affectEvidence?{affectEvidence}:{}),...(conversationEvidence?{conversationEvidence}:{}),...(repairUsed?{repairUsed,repair:{amount:repair.amount,inputEventId:e.id}}:{}),action:plan.action,participation:plan.participation,silence,reengagement:plan.reengagement,...(affectApplied.effect?{eventAffect:affectApplied.effect}:{})},appraisalId);
     const response=['ignore','listen'].includes(plan.action)?null:await this.response(c,s,e.session_id,phase,plan,[e,...(reasonSources?.events??[]),...conversationSources],conversation.data);return {status:'committed',response};
   });}
   async personalFacts(sessionId:string,identityId:string){return this.locked(c=>readPersonalFacts(c,{characterId:this.characterId,sessionId,identityId}));}
@@ -701,6 +762,7 @@ export class Store {
       for(const row of silences)reasons.add(row.id);
     }
     await this.redactSilences(c,s,memoryIds,eventIds,[...reasons]);
+    await this.removeEventAffect(c,s,[...eventIds,...responses]);
     await c.query("UPDATE appraisals SET result=NULL,provider_result=NULL,context_refs='[]'::jsonb,status='stale' WHERE character_id=$1 AND id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     await c.query("UPDATE transitions SET effects=CASE WHEN effects ? 'repairUsed' THEN jsonb_build_object('repairUsed',effects->'repairUsed') ELSE NULL END,replay_status='source_redacted' WHERE character_id=$1 AND appraisal_id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     const affected=[...responses].map(id=>({id}));

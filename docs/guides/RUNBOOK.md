@@ -21,6 +21,7 @@ pnpm diagnose
 ```powershell
 pnpm db:migrate
 pnpm db:seed
+# 0007 이후 기존 DB도 migrate 뒤 seed를 다시 실행해 운영 성향 v1을 넣는다(멱등).
 pnpm build
 pnpm start
 ```
