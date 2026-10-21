@@ -3,7 +3,7 @@ import {mkdtempSync,readFileSync,writeFileSync,rmSync,existsSync} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DeepSeekBudget,deepseekInputBound,deepseekReservationUsd} from './deepseek-budget.ts';
-import {DeepSeekDialogue,DeepSeekEventInterpreter,DeepSeekOutcomeProbe,DeepSeekAppraisalProbe,deepseekPayload} from './deepseek.ts';
+import {DeepSeekDialogue,DeepSeekEventInterpreter,DeepSeekOutcomeProbe,DeepSeekAppraisalProbe,deepseekPayload,createDeepSeekEventInterpreter,o2Timeouts} from './deepseek.ts';
 import {prepareAppraisalProbe} from './appraisal-probe.ts';
 import {prepareOutcomeProbe} from './outcome-probe.ts';
 import {buildOutcomeProbePreparation,authoredProbeOutcome} from '../../../evals/affect-outcome-probe.ts';
@@ -177,4 +177,18 @@ it('outcome snapshot survives caller mutation and deadline never permits a retry
   await expect(stopped.probe(probe.originalInput)).rejects.toThrow('deepseek_deadline');expect(read(late.path).entries[0].status).toBe('reserved');
   complete(completed(reply));await new Promise(r=>setTimeout(r,10));
   await expect(stopped.probe(probe.originalInput)).rejects.toThrow('deepseek_provider_stopped');expect(fetcher).toHaveBeenCalledTimes(2);expect(read(path).entries).toHaveLength(1);
+});
+it('O2 runtime interpreter: deadline never leaves an open reservation; an HTTP error marks the shared ledger unknown',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'o2-ledger-'));
+  try{
+    for(const kind of ['hang','http500'] as const){
+      const path=join(dir,kind+'.json'),budget=new DeepSeekBudget(path,1,10,'test');
+      const fetcher=(async(_url:unknown,init?:RequestInit)=>kind==='http500'?new Response('{}',{status:500}):new Promise<Response>((_,reject)=>init?.signal?.addEventListener('abort',()=>reject(new Error('aborted'))))) as typeof fetch;
+      const interpreter=createDeepSeekEventInterpreter({localOnly:false,allowPaidProviders:true,apiKey:'synthetic-key',budget,fetcher,...o2Timeouts(50)});
+      expect((await interpreter.interpret(affectRequest())).status).toBe('unavailable');
+      const entries=JSON.parse(readFileSync(path,'utf8')).entries;
+      expect(entries.map((e:{status:string})=>e.status)).toEqual(['unknown']);
+      expect(budget.availability()).toBe('deepseek_usage_unconfirmed');
+    }
+  }finally{rmSync(dir,{recursive:true,force:true});}
 });

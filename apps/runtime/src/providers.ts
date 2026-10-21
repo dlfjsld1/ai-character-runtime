@@ -5,7 +5,7 @@ import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/
 import {JevAppraisalProvider} from '../../../packages/adapters/src/jev.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
-import {DeepSeekDialogue,createDeepSeekEventInterpreter} from '../../../packages/adapters/src/deepseek.ts';
+import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
 import {DeepSeekBudget} from '../../../packages/adapters/src/deepseek-budget.ts';
 import {OpenAIInteractionV3Candidate,interactionV3EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v3.ts';
 import {OpenAIInteractionV4Candidate,interactionV4EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v4.ts';
@@ -51,7 +51,7 @@ const registeredProviders:ProviderRegistry={
 // O2 default: event affect runs whenever paid DeepSeek is fully authorized,
 // independently of the dialogue provider. Local-only setups never call it.
 export function deepseekConfigured(config:LocalConfig){return !config.LOCAL_ONLY&&config.ALLOW_PAID_PROVIDERS&&!!config.DEEPSEEK_API_KEY&&config.DEEPSEEK_BUDGET_USD>0&&!!config.DEEPSEEK_BUDGET_PATH&&config.DEEPSEEK_MAX_CALLS>0&&!!config.DEEPSEEK_BUDGET_AUTHORIZATION;}
-function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION),deadlineMs:20000});}
+function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION),...o2Timeouts(20000)});}
 export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv=process.env,registry:ProviderRegistry=registeredProviders):RuntimeProviders {
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
   return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment),...(deepseekConfigured(config)?{interpreter:deepseekInterpreter(config)}:{})};

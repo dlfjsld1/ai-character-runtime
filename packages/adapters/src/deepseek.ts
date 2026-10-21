@@ -115,6 +115,9 @@ export class DeepSeekAppraisalProbe extends DeepSeekChat {
     });
   }
 }
+// The logical deadline must outlast the physical abort: the coordinator must
+// never move on to dialogue while this call's ledger reservation is still open.
+export function o2Timeouts(physicalTimeoutMs:number){return {physicalTimeoutMs,deadlineMs:physicalTimeoutMs+5000};}
 // Runtime composition of the evaluated split interpreter. With no eligible
 // episode the fixed outcome is null by contract, so only the appraisal stage is
 // billed. A fresh probe per stage keeps one failed call from stopping later
