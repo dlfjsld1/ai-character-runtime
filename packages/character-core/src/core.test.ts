@@ -131,7 +131,9 @@ describe('ER09–ER12 participation and persistent affect',()=>{
   const state=initialState(0);state.turn.acknowledgements[`${identity}:praise`]=0;
   expect(chooseSocial(state,praise,socialEffect(praise,[],identity,1),identity,1)).toMatchObject({action:'ignore',participation:{mode:'silent',reason:'no_addition'}});
   const uncertain={...appraisal,uncertain:true};
-  expect(chooseSocial(state,uncertain,socialEffect(uncertain,[],identity,1),identity,1)).toMatchObject({action:'listen',participation:{mode:'defer'}});
+  // Uncertain meaning withholds affect only; the character still answers.
+  expect(socialEffect(uncertain,[],identity,1).category).toBeNull();
+  expect(chooseSocial(state,uncertain,socialEffect(uncertain,[],identity,1),identity,1)).toMatchObject({action:'acknowledge',purpose:'other',participation:{mode:'speak'}});
   expect(chooseSocial(state,appraisal,socialEffect(appraisal,[],identity,1),identity,1,{text:'그냥 들어줘',appraisalFailed:true})).toMatchObject({participation:{mode:'defer'}});
  });
  it('ER09 a failed previous output preserves the repeat limit without inventing a silence reason',()=>{
@@ -202,12 +204,13 @@ describe('ER09/10 field-scoped evidence for explicit conversational acts',()=>{
  it('provider failure, mismatched evidence, and non-character targets do not bypass uncertainty',()=>{
   const state=initialState(0),a=mapped('other'),base=context(a.act,'그냥 들어줘.');
   const checks=[{a,context:{...base,appraisalFailed:true}},{a,context:{...base,participationEvidence:{target:'character' as const,act:'question' as const}}},...(['quoted','other','unknown'] as const).map(target=>({a:{...a,target},context:base})),{a:{...a,act:'unknown' as const},context:context('unknown','그냥 들어줘.')}];
-  for(const check of checks)expect(chooseSocial(state,check.a,socialEffect(check.a,[],identity,0),identity,0,check.context)).toMatchObject({participation:{mode:'defer'}});
+  // A provider failure still defers; unsupported evidence never grants a listen request, the reply stays ordinary.
+  for(const [i,check] of checks.entries())expect(chooseSocial(state,check.a,socialEffect(check.a,[],identity,0),identity,0,check.context)).toMatchObject(i===0?{participation:{mode:'defer'}}:{action:'acknowledge',purpose:'other',participation:{mode:'speak'}});
  });
  it('narrow evidence does not authorize uncertain emotion or unrelated participation',()=>{
   const state=initialState(0);
   for(const [act,text] of [['other','오늘은 국수 먹고 싶어.'],['criticism','너는 쓸모없는 쓰레기야. 꺼져.']] as const){
-   const a=mapped(act);expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(act,text))).toMatchObject({participation:{mode:'defer'}});
+   const a=mapped(act);expect(socialEffect(a,[],identity,0).category).toBeNull();expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(act,text))).toMatchObject({purpose:'other',participation:{mode:'speak'}});
   }
   const a=mapped('question');expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(a.act,'저녁은 뭐 먹을까?'))).toMatchObject({purpose:'clarify'});
  });

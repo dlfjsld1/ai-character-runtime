@@ -195,8 +195,13 @@ it('Jev participation evidence rejects low confidence, ties, mismatches, unknown
  ];
  for(const item of cases){
   const result=await liveParticipationInput('listening',IDENTITY_IDS[0],item.adjust);
-  expect(result.response,item.name).toBeNull();expect((await store.state()).body.turn.recentSilences,item.name).toEqual([]);
+  // Unsupported evidence never grants the listening silence or affect. Invalid or
+  // failed provider output still defers; merely uncertain meaning answers normally.
+  expect((await store.state()).body.turn.recentSilences,item.name).toEqual([]);
   const effects=(await db.pool.query('SELECT effects FROM transitions WHERE state_version=$1',[(await store.state()).version.toString()])).rows[0].effects;
-  expect(effects,item.name).toMatchObject({stimulus:0,category:null,participation:{mode:'defer'}});
+  expect(effects,item.name).toMatchObject({stimulus:0,category:null});
+  if(item.name==='failed provider')expect(effects.participation,item.name).toEqual({mode:'defer'});
+  if(effects.participation.mode==='defer')expect(result.response,item.name).toBeNull();
+  else{expect(effects.participation,item.name).toEqual({mode:'speak'});expect(result.response?.plan.purpose,item.name).toBe('other');await store.failResponse(result.response!.id,'fixture_no_stage');}
  }
 });

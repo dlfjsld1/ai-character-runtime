@@ -31,7 +31,7 @@ it('a mixed apology and fresh attack stays protective when incident linkage is b
  expect(linked.plan.participation).toEqual({mode:'silent',reason:'withholding'});
 });
 it('historical defer accepted by no-special-action scorer is no longer conversation success',()=>{
- const c=control(scene),plan=chooseSocial(initialState(c.now),neutralAppraisal,{category:null,stimulus:0,n:0,habituation:1},c.event.identityId,c.now),rows=[{id:'old-defer',functionalPass:true,plan,expectation:{policy:'normal'}}];
+ const c=control(scene),plan=chooseSocial(initialState(c.now),neutralAppraisal,{category:null,stimulus:0,n:0,habituation:1},c.event.identityId,c.now,{appraisalFailed:true}),rows=[{id:'old-defer',functionalPass:true,plan,expectation:{policy:'normal'}}];
  expect(historicalOutcomes(rows)).toMatchObject({originalPass:1,outcomeAwarePass:0,deferredOriginalPass:['old-defer']});expect(rows[0]!.functionalPass).toBe(true);
 });
 it('prepared diagnostics preserve exact expectations and source context without running a provider',()=>{

@@ -23,7 +23,10 @@ export function compareDialoguePolicy(evaluation:AppraisalEvaluation,rubric:Rubr
  const a=evaluation.appraisal,answers=readJevEvidence(evaluation.metadata.providerResult!).answers;
  const effect=socialEffect(a,[],identityId,0);
  const currentPlan=chooseSocial(initialState(0),a,effect,identityId,0);
- const currentDialogueEligible=!['listen','ignore'].includes(currentPlan.action);
+ // Q08 is a record against the policy of its time, when uncertain Jev meaning
+ // deferred non-question replies. Since 2026-10-21 uncertainty withholds affect only.
+ const historicalDefer=(a.uncertain||a.target==='unknown')&&a.act!=='question';
+ const currentDialogueEligible=!historicalDefer&&!['listen','ignore'].includes(currentPlan.action);
  const reasons:string[]=[];
  if(a.target!=='character'||!['greeting','question'].includes(a.act))reasons.push('unsupported_target_or_act');
  for(const field of ['target','act'] as const){

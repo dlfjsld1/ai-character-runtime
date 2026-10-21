@@ -168,14 +168,16 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
     const purpose=v2.speechAct==='question'?'question':v2.directPraise==='yes'?'praise':v2.speechAct==='statement'?'other':v2.speechAct;
     return (['praise','greeting'].includes(purpose)?repeated(purpose):undefined)??speak(purpose);
   }
-  const acknowledgePraise=explicitTarget&&a.act==='praise'&&context.participationEvidence?.acknowledgePraise===true;
-  if((a.uncertain&&!acknowledgePraise)||a.target==='unknown') return a.act==='question'?speak('clarify'):{...dialoguePlan(state,'uncertain',identityId),action:'listen',participation:{mode:'defer'}};
-  if(a.target==='character'&&a.act==='criticism'&&a.hostility===3) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'withholding'}};
-  if(a.act==='question') return speak('question');
-  if(['greeting','praise','criticism'].includes(a.act)) {
+  // Uncertain meaning withholds affect only (socialAffect grants nothing for it);
+  // the character still answers. Only a certain hostile attack is withheld.
+  if(!a.uncertain&&a.target==='character'&&a.act==='criticism'&&a.hostility===3) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'withholding'}};
+  if(a.act==='question') return speak(a.uncertain||a.target==='unknown'?'clarify':'question');
+  // An uncertain act label cannot establish a repetition unless verified evidence supports it.
+  const verifiedAct=!a.uncertain||!!effect.category||explicitTarget&&a.act==='praise'&&context.participationEvidence?.acknowledgePraise===true;
+  if(verifiedAct&&['greeting','praise','criticism'].includes(a.act)) {
     const repeat=repeated(effect.category??a.act);if(repeat)return repeat;
   }
-  return speak(a.act);
+  return speak(a.uncertain||a.act==='unknown'||a.target==='unknown'?'other':a.act);
 }
 export function applyRepair(state:State,now:number,eligible:boolean):{state:State;amount:number}{
   const next=decay(state,now),amount=eligible?Math.min(.03,next.affect.frustration.value*.10):0;
