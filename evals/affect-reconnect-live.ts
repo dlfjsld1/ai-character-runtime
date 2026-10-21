@@ -22,7 +22,8 @@ const read=(p:string)=>JSON.parse(readFileSync(p,'utf8'));
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const write=(p:string,v:unknown)=>writeFileSync(p,JSON.stringify(v,null,2));
 function inside(p:string){assert(p,'c2p_path_required');const absolute=resolve(p),part=relative(base,absolute);assert(part&&part!=='..'&&!part.startsWith(`..${sep}`)&&!part.startsWith(sep)&&!part.includes(':'),'c2p_artifact_path');return absolute;}
-export const c2pPolicy={dev:{totalUsd:.25,priorCalls:52,maxCalls:76},confirm:{totalUsd:.45,priorCalls:76,maxCalls:100}} as const;
+// Starts from the 2026-10-18 ledger (159 completed entries, USD0.1161756); cap raised to 0.35 by user approval 2026-10-21.
+export const c2pPolicy={dev:{totalUsd:.35,priorCalls:159,maxCalls:183},confirm:{totalUsd:.35,priorCalls:183,maxCalls:207}} as const;
 export function buildC2P(split:Split){
   const current=buildReconnectPreparation(split),runnerHash=createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex');
   const spec={version:'c2p-v1',prepared:current.prepared,runnerHash,policy:c2pPolicy[split],newCalls:24,model:deepseekCandidate.model};
@@ -80,7 +81,7 @@ export async function executeC2P(o:RunOptions,testTransport?:C2PTestTransport){
   try{
     if(o.mode==='mock'){
       mkdirSync(root);owned=true;before={version:1,provider:'deepseek',model:deepseekCandidate.model,inputUsdPerMillion:.3,outputUsdPerMillion:1.2,limitUsd:policy.totalUsd,
-        entries:Array.from({length:policy.priorCalls},(_,i)=>({id:'synthetic-prior-'+i,authorization:'synthetic historical placeholder',status:'completed',usd:i===0?.0560898:0,inputBound:1000,maxOutputTokens:2048}))};write(ledgerPath,before);
+        entries:Array.from({length:policy.priorCalls},(_,i)=>({id:'synthetic-prior-'+i,authorization:'synthetic historical placeholder',status:'completed',usd:i===0?.1161756:0,inputBound:1000,maxOutputTokens:2048}))};write(ledgerPath,before);
     }else before=read(ledgerPath);
     assert.equal(before.entries.length,policy.priorCalls,'c2p_prior_calls_changed');assert(!before.entries.some((e:any)=>e.authorization.endsWith(attempt)),'c2p_attempt_already_recorded');
     // Bind confirmation to the reviewed development history while holding the run lock.

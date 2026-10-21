@@ -2,7 +2,7 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname,resolve} from 'node:path';
-import {prepareC2P,executeC2P,inspectC2P,runC2P,requireC2PDevelopment,buildC2P} from './affect-reconnect-live.ts';
+import {prepareC2P,executeC2P,inspectC2P,runC2P,requireC2PDevelopment,buildC2P,c2pPolicy} from './affect-reconnect-live.ts';
 import {affectHash} from './affect-cases.ts';
 
 const config=vi.hoisted(()=>({text:'',reads:0}));
@@ -35,14 +35,14 @@ it.each(['dev','confirm'] as const)('%s prepares and rehearses 12/24 without sec
 });
 it.each(['approval','money','calls','source','confirm_gate'])('rejects %s before reading any key or ledger',async kind=>{
   const t=setup(kind==='confirm_gate'?'confirm':'dev'),o=liveArgs(t);
-  if(kind==='approval')o.approvedHash='bad';if(kind==='money')o.approvedUsd=0.2 as any;if(kind==='calls')o.approvedCalls=52 as any;
+  if(kind==='approval')o.approvedHash='bad';if(kind==='money')o.approvedUsd=0.2 as any;if(kind==='calls')o.approvedCalls=c2pPolicy.dev.maxCalls-1 as any;
   if(kind==='source'){const m=read(join(t.prepared,'manifest.json'));m.spec.runnerHash='bad';write(join(t.prepared,'manifest.json'),m);}
   await expect(executeC2P(o)).rejects.toThrow();expect(config.reads).toBe(0);expect(existsSync(o.output)).toBe(false);
 });
 it('explicitly approved live branch is testable with fake credentials, ledger and fetch; history remains intact',async()=>{
   const t=setup(),f=await paidFixture(t),before=readFileSync(f.ledger,'utf8'),o=liveArgs(t);
-  const r=await executeC2P(o);expect(f.fetch).toHaveBeenCalledTimes(24);expect(r).toMatchObject({mode:'live',realProviderCalls:24,comparison:{rubricMatched:12},summary:{attempts:76}});
-  expect(read(f.ledger).entries.slice(0,52)).toEqual(JSON.parse(before).entries);expect(existsSync(f.ledger+'.o1-dev.lock')).toBe(false);await inspectC2P(o.output);
+  const r=await executeC2P(o);expect(f.fetch).toHaveBeenCalledTimes(24);expect(r).toMatchObject({mode:'live',realProviderCalls:24,comparison:{rubricMatched:12},summary:{attempts:c2pPolicy.dev.maxCalls}});
+  expect(read(f.ledger).entries.slice(0,c2pPolicy.dev.priorCalls)).toEqual(JSON.parse(before).entries);expect(existsSync(f.ledger+'.o1-dev.lock')).toBe(false);await inspectC2P(o.output);
   const review=read(join(o.output,'review-template.json'));review.reviewer='synthetic test reviewer';review.cases.forEach((c:any)=>{c.accepted=true;c.reason='authored test response, not real quality';});const rp=join(t.root,'review.json');write(rp,review);
   expect((await requireC2PDevelopment(o.output,rp)).reviewer).toBe(review.reviewer);
   review.cases[0].accepted=null;write(rp,review);await expect(requireC2PDevelopment(o.output,rp)).rejects.toThrow();
@@ -51,7 +51,7 @@ it('explicitly approved live branch is testable with fake credentials, ledger an
 it.each(['missing','prior','unknown','budget','lock','config','key'])('live admission refuses %s and never calls fake fetch',async kind=>{
   const t=setup(),f=await paidFixture(t),ledger=read(f.ledger),o=liveArgs(t);
   if(kind==='missing')config.text=config.text.replace(f.ledger,join(t.root,'missing.json'));
-  if(kind==='prior')ledger.entries.pop();if(kind==='unknown')ledger.entries[0].status='unknown';if(kind==='budget')ledger.entries[0].usd=.1;
+  if(kind==='prior')ledger.entries.pop();if(kind==='unknown')ledger.entries[0].status='unknown';if(kind==='budget')ledger.entries[0].usd+=.1;
   if(kind==='lock')write(f.ledger+'.o1-dev.lock',{test:true});if(kind==='config')config.text=config.text.replace('LOCAL_ONLY=false','LOCAL_ONLY=true');if(kind==='key')config.text=config.text.replace('synthetic-c2p-key','');write(f.ledger,ledger);
   const original=readFileSync(f.ledger,'utf8');await expect(executeC2P(o)).rejects.toThrow();expect(f.fetch).not.toHaveBeenCalled();expect(readFileSync(f.ledger,'utf8')).toBe(original);
   expect(existsSync(f.ledger+'.o1-dev.lock')).toBe(kind==='lock');expect(existsSync(o.output)).toBe(false);
@@ -76,7 +76,7 @@ it.each(['unrelated','amount','usage','id','order'])('confirmation requires revi
   review.runHash=read(join(d.output,'review-template.json')).runHash;write(rp,review);
   const continued=read(join(d.output,'ledger-after.json'));continued.limitUsd=confirm.b.spec.policy.totalUsd;
   if(kind!=='unrelated'){
-    const changed=structuredClone(continued),entry=changed.entries[52];
+    const changed=structuredClone(continued),entry=changed.entries[c2pPolicy.dev.priorCalls];
     if(kind==='amount')entry.usd=0;if(kind==='usage')entry.usage.prompt_tokens++;
     if(kind==='id')entry.id='different-dev-call';if(kind==='order')changed.entries.reverse();write(cf.ledger,changed);
   }
@@ -85,8 +85,8 @@ it.each(['unrelated','amount','usage','id','order'])('confirmation requires revi
   expect(cf.fetch).not.toHaveBeenCalled();expect(readFileSync(cf.ledger,'utf8')).toBe(before);
   expect(existsSync(o.output)).toBe(false);expect(existsSync(cf.ledger+'.o1-dev.lock')).toBe(false);
   write(cf.ledger,continued);
-  const r=await executeC2P(o);expect(r).toMatchObject({mode:'live',realProviderCalls:24,summary:{attempts:100},devGate:{reviewer:'synthetic test reviewer'}});expect(cf.fetch).toHaveBeenCalledTimes(24);await inspectC2P(o.output);
-  expect(read(cf.ledger).entries.slice(0,76)).toEqual(continued.entries);
+  const r=await executeC2P(o);expect(r).toMatchObject({mode:'live',realProviderCalls:24,summary:{attempts:c2pPolicy.confirm.maxCalls},devGate:{reviewer:'synthetic test reviewer'}});expect(cf.fetch).toHaveBeenCalledTimes(24);await inspectC2P(o.output);
+  expect(read(cf.ledger).entries.slice(0,c2pPolicy.confirm.priorCalls)).toEqual(continued.entries);
   if(kind==='unrelated'){
     const manifest=read(join(o.output,'manifest.json'));manifest.devGate.ledgerEntriesHash='changed';write(join(o.output,'manifest.json'),manifest);
     await expect(inspectC2P(o.output)).rejects.toThrow('c2p_development_ledger_changed');
