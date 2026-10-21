@@ -1,4 +1,5 @@
 // C2-P preparation, explicit live admission, and offline rehearsal/replay.
+import {RuntimeError} from '../packages/contracts/src/domain.ts';
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,mkdirSync,existsSync,openSync,closeSync,unlinkSync} from 'node:fs';
 import {resolve,relative,sep} from 'node:path';
@@ -164,8 +165,8 @@ export async function inspectC2P(recorded:string){
         return fn(rec.response.content);
       }catch(e){failure=e;throw e;}
     };
-    const result=await new SplitEventInterpreter(async()=>{const p=prepareOutcomeProbe(input),r=decode(row.outcome,deepseekPayload(p.request,2048),s=>p.decode(s).outcome);if(row.outcome.execution==='ERROR')throw Error('recorded_failure');return r;},async(_,fixed)=>{
-      const p=prepareAppraisalProbe(input,fixed),r=decode(row.appraisal,deepseekPayload(p.request,2048),s=>p.decode(s));if(row.appraisal.execution==='ERROR')throw Error('recorded_failure');return r;
+    const result=await new SplitEventInterpreter(async()=>{const p=prepareOutcomeProbe(input),r=decode(row.outcome,deepseekPayload(p.request,2048),s=>p.decode(s).outcome);if(row.outcome.execution==='ERROR')throw new RuntimeError(row.outcome.error!,503);return r;},async(_,fixed)=>{
+      const p=prepareAppraisalProbe(input,fixed),r=decode(row.appraisal,deepseekPayload(p.request,2048),s=>p.decode(s));if(row.appraisal.execution==='ERROR')throw new RuntimeError(row.appraisal.error!,503);return r;
     }).interpret(input);
     if(failure)throw failure;assert.deepEqual(result,row.result);assert.deepEqual(checkReconnectCandidate(b.current.suite.cases[i]!,input,result),row.checks);
     if(result.status==='unavailable'){assert.equal(row.core,null);if(row.outcome.execution==='ERROR')assert.deepEqual(row.appraisal,empty());stopped=true;}

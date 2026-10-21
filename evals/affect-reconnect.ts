@@ -1,4 +1,5 @@
 // C2-L is offline only: authored HTTP responses, an isolated ledger, no env loading.
+import {RuntimeError} from '../packages/contracts/src/domain.ts';
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
 import {resolve,relative,sep} from 'node:path';
@@ -182,7 +183,8 @@ export async function replayReconnect(recordedPath:string,outputPath:string){
         assert.equal(record.ledgerEntry.status,'completed');return decode(record.response.content);
       }
       }catch(error){verificationFailure=error;throw error;}
-      throw Error('recorded_failure_not_promoted');
+      // Re-raise the recorded failure class so the interpreter reports it unchanged.
+      throw new RuntimeError(record.error!,503);
     }
     const resolver=new SplitEventInterpreter(async()=>{const p=prepareOutcomeProbe(input);return decoded(row.outcome,deepseekPayload(p.request,2048),text=>p.decode(text).outcome);},async(_,fixed)=>{
       const p=prepareAppraisalProbe(input,fixed);return decoded(row.appraisal,deepseekPayload(p.request,2048),text=>p.decode(text));
