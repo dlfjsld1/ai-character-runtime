@@ -57,9 +57,10 @@ it('O2-02 positive meaning is stored once and raises joy in the same transition'
 
 it('O2-03 a justified correction of the character never becomes distance toward the user',async()=>{
   const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
-  for(const [agency,channel] of [['self','embarrassment'],['other','frustration'],['unknown','frustration']] as const){
+  // An unconfirmed correction of the character's own claim is embarrassment too.
+  for(const [agency,own,channel] of [['self',true,'embarrassment'],['other',false,'frustration'],['unknown',false,'frustration'],['unknown',true,'embarrassment']] as const){
     const selected=await turn(sessionId,`검증된 자료와 다르니 네 설명을 고쳐 줘 (${agency}).`);
-    const result=await commit(selected,r=>meaning(r,2,{congruence:-.9,stance:'corrects',agency,actorId:agency==='self'?r.scope.characterId:r.speakerId,targetId:agency==='self'?r.speakerId:r.scope.characterId}));
+    const result=await commit(selected,r=>meaning(r,2,{congruence:-.9,stance:'corrects',agency,actorId:own?r.scope.characterId:r.speakerId,targetId:own?r.speakerId:r.scope.characterId}));
     const state=(await store.state()).body;
     expect(state.affect[channel].causes).toContainEqual({eventId:selected.event.id,targetId:null});
     expect(state.affect.frustration.causes.some(c=>c.targetId===user)).toBe(false);

@@ -127,10 +127,12 @@ it('OA15: public Core entry points contain no provider, database or network impo
     expect(code).not.toMatch(/\b(?:fetch|Date\.now|Math\.random)\s*\(/);
   }
 });
-it('O2 stimuli: positive is joy, self-attributed conflict is embarrassment, other negative is untargeted discomfort',()=>{
+it('O2 stimuli: positive is joy, self-attributed conflict or a correction of a claim by the character is embarrassment, other negative is untargeted discomfort',()=>{
   const map=(patch:Parameters<typeof affectMeaning>[1])=>{const r=appendEventAffect([],affectRequest(),affectMeaning(affectRequest(),patch),affectId(10));return eventAffectStimuli(r.records[0]!,r.snapshot);};
   const positive=map({congruence:1});expect(positive.joy).toBeGreaterThan(0);expect(positive.frustration+positive.embarrassment).toBe(0);
   const self=map({congruence:-.8,agency:'self',actorId:affectId(2),targetId:affectId(1)});expect(self).toMatchObject({joy:0,frustration:0});expect(self.embarrassment).toBeGreaterThan(0);
   for(const agency of ['other','external','unknown'] as const){const other=map({congruence:-.8,agency});expect(other).toMatchObject({joy:0,embarrassment:0});expect(other.frustration).toBeGreaterThan(0);}
+  const corrected=map({congruence:-.8,agency:'unknown',stance:'corrects',actorId:affectId(2),targetId:affectId(1)});expect(corrected).toMatchObject({joy:0,frustration:0});expect(corrected.embarrassment).toBeGreaterThan(0);
+  for(const patch of [{stance:'reports' as const,actorId:affectId(2)},{stance:'corrects' as const,actorId:affectId(1)},{stance:'corrects' as const,actorId:null}]){const kept=map({congruence:-.8,agency:'unknown',...patch});expect(kept.embarrassment).toBe(0);expect(kept.frustration).toBeGreaterThan(0);}
   const none=appendEventAffect([],affectRequest(),{status:'irrelevant',outcome:null,appraisals:[]},affectId(10));expect(eventAffectStimuli(none.records[0]!,none.snapshot)).toEqual({joy:0,frustration:0,embarrassment:0});
 });

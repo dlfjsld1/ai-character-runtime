@@ -96,7 +96,10 @@ export function eventAffectStimuli(record:EventAffectRecord,snapshot:EventAffect
   for(const c of snapshot.contributions)if(c.eventId===record.eventId)for(const channel of channels)levels[channel]+=c.levels[channel];
   const strongest=record.interpretation.appraisals.filter(a=>a.congruence<0)
     .sort((a,b)=>b.relevance*b.importance*b.certainty*-b.congruence-a.relevance*a.importance*a.certainty*-a.congruence)[0];
-  const self=strongest?.agency==='self';
+  // A correction of the character's own earlier explanation reads as
+  // embarrassment even when the host cannot confirm it (2026-10-22 user
+  // decision; a future persona setting may change this).
+  const self=strongest?.agency==='self'||strongest?.agency==='unknown'&&strongest.stance==='corrects'&&strongest.actorId===record.scope.characterId;
   return {joy:levels.positive,frustration:self?0:levels.negative,embarrassment:self?levels.negative:0};
 }
 
