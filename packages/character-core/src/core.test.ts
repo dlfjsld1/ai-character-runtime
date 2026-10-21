@@ -39,14 +39,14 @@ describe('MX speech style keeps affect independent from expression',()=>{
  });
  it.each([[.049,'neutral'],[.05,'warm'],[.2,'warm'],[.599,'warm'],[.6,'bright'],[.7,'bright']] as const)('MX02 distinguishes positive intensity %s without a mood/face shortcut',(joy,positiveTone)=>{
   const s=mixed();s.affect.joy.value=joy;s.expression={kind:'neutral',since:1000};
-  expect(dialoguePlan(s,'question',identity).speechStyle).toEqual({register:'formal',positiveTone});
+  expect(dialoguePlan(s,'question',identity).speechStyle).toEqual({register:'formal',positiveTone,discomfortTone:'contextual'});
  });
  it('MX04 requires a cause for the current recipient and does not transfer another identity’s distance',()=>{
   const s=mixed();expect(dialoguePlan(s,'question',randomUUID()).speechStyle).toEqual({register:'casual',positiveTone:'bright'});
   s.affect.frustration.causes=[];expect(dialoguePlan(s,'question',identity).speechStyle?.register).toBe('casual');
  });
  it.each([['show','show','formal','bright'],['show','mask','casual','bright'],['mask','show','formal','neutral'],['mask','mask','casual','neutral']] as const)('MX05 applies independently chosen visibility %s/%s without erasing affect',(joy,discomfort,register,positiveTone)=>{
-  const s=mixed(),before=structuredClone(s);expect(Core.speechStyle(s,identity,{joy,discomfort})).toEqual({register,positiveTone});expect(s).toEqual(before);
+  const s=mixed(),before=structuredClone(s);expect(Core.speechStyle(s,identity,{joy,discomfort})).toEqual({register,positiveTone,discomfortTone:discomfort==='show'?'contextual':'masked'});expect(s).toEqual(before);
  });
  it('MX06 topic change, a small repair and face changes preserve distance until affect decays',()=>{
   const s=mixed();s.affect.frustration.value=.18;s.affect.frustration.holdUntil=1000;

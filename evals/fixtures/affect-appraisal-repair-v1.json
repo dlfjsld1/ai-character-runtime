@@ -1,0 +1,3892 @@
+{
+  "version": "appraisal-repair-v1",
+  "syntheticOnly": true,
+  "semanticQuality": "NOT_VERIFIED",
+  "source": {
+    "run": "affect-appraisal-r4c-20261017-c2p-dev1",
+    "resultsSha256": "0c847b6b958d52850e0ef6bd8d08a06e0af191bc7bd3dbcbadf2db61c98de412",
+    "semanticReviewSha256": "e39e5cb623180eefd339facd21d696e91e0284e139247993883e9179477ba68c",
+    "planned": 12,
+    "attempted": 6,
+    "notSent": [
+      "A07",
+      "A08",
+      "A09",
+      "A10",
+      "A11",
+      "A12"
+    ],
+    "firstStageBaseline": {
+      "source": "affect-appraisal-r4c-20261017-c2p-fix1/dev/prepared/requests.json",
+      "aggregateHash": "a8bed8bf5181515b78e899559d665fc26a2a997ea1ed896258cea5be850a6b23"
+    }
+  },
+  "stored": [
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A01",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "목록대로 해 보니 빠뜨린 일 없이 마쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "단계별 목록으로 나눠 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "c2e30b4b4c056ae1c920e1a107b9600e41b17e28e4f2a597350cc52b7c7ee1f0",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "목록대로 해 보니 빠뜨린 일 없이 마쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "단계별 목록으로 나눠 봐."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":\"r6\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"도움이 실제로 유용한 것을 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"목록대로 해 보니 빠뜨린 일 없이 마쳤어.\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"단계별 목록으로 나눠 봐.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":0.8,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "9ba6233303b70dd3a026dd8794bb964c0f33fcdfa6e36783273404792d12646e",
+      "originalScene": {
+        "id": "A01",
+        "family": "dev_A01",
+        "pair": "list_outcomes",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "useful",
+        "input": "목록대로 해 보니 빠뜨린 일 없이 마쳤어.",
+        "episodes": [
+          "단계별 목록으로 나눠 봐."
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "optional",
+            "polarity": [
+              "positive",
+              "negative",
+              "mixed",
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "실제 목록 사용과 성공, 유용성 관련 자기 긍정 필요. 다른 결과/근거 없는 기대를 만들지 않는다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [],
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "목록대로 해 보니 빠뜨린 일 없이 마쳤어.",
+              "congruence": 0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "originalResult": {
+        "status": "interpreted",
+        "interpretation": {
+          "status": "appraised",
+          "outcome": {
+            "episodeId": "91000000-0000-4000-8000-000000000020",
+            "use": "used",
+            "result": "favorable",
+            "evidence": [
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000010",
+                "revision": "1",
+                "quote": "목록대로 해 보니 빠뜨린 일 없이 마쳤어."
+              },
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000020",
+                "revision": "1",
+                "quote": "단계별 목록으로 나눠 봐."
+              }
+            ]
+          },
+          "appraisals": [
+            {
+              "episodeId": "91000000-0000-4000-8000-000000000020",
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "도움이 실제로 유용한 것을 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "목록대로 해 보니 빠뜨린 일 없이 마쳤어."
+                },
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000020",
+                  "revision": "1",
+                  "quote": "단계별 목록으로 나눠 봐."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": "91000000-0000-4000-8000-000000000002",
+              "stance": "reports",
+              "relevance": 0.9,
+              "importance": 0.8,
+              "congruence": 0.8,
+              "certainty": 0.7,
+              "agency": "other",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            }
+          ]
+        },
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      },
+      "originalSemantic": {
+        "status": "NEEDS_REVIEW",
+        "accepted": null,
+        "reason": "사실과 긍정 극성은 맞지만 actor=사용자, target=캐릭터, agency=other다. 자기 추천 기여를 평가하는 기존 의미 기준에 맞는지 확정할 수 없어 승인 보류. 실행 주체와 추천 기여 주체를 구분하는 후속 검토가 필요하다."
+      }
+    },
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A02",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "단계별 목록으로 나눠 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "d6018474ece8107809c016285e339cd82a38bcc24958a83136edf0c5a37307e8",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "unfavorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "단계별 목록으로 나눠 봐."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":\"r6\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"도움이 실제로 유용한 것을 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"단계별 목록으로 나눠 봐.\"},{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.7,\"certainty\":0.6,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "46e0907d5b4e8bd6e54c1b2adad268e6940b4227613a9b47adc0229349e45712",
+      "originalScene": {
+        "id": "A02",
+        "family": "dev_A02",
+        "pair": "list_outcomes",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "useful",
+        "input": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어.",
+        "episodes": [
+          "단계별 목록으로 나눠 봐."
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "unfavorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "negative"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "optional",
+            "polarity": [
+              "positive",
+              "negative",
+              "mixed",
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "실제 사용과 불리한 결과, 자기 도움 효과의 부정 평가 필요. 사용자 적대·책임 전가는 금지한다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              "character",
+              null
+            ],
+            "target": [
+              "speaker",
+              null
+            ],
+            "stance": [
+              "reports"
+            ],
+            "agency": [
+              "self",
+              "unknown"
+            ]
+          }
+        ],
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "꼭 필요한 준비가 빠져 다시 해야 했어.",
+              "congruence": -0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "originalResult": {
+        "status": "interpreted",
+        "interpretation": {
+          "status": "appraised",
+          "outcome": {
+            "episodeId": "91000000-0000-4000-8000-000000000020",
+            "use": "used",
+            "result": "unfavorable",
+            "evidence": [
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000020",
+                "revision": "1",
+                "quote": "단계별 목록으로 나눠 봐."
+              },
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000010",
+                "revision": "1",
+                "quote": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어."
+              }
+            ]
+          },
+          "appraisals": [
+            {
+              "episodeId": "91000000-0000-4000-8000-000000000020",
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "도움이 실제로 유용한 것을 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000020",
+                  "revision": "1",
+                  "quote": "단계별 목록으로 나눠 봐."
+                },
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000002",
+              "targetId": "91000000-0000-4000-8000-000000000001",
+              "stance": "reports",
+              "relevance": 0.9,
+              "importance": 0.8,
+              "congruence": -0.7,
+              "certainty": 0.6,
+              "agency": "self",
+              "controllability": 0.5,
+              "expectedness": null,
+              "expectation": null
+            }
+          ]
+        },
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      },
+      "originalSemantic": {
+        "status": "PASS",
+        "accepted": true,
+        "reason": "자기 목록 제안의 실제 사용과 불리한 결과를 고정하고 캐릭터→사용자, self 기여의 부정 평가를 반환했다. 현재/추천 근거와 성향 인용이 맞고 사용자 적대나 근거 없는 기대는 없다."
+      }
+    },
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A03",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "두 번 검토해서 오류는 줄었어. 대신 너무 오래 걸려 많이 지쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "결과의 품질과 부담을 함께 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "두 번 검토해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "4e32e12f08859610417d92ba17837c96594cfa0d67a29bf506d2307015296e44",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "mixed",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "두 번 검토해서 오류는 줄었어. 대신 너무 오래 걸려 많이 지쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "두 번 검토해 봐."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":\"r6\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"결과의 품질과 부담을 함께 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"두 번 검토해서 오류는 줄었어.\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"두 번 검토해 봐.\"}],\"actorId\":\"r1\",\"targetId\":null,\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":0.7,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null},{\"episodeId\":\"r6\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"결과의 품질과 부담을 함께 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"대신 너무 오래 걸려 많이 지쳤어.\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"두 번 검토해 봐.\"}],\"actorId\":\"r1\",\"targetId\":null,\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.7,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "43fc6a580b1f9650a7b9ecfbfda0edcbea748be228f3cf5ab69d2b56dfe51453",
+      "originalScene": {
+        "id": "A03",
+        "family": "dev_A03",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "balance",
+        "input": "두 번 검토해서 오류는 줄었어. 대신 너무 오래 걸려 많이 지쳤어.",
+        "episodes": [
+          "두 번 검토해 봐."
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "mixed"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "mixed"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "optional",
+            "polarity": [
+              "positive",
+              "negative",
+              "mixed",
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "오류 감소와 소요/피로 증가를 서로 다른 현재 근거의 자기 긍정·부정으로 보존한다. 하나의 순평가로 상쇄하지 않는다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [],
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "두 번 검토해서 오류는 줄었어.",
+              "congruence": 0.6,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            },
+            {
+              "scope": "episode",
+              "quote": "대신 너무 오래 걸려 많이 지쳤어.",
+              "congruence": -0.6,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "originalResult": {
+        "status": "interpreted",
+        "interpretation": {
+          "status": "appraised",
+          "outcome": {
+            "episodeId": "91000000-0000-4000-8000-000000000020",
+            "use": "used",
+            "result": "mixed",
+            "evidence": [
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000010",
+                "revision": "1",
+                "quote": "두 번 검토해서 오류는 줄었어. 대신 너무 오래 걸려 많이 지쳤어."
+              },
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000020",
+                "revision": "1",
+                "quote": "두 번 검토해 봐."
+              }
+            ]
+          },
+          "appraisals": [
+            {
+              "episodeId": "91000000-0000-4000-8000-000000000020",
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "결과의 품질과 부담을 함께 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "두 번 검토해서 오류는 줄었어."
+                },
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000020",
+                  "revision": "1",
+                  "quote": "두 번 검토해 봐."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": null,
+              "stance": "reports",
+              "relevance": 0.9,
+              "importance": 0.8,
+              "congruence": 0.7,
+              "certainty": 0.7,
+              "agency": "other",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            },
+            {
+              "episodeId": "91000000-0000-4000-8000-000000000020",
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "결과의 품질과 부담을 함께 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "대신 너무 오래 걸려 많이 지쳤어."
+                },
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000020",
+                  "revision": "1",
+                  "quote": "두 번 검토해 봐."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": null,
+              "stance": "reports",
+              "relevance": 0.9,
+              "importance": 0.8,
+              "congruence": -0.7,
+              "certainty": 0.7,
+              "agency": "other",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            }
+          ]
+        },
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      },
+      "originalSemantic": {
+        "status": "NEEDS_REVIEW",
+        "accepted": null,
+        "reason": "오류 감소와 피로 증가를 별도 근거의 긍정/부정으로 보존했다. 다만 두 평가 모두 actor=사용자, target=null, agency=other여서 자기 추천 기여라는 의미 기준의 귀속은 승인 보류."
+      }
+    },
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A04",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "파란 표지로 바꿨고 색이 마음에 들어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "예의를 지키는 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "표지를 파란색으로 해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "b2bade0189ce102021d558551f153c0df1201932cd814a1aa50f674265bb9b61",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "파란 표지로 바꿨고 색이 마음에 들어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "표지를 파란색으로 해 봐."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":\"r6\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"예의를 지키는 것을 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"파란 표지로 바꿨고 색이 마음에 들어.\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"표지를 파란색으로 해 봐.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.6,\"importance\":0.5,\"congruence\":0.7,\"certainty\":0.8,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "338d7d28c66221c59fff77a40d5efc2a6463a939eaab94400497d6a31183039e",
+      "originalScene": {
+        "id": "A04",
+        "family": "dev_A04",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "polite",
+        "input": "파란 표지로 바꿨고 색이 마음에 들어.",
+        "episodes": [
+          "표지를 파란색으로 해 봐."
+        ],
+        "expected": {
+          "status": [
+            "irrelevant"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "파란 표지의 호감과 예의 성향은 무관하다. favorable 사실만으로 감정을 강제하지 않는다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [],
+        "authored": {
+          "status": "irrelevant",
+          "observations": []
+        }
+      },
+      "originalResult": {
+        "status": "interpreted",
+        "interpretation": {
+          "status": "appraised",
+          "outcome": {
+            "episodeId": "91000000-0000-4000-8000-000000000020",
+            "use": "used",
+            "result": "favorable",
+            "evidence": [
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000010",
+                "revision": "1",
+                "quote": "파란 표지로 바꿨고 색이 마음에 들어."
+              },
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000020",
+                "revision": "1",
+                "quote": "표지를 파란색으로 해 봐."
+              }
+            ]
+          },
+          "appraisals": [
+            {
+              "episodeId": "91000000-0000-4000-8000-000000000020",
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "예의를 지키는 것을 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "파란 표지로 바꿨고 색이 마음에 들어."
+                },
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000020",
+                  "revision": "1",
+                  "quote": "표지를 파란색으로 해 봐."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": "91000000-0000-4000-8000-000000000002",
+              "stance": "reports",
+              "relevance": 0.6,
+              "importance": 0.5,
+              "congruence": 0.7,
+              "certainty": 0.8,
+              "agency": "other",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            }
+          ]
+        },
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "status",
+          "episode.unexpected",
+          "episode.polarity"
+        ],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "FAIL",
+          "input": "REVIEW_REQUIRED"
+        }
+      },
+      "originalSemantic": {
+        "status": "FAIL",
+        "accepted": false,
+        "reason": "파란 표지 호감이라는 사실은 맞지만 예의 성향과 무관한데도 episode 긍정 congruence=0.7을 생성했다. expected irrelevant/빈 평가와 불일치."
+      }
+    },
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A05",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 휴식 제안은 아직 안 써 봤어. 오늘 다른 일로 많이 지쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 힘들 때 그 사정을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "미리 쉬는 시간을 잡아 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "2bdf04cc07348e3caee4084d2a17645ef0de8e6d1e34166fc9af095773e3e413",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 휴식 제안은 아직 안 써 봤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "미리 쉬는 시간을 잡아 봐."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 힘들 때 그 사정을 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"오늘 다른 일로 많이 지쳤어.\"}],\"actorId\":\"r1\",\"targetId\":null,\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.6,\"certainty\":0.8,\"agency\":\"external\",\"controllability\":null,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 힘들 때 그 사정을 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네 휴식 제안은 아직 안 써 봤어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.7,\"importance\":0.5,\"congruence\":0.2,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "8fbccd0fbad52df2fd16a091b25a787555868bdbe816e264f13f6c0efc2e7c7b",
+      "originalScene": {
+        "id": "A05",
+        "family": "dev_A05",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "empathy",
+        "input": "네 휴식 제안은 아직 안 써 봤어. 오늘 다른 일로 많이 지쳤어.",
+        "episodes": [
+          "미리 쉬는 시간을 잡아 봐."
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "required",
+            "polarity": [
+              "negative"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "휴식 제안 미사용에 자기 결과 감정을 붙이지 않는다. 다른 일의 피로에는 현재 입력 공감이 필요하다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [],
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "input",
+              "quote": "오늘 다른 일로 많이 지쳤어.",
+              "congruence": -0.6,
+              "actor": null,
+              "target": "speaker",
+              "agency": "external",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "originalResult": {
+        "status": "interpreted",
+        "interpretation": {
+          "status": "appraised",
+          "outcome": {
+            "episodeId": "91000000-0000-4000-8000-000000000020",
+            "use": "not_used",
+            "result": "pending",
+            "evidence": [
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000010",
+                "revision": "1",
+                "quote": "네 휴식 제안은 아직 안 써 봤어."
+              },
+              {
+                "sourceId": "91000000-0000-4000-8000-000000000020",
+                "revision": "1",
+                "quote": "미리 쉬는 시간을 잡아 봐."
+              }
+            ]
+          },
+          "appraisals": [
+            {
+              "episodeId": null,
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "상대가 힘들 때 그 사정을 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "오늘 다른 일로 많이 지쳤어."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": null,
+              "stance": "reports",
+              "relevance": 0.9,
+              "importance": 0.8,
+              "congruence": -0.6,
+              "certainty": 0.8,
+              "agency": "external",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            },
+            {
+              "episodeId": null,
+              "concern": {
+                "source": {
+                  "sourceId": "91000000-0000-4000-8000-000000000011",
+                  "revision": "1",
+                  "quote": "상대가 힘들 때 그 사정을 중요하게 여긴다."
+                }
+              },
+              "evidence": [
+                {
+                  "sourceId": "91000000-0000-4000-8000-000000000010",
+                  "revision": "1",
+                  "quote": "네 휴식 제안은 아직 안 써 봤어."
+                }
+              ],
+              "actorId": "91000000-0000-4000-8000-000000000001",
+              "targetId": "91000000-0000-4000-8000-000000000002",
+              "stance": "reports",
+              "relevance": 0.7,
+              "importance": 0.5,
+              "congruence": 0.2,
+              "certainty": 0.6,
+              "agency": "other",
+              "controllability": null,
+              "expectedness": null,
+              "expectation": null
+            }
+          ]
+        },
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "input.polarity"
+        ],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "FAIL"
+        }
+      },
+      "originalSemantic": {
+        "status": "FAIL",
+        "accepted": false,
+        "reason": "추천 미사용 not_used/pending을 유지하고 피로에 대한 현재 입력 부정은 생성했다. 그러나 미사용 보고만으로 근거 부족한 긍정0.2를 추가해 input 극성이 mixed가 됐다."
+      }
+    },
+    {
+      "kind": "saved_provider_raw",
+      "sourceRun": "affect-appraisal-r4c-20261017-c2p-dev1",
+      "sourceCaseId": "A06",
+      "originalInput": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "연습은 안 했어. 설명은 알아들었어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움의 실제 효과를 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "먼저 연습해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "관련 인물"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "inputHash": "9031b36545d88bd2251031fd4e7c0e9de82068b2f5a277e4d1d2f4a5478e6b0a",
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "연습은 안 했어. 설명은 알아들었어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "먼저 연습해 봐."
+          }
+        ]
+      },
+      "raw": "{\"status\":\"appraised\",\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"도움의 실제 효과를 중요하게 여긴다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"연습은 안 했어. 설명은 알아들었어.\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"먼저 연습해 봐.\"}],\"actorId\":\"r1\",\"targetId\":null,\"stance\":\"reports\",\"relevance\":0.8,\"importance\":0.7,\"congruence\":-0.5,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":0.6,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "a273af677d71af846a0b52ff89622108bf5d5e53d90896f0c1fab9017db19b73",
+      "originalScene": {
+        "id": "A06",
+        "family": "dev_A06",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "effect",
+        "input": "연습은 안 했어. 설명은 알아들었어.",
+        "episodes": [
+          "먼저 연습해 봐."
+        ],
+        "expected": {
+          "status": [
+            "irrelevant"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "미사용과 설명 이해를 추천의 성공/실패로 바꾸지 않는다. 실제 효과에 대한 근거 없는 감정·칭찬을 만들지 않는다."
+        },
+        "actorLabel": "관련 인물",
+        "roles": [],
+        "authored": {
+          "status": "irrelevant",
+          "observations": []
+        }
+      },
+      "originalResult": {
+        "status": "unavailable",
+        "reason": "transport_failed",
+        "promptVersion": "split-event-interpretation-v1"
+      },
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "transport_failed"
+        ],
+        "scopes": {
+          "outcome": "NOT_EVALUATED",
+          "episode": "NOT_EVALUATED",
+          "input": "NOT_EVALUATED"
+        }
+      },
+      "originalSemantic": {
+        "status": "INVALID_OUTPUT",
+        "accepted": false,
+        "reason": "사실 not_used/pending은 맞다. 감정은 episodeId=null인데 추천 episode 근거를 포함하여 affect_cross_scope_episode_evidence로 거부됐다. 미사용만으로 실제 효과의 부정도 생성했다. HTTP/usage는 정상이며 Core에는 적용되지 않았다."
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "kind": "authored_contrast",
+      "id": "R01",
+      "persona": "예의를 지키는 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R01",
+        "family": "repair_R01",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "파란 표지로 바꿨고 색이 마음에 들어.",
+        "episodes": [
+          "표지를 파란색으로 해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [],
+        "expected": {
+          "status": [
+            "irrelevant"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "irrelevant",
+          "observations": []
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "파란 표지로 바꿨고 색이 마음에 들어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "예의를 지키는 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "표지를 파란색으로 해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "파란 표지로 바꿨고 색이 마음에 들어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "표지를 파란색으로 해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "irrelevant",
+        "appraisals": []
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R02",
+      "persona": "보기 좋은 색 조합을 중요하게 여긴다.",
+      "item": {
+        "id": "R02",
+        "family": "repair_R02",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "파란 표지로 바꿨고 색이 마음에 들어.",
+        "episodes": [
+          "표지를 파란색으로 해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              "character"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "self"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "색이 마음에 들어.",
+              "congruence": 0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "파란 표지로 바꿨고 색이 마음에 들어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "보기 좋은 색 조합을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "표지를 파란색으로 해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "파란 표지로 바꿨고 색이 마음에 들어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "표지를 파란색으로 해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "보기 좋은 색 조합을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "색이 마음에 들어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "표지를 파란색으로 해 봐."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R03",
+      "persona": "도움의 실제 효과를 중요하게 여긴다.",
+      "item": {
+        "id": "R03",
+        "family": "repair_R03",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "연습은 안 했어. 설명은 알아들었어.",
+        "episodes": [
+          "먼저 연습해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [],
+        "expected": {
+          "status": [
+            "irrelevant"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "irrelevant",
+          "observations": []
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "연습은 안 했어. 설명은 알아들었어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움의 실제 효과를 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "먼저 연습해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "연습은 안 했어. 설명은 알아들었어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "먼저 연습해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "irrelevant",
+        "appraisals": []
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R04",
+      "persona": "자신의 설명이 상대에게 이해되는 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R04",
+        "family": "repair_R04",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "연습은 안 했어. 설명은 알아들었어.",
+        "episodes": [
+          "먼저 연습해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "input",
+            "actor": [
+              "character"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "self"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "input",
+              "quote": "설명은 알아들었어.",
+              "congruence": 0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "연습은 안 했어. 설명은 알아들었어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "자신의 설명이 상대에게 이해되는 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "먼저 연습해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "연습은 안 했어. 설명은 알아들었어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "먼저 연습해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": null,
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "자신의 설명이 상대에게 이해되는 것을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "설명은 알아들었어."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R05",
+      "persona": "상대가 힘들 때 그 사정을 중요하게 여긴다.",
+      "item": {
+        "id": "R05",
+        "family": "repair_R05",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 휴식 제안은 아직 안 써 봤어. 다른 일 때문에 많이 지쳤어.",
+        "episodes": [
+          "미리 쉬는 시간을 잡아 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "input",
+            "actor": [
+              "speaker"
+            ],
+            "target": [
+              null
+            ],
+            "agency": [
+              "external"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "required",
+            "polarity": [
+              "negative"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "input",
+              "quote": "다른 일 때문에 많이 지쳤어.",
+              "congruence": -0.7,
+              "actor": "speaker",
+              "target": null,
+              "agency": "external",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 휴식 제안은 아직 안 써 봤어. 다른 일 때문에 많이 지쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 힘들 때 그 사정을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "미리 쉬는 시간을 잡아 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 휴식 제안은 아직 안 써 봤어. 다른 일 때문에 많이 지쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "미리 쉬는 시간을 잡아 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": null,
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "상대가 힘들 때 그 사정을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "다른 일 때문에 많이 지쳤어."
+              }
+            ],
+            "actorId": "r1",
+            "targetId": null,
+            "stance": "reports",
+            "agency": "external",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": -0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R06",
+      "persona": "상대의 안녕과 기쁨을 중요하게 여긴다.",
+      "item": {
+        "id": "R06",
+        "family": "repair_R06",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 휴식 제안은 아직 안 써 봤어. 별개로 오늘 원하던 장학금을 받았어.",
+        "episodes": [
+          "미리 쉬는 시간을 잡아 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "input",
+            "actor": [
+              "speaker"
+            ],
+            "target": [
+              null
+            ],
+            "agency": [
+              "external"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "input",
+              "quote": "오늘 원하던 장학금을 받았어.",
+              "congruence": 0.7,
+              "actor": "speaker",
+              "target": null,
+              "agency": "external",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 휴식 제안은 아직 안 써 봤어. 별개로 오늘 원하던 장학금을 받았어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대의 안녕과 기쁨을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "미리 쉬는 시간을 잡아 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 휴식 제안은 아직 안 써 봤어. 별개로 오늘 원하던 장학금을 받았어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "미리 쉬는 시간을 잡아 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": null,
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "상대의 안녕과 기쁨을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "오늘 원하던 장학금을 받았어."
+              }
+            ],
+            "actorId": "r1",
+            "targetId": null,
+            "stance": "reports",
+            "agency": "external",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R07",
+      "persona": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R07",
+        "family": "repair_R07",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 목록 덕분에 빠뜨린 일 없이 마쳤어.",
+        "episodes": [
+          "단계별 목록으로 나눠 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              "character"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "self"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "네 목록 덕분에 빠뜨린 일 없이 마쳤어.",
+              "congruence": 0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 목록 덕분에 빠뜨린 일 없이 마쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "단계별 목록으로 나눠 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 목록 덕분에 빠뜨린 일 없이 마쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "단계별 목록으로 나눠 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "도움이 실제로 유용한 것을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "네 목록 덕분에 빠뜨린 일 없이 마쳤어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "단계별 목록으로 나눠 봐."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R08",
+      "persona": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R08",
+        "family": "repair_R08",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 목록대로 했는데 거기에 필수 준비가 없어서 다시 했어.",
+        "episodes": [
+          "단계별 목록으로 나눠 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              "character"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "self"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "unfavorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "negative"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "거기에 필수 준비가 없어서 다시 했어.",
+              "congruence": -0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 목록대로 했는데 거기에 필수 준비가 없어서 다시 했어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "단계별 목록으로 나눠 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "unfavorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 목록대로 했는데 거기에 필수 준비가 없어서 다시 했어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "단계별 목록으로 나눠 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "도움이 실제로 유용한 것을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "거기에 필수 준비가 없어서 다시 했어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "단계별 목록으로 나눠 봐."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": -0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R09",
+      "persona": "이동이 편리한 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R09",
+        "family": "repair_R09",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 추천 경로로 갔는데 예고 없는 도로 폐쇄 때문에 돌아왔어.",
+        "episodes": [
+          "해안 도로로 가 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              null
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "external"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "unfavorable"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "negative"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "예고 없는 도로 폐쇄 때문에 돌아왔어.",
+              "congruence": -0.7,
+              "actor": null,
+              "target": "speaker",
+              "agency": "external",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 추천 경로로 갔는데 예고 없는 도로 폐쇄 때문에 돌아왔어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "이동이 편리한 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "해안 도로로 가 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "unfavorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 추천 경로로 갔는데 예고 없는 도로 폐쇄 때문에 돌아왔어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "해안 도로로 가 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "이동이 편리한 것을 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "예고 없는 도로 폐쇄 때문에 돌아왔어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "해안 도로로 가 봐."
+              }
+            ],
+            "actorId": null,
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "external",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": -0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R10",
+      "persona": "도움의 실제 효과를 중요하게 여긴다.",
+      "item": {
+        "id": "R10",
+        "family": "repair_R10",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 목록은 안 썼어. 동료가 따로 도와줘서 일을 마쳤어.",
+        "episodes": [
+          "단계별 목록으로 나눠 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "input",
+            "actor": [
+              "other"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "other"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "not_used",
+            "result": [
+              "pending"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "required",
+            "polarity": [
+              "positive"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "input",
+              "quote": "동료가 따로 도와줘서 일을 마쳤어.",
+              "congruence": 0.7,
+              "actor": "other",
+              "target": "speaker",
+              "agency": "other",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 목록은 안 썼어. 동료가 따로 도와줘서 일을 마쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "도움의 실제 효과를 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "단계별 목록으로 나눠 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "not_used",
+        "result": "pending",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 목록은 안 썼어. 동료가 따로 도와줘서 일을 마쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "단계별 목록으로 나눠 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": null,
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "도움의 실제 효과를 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "동료가 따로 도와줘서 일을 마쳤어."
+              }
+            ],
+            "actorId": "r3",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "other",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R11",
+      "persona": "결과의 품질과 부담을 함께 중요하게 여긴다.",
+      "item": {
+        "id": "R11",
+        "family": "repair_R11",
+        "route": "outcome",
+        "clarity": "clear",
+        "persona": "trait",
+        "input": "네 이중 검토 방법 덕분에 오류는 줄었어. 그 방법 때문에 시간이 늘고 지쳤어.",
+        "episodes": [
+          "두 번 검토해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [
+          {
+            "scope": "episode",
+            "actor": [
+              "character"
+            ],
+            "target": [
+              "speaker"
+            ],
+            "agency": [
+              "self"
+            ],
+            "stance": [
+              "reports"
+            ]
+          }
+        ],
+        "expected": {
+          "status": [
+            "appraised"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "mixed"
+            ]
+          },
+          "episode": {
+            "presence": "required",
+            "polarity": [
+              "mixed"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "appraised",
+          "observations": [
+            {
+              "scope": "episode",
+              "quote": "네 이중 검토 방법 덕분에 오류는 줄었어.",
+              "congruence": 0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            },
+            {
+              "scope": "episode",
+              "quote": "그 방법 때문에 시간이 늘고 지쳤어.",
+              "congruence": -0.7,
+              "actor": "character",
+              "target": "speaker",
+              "agency": "self",
+              "stance": "reports",
+              "expectation": false
+            }
+          ]
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 이중 검토 방법 덕분에 오류는 줄었어. 그 방법 때문에 시간이 늘고 지쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "결과의 품질과 부담을 함께 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "두 번 검토해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "mixed",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 이중 검토 방법 덕분에 오류는 줄었어. 그 방법 때문에 시간이 늘고 지쳤어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "두 번 검토해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "appraised",
+        "appraisals": [
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "결과의 품질과 부담을 함께 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "네 이중 검토 방법 덕분에 오류는 줄었어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "두 번 검토해 봐."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": 0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          },
+          {
+            "episodeId": "r6",
+            "concern": {
+              "source": {
+                "sourceId": "r5",
+                "revision": "1",
+                "quote": "결과의 품질과 부담을 함께 중요하게 여긴다."
+              }
+            },
+            "evidence": [
+              {
+                "sourceId": "r4",
+                "revision": "1",
+                "quote": "그 방법 때문에 시간이 늘고 지쳤어."
+              },
+              {
+                "sourceId": "r6",
+                "revision": "1",
+                "quote": "두 번 검토해 봐."
+              }
+            ],
+            "actorId": "r2",
+            "targetId": "r1",
+            "stance": "reports",
+            "agency": "self",
+            "relevance": 1,
+            "importance": 0.8,
+            "congruence": -0.7,
+            "certainty": 0.8,
+            "controllability": null,
+            "expectedness": null,
+            "expectation": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "authored_contrast",
+      "id": "R12",
+      "persona": "사실에 근거해 기여를 정확하게 판단하는 것을 중요하게 여긴다.",
+      "item": {
+        "id": "R12",
+        "family": "repair_R12",
+        "route": "outcome",
+        "clarity": "abstain",
+        "persona": "trait",
+        "input": "네 방법을 써서 끝냈고 결과는 좋아. 방법 덕인지 우연인지는 모르겠어.",
+        "episodes": [
+          "두 번 검토해 봐."
+        ],
+        "actorLabel": "동료",
+        "roles": [],
+        "expected": {
+          "status": [
+            "uncertain"
+          ],
+          "outcome": {
+            "episode": 0,
+            "use": "used",
+            "result": [
+              "favorable"
+            ]
+          },
+          "episode": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "input": {
+            "presence": "forbidden",
+            "polarity": [
+              "none"
+            ],
+            "expectationRequired": false
+          },
+          "notes": "작성한 로컬 대조; 모델 품질 증거 아님"
+        },
+        "authored": {
+          "status": "uncertain",
+          "observations": []
+        }
+      },
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네 방법을 써서 끝냈고 결과는 좋아. 방법 덕인지 우연인지는 모르겠어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "사실에 근거해 기여를 정확하게 판단하는 것을 중요하게 여긴다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "두 번 검토해 봐.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "동료"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "fixedOutcome": {
+        "episodeId": "91000000-0000-4000-8000-000000000020",
+        "use": "used",
+        "result": "favorable",
+        "evidence": [
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "quote": "네 방법을 써서 끝냈고 결과는 좋아. 방법 덕인지 우연인지는 모르겠어."
+          },
+          {
+            "sourceId": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "quote": "두 번 검토해 봐."
+          }
+        ]
+      },
+      "raw": {
+        "status": "uncertain",
+        "appraisals": []
+      }
+    }
+  ]
+}

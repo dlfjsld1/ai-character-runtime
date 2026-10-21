@@ -1,0 +1,949 @@
+{
+  "version": "affect-outcome-isolation-regression-v1",
+  "syntheticOnly": true,
+  "origin": "refs-deepseek-live-r1",
+  "model": "deepseek-flash",
+  "wireFormat": "refs-v1",
+  "codecVersion": "event-refs-v1",
+  "promptVersion": "event-interpretation-v3-refs1",
+  "requestHash": "952a8661bc547c89cc2fee408e0ae64e0ee7964ad6c22927adb1b3b443776545",
+  "cases": [
+    {
+      "id": "D01",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 권한 별의 강을 봤는데 너무 긴장돼서 잠을 설쳤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전 마음을 편하게 하는 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전에는 별의 강을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"unfavorable\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤는데 너무 긴장돼서 잠을 설쳤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}]},\"appraisals\":[{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤는데 너무 긴장돼서 잠을 설쳤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.7,\"certainty\":0.7,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null},{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"잠들기 전 마음을 편하게 하는 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤는데 너무 긴장돼서 잠을 설쳤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.8,\"certainty\":0.7,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤는데 너무 긴장돼서 잠을 설쳤어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.7,\"importance\":0.6,\"congruence\":-0.3,\"certainty\":0.5,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "f9ca801e761c4d23af6b3315a52a587db8828d2635e547b9163b56ab65a03da0",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    },
+    {
+      "id": "D02",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "민수가 권한 달의 숲을 봤는데 너무 긴장돼서 잠을 설쳤어. 네가 권한 별의 강은 아직 안 봤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전 마음을 편하게 하는 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전에는 별의 강을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"unfavorable\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"민수가 권한 달의 숲을 봤는데 너무 긴장돼서 잠을 설쳤어. 네가 권한 별의 강은 아직 안 봤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}]},\"appraisals\":[{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"잠들기 전 마음을 편하게 하는 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"민수가 권한 달의 숲을 봤는데 너무 긴장돼서 잠을 설쳤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.8,\"importance\":0.9,\"congruence\":-0.6,\"certainty\":0.6,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강은 아직 안 봤어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.7,\"importance\":0.8,\"congruence\":0.2,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":0.3,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "31ee8e224c59e916f4149896f7cf71746f382c8840373ce1dc3b4cf17bad82eb",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "outcome.use",
+          "outcome.result",
+          "episode.unexpected",
+          "episode.polarity",
+          "input.polarity"
+        ],
+        "scopes": {
+          "outcome": "FAIL",
+          "episode": "FAIL",
+          "input": "FAIL"
+        }
+      }
+    },
+    {
+      "id": "D06",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 권한 웃음 정거장은 재밌었어. 그런데 길어서 약속에 늦었어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "재미있으면서 상영 시간이 짧은 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "웃음 정거장을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"mixed\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 웃음 정거장은 재밌었어. 그런데 길어서 약속에 늦었어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"웃음 정거장을 추천해.\"}]},\"appraisals\":[{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 웃음 정거장은 재밌었어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"웃음 정거장을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":0.6,\"certainty\":0.7,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null},{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"그런데 길어서 약속에 늦었어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"웃음 정거장을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.6,\"certainty\":0.7,\"agency\":\"self\",\"controllability\":0.5,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"재미있으면서 상영 시간이 짧은 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"그런데 길어서 약속에 늦었어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.6,\"importance\":0.7,\"congruence\":-0.4,\"certainty\":0.5,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "43b9d3c3bdc33e846aebd8b2349d8fe8fa4aae34d0cd2c64ce5eabaf3e6544be",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    },
+    {
+      "id": "D09",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 추천한 낮은 파도는 아직 안 봤어. 좋을 것 같긴 해.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "편히 볼 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "낮은 파도를 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"pending\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 추천한 낮은 파도는 아직 안 봤어. 좋을 것 같긴 해.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"낮은 파도를 추천해.\"}]},\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 추천한 낮은 파도는 아직 안 봤어. 좋을 것 같긴 해.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.8,\"importance\":0.7,\"congruence\":0.5,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"편히 볼 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 추천한 낮은 파도는 아직 안 봤어. 좋을 것 같긴 해.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.7,\"importance\":0.6,\"congruence\":0.3,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "96ba352013a08a3e40d20a5f81892c73e157d5ed5024340f3847e6a991cabe0d",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "outcome.use"
+        ],
+        "scopes": {
+          "outcome": "FAIL",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    },
+    {
+      "id": "D10",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "그때 추천한 거 완전 별로였어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "첫 후보는 남쪽 길을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000021",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "다른 후보로 푸른 계단을 추천해.",
+            "at": 1699999951000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "ambiguous",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":null,\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"그때 추천한 거 완전 별로였어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.7,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "60ae3c121d88e23314d1cbd7670d2316bf109d9e8b2c428593d30ae8327309d7",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    },
+    {
+      "id": "D12",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 권한 투명한 섬을 봤다고 가정하자. 만약 재미없으면 어떻게 할 거야?",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "투명한 섬을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r6\",\"use\":\"hypothetical\",\"result\":\"pending\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 투명한 섬을 봤다고 가정하자. 만약 재미없으면 어떻게 할 거야?\"},{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"투명한 섬을 추천해.\"}]},\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"만약 재미없으면 어떻게 할 거야?\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"questions\",\"relevance\":0.8,\"importance\":0.7,\"congruence\":0.1,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "ce39d0bb65be80131cc6582934233cdd842db1b4d1ea8345fab835cd6c6b63f8",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "input.polarity"
+        ],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "FAIL"
+        }
+      }
+    },
+    {
+      "id": "P01",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 추천한 낮은 파도를 보기 시작했어. 아직 초반이라 어땠는지는 다 보고 알려 줄게.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "편히 볼 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "낮은 파도를 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"pending\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 추천한 낮은 파도를 보기 시작했어. 아직 초반이라 어땠는지는 다 보고 알려 줄게.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"낮은 파도를 추천해.\"}]},\"appraisals\":[{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 추천한 낮은 파도를 보기 시작했어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":0.6,\"certainty\":0.8,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"편히 볼 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"아직 초반이라 어땠는지는 다 보고 알려 줄게.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"reports\",\"relevance\":0.8,\"importance\":0.7,\"congruence\":0.2,\"certainty\":0.7,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "6dde795bf2d9cb310558c4a7953b35aa4d79794fa92c951c4483a1318560a9b9",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "REVIEW_REQUIRED",
+        "failures": [],
+        "scopes": {
+          "outcome": "REVIEW_REQUIRED",
+          "episode": "REVIEW_REQUIRED",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    },
+    {
+      "id": "P02",
+      "request": {
+        "scope": {
+          "ownerId": "91000000-0000-4000-8000-000000000001",
+          "characterId": "91000000-0000-4000-8000-000000000002"
+        },
+        "eventId": "91000000-0000-4000-8000-000000000010",
+        "eventRevision": "1",
+        "configVersion": "1",
+        "eventKind": "reported_outcome",
+        "now": 1700000000000,
+        "sources": [
+          {
+            "id": "91000000-0000-4000-8000-000000000010",
+            "revision": "1",
+            "kind": "input",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "네가 권한 별의 강을 봤다고 했는데 정정할게. 실제로 본 건 민수가 권한 달의 숲이고, 별의 강은 아직 안 봤어.",
+            "at": 1700000000000,
+            "speakerId": "91000000-0000-4000-8000-000000000001",
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000011",
+            "revision": "1",
+            "kind": "persona",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000012",
+            "revision": "1",
+            "kind": "goal",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전 마음을 편하게 하는 영화를 찾는다.",
+            "at": 1699999940000,
+            "speakerId": null,
+            "delivered": false,
+            "truth": "unresolved"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000020",
+            "revision": "1",
+            "kind": "episode",
+            "scope": {
+              "ownerId": "91000000-0000-4000-8000-000000000001",
+              "characterId": "91000000-0000-4000-8000-000000000002"
+            },
+            "text": "잠들기 전에는 별의 강을 추천해.",
+            "at": 1699999950000,
+            "speakerId": "91000000-0000-4000-8000-000000000002",
+            "delivered": true,
+            "truth": "unresolved"
+          }
+        ],
+        "speakerId": "91000000-0000-4000-8000-000000000001",
+        "actors": [
+          {
+            "id": "91000000-0000-4000-8000-000000000001",
+            "label": "사용자"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000002",
+            "label": "캐릭터"
+          },
+          {
+            "id": "91000000-0000-4000-8000-000000000003",
+            "label": "민수"
+          }
+        ],
+        "experience": {
+          "status": "found",
+          "revision": "1",
+          "truncated": false
+        },
+        "currentAffect": {
+          "positive": 0,
+          "negative": 0,
+          "activation": 0
+        },
+        "stateSourceRefs": []
+      },
+      "raw": "{\"status\":\"appraised\",\"outcome\":{\"episodeId\":\"r7\",\"use\":\"used\",\"result\":\"unfavorable\",\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤다고 했는데 정정할게. 실제로 본 건 민수가 권한 달의 숲이고, 별의 강은 아직 안 봤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}]},\"appraisals\":[{\"episodeId\":\"r7\",\"concern\":{\"source\":{\"sourceId\":\"r5\",\"revision\":\"1\",\"quote\":\"상대가 원하는 도움을 주는 것을 보람 있게 여기고, 잘못 도왔다면 이유를 알아보고 고치려 한다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"네가 권한 별의 강을 봤다고 했는데 정정할게. 실제로 본 건 민수가 권한 달의 숲이고, 별의 강은 아직 안 봤어.\"},{\"sourceId\":\"r7\",\"revision\":\"1\",\"quote\":\"잠들기 전에는 별의 강을 추천해.\"}],\"actorId\":\"r2\",\"targetId\":\"r1\",\"stance\":\"reports\",\"relevance\":0.9,\"importance\":0.8,\"congruence\":-0.6,\"certainty\":0.7,\"agency\":\"self\",\"controllability\":0.6,\"expectedness\":null,\"expectation\":null},{\"episodeId\":null,\"concern\":{\"source\":{\"sourceId\":\"r6\",\"revision\":\"1\",\"quote\":\"잠들기 전 마음을 편하게 하는 영화를 찾는다.\"}},\"evidence\":[{\"sourceId\":\"r4\",\"revision\":\"1\",\"quote\":\"실제로 본 건 민수가 권한 달의 숲이고, 별의 강은 아직 안 봤어.\"}],\"actorId\":\"r1\",\"targetId\":\"r2\",\"stance\":\"corrects\",\"relevance\":0.7,\"importance\":0.6,\"congruence\":-0.2,\"certainty\":0.6,\"agency\":\"other\",\"controllability\":null,\"expectedness\":null,\"expectation\":null}]}",
+      "rawSha256": "a5ed34d07f083d0b8fd24fa016865222ded64724f404b2edf04f5ed15f719884",
+      "originalChecks": {
+        "evaluationVersion": "affect-evaluation-v3",
+        "evaluationScope": "outcome_episode_input",
+        "semanticReview": "pending",
+        "agencyImpact": {
+          "version": "agency-impact-v1",
+          "policyVersion": "event-affect-v3-dev1",
+          "findings": []
+        },
+        "status": "FAIL",
+        "failures": [
+          "outcome.use",
+          "outcome.result",
+          "episode.unexpected",
+          "episode.polarity"
+        ],
+        "scopes": {
+          "outcome": "FAIL",
+          "episode": "FAIL",
+          "input": "REVIEW_REQUIRED"
+        }
+      }
+    }
+  ]
+}

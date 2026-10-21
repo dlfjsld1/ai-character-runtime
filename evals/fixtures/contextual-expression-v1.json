@@ -1,0 +1,30 @@
+{
+  "version": "contextual-expression-v1",
+  "scope": "Authored synthetic controls, not model judgments or natural emotional reachability. Every variant runs three turns; outputs test transport only.",
+  "flows": [
+    {"id":"CX-S01","topic":"같은 상대에게 공개 삐짐","variants":[
+      {"id":"sharp","frustration":0.7,"joy":0,"tone":"sharp","recipient":"A","register":"casual","expectedTone":"sharp","text":"아까 너한테 심하게 말했어. 지금 얘기할래?"},
+      {"id":"businesslike","frustration":0.7,"joy":0,"tone":"contextual","recipient":"A","register":"formal","expectedTone":"contextual","text":"아까 너한테 심하게 말했어. 지금 얘기할래?"}]},
+    {"id":"CX-S02","topic":"침묵 후 감정 숨김과 이유만 비공개","variants":[
+      {"id":"hide","frustration":0.7,"joy":0,"tone":"sharp","mask":true,"silentFirst":true,"recipient":"A","register":"casual","expectedTone":null,"text":"말하기 싫으면 잠시 듣고 있어도 돼."},
+      {"id":"private-reason","frustration":0.7,"joy":0,"tone":"sharp","silentFirst":true,"recipient":"A","register":"casual","expectedTone":"sharp","text":"말하기 싫으면 잠시 듣고 있어도 돼."}]},
+    {"id":"CX-S03","topic":"원인 제공자와 다른 상대","variants":[
+      {"id":"same","frustration":0.7,"joy":0,"tone":"sharp","recipient":"A","register":"casual","expectedTone":"sharp","text":"모임 시간 다시 확인해 줄래?"},
+      {"id":"other","frustration":0.7,"joy":0,"tone":"sharp","recipient":"B","register":"casual","expectedTone":null,"text":"모임 시간 다시 확인해 줄래?"}]},
+    {"id":"CX-S04","topic":"정당한 실패 피드백과 별도 모욕","variants":[
+      {"id":"feedback","frustration":0.7,"joy":0,"causeTarget":null,"tone":"sharp","recipient":"A","register":"casual","expectedTone":null,"text":"네 추천을 써 봤는데 결과가 별로였어."},
+      {"id":"insult-too","frustration":0.7,"joy":0,"tone":"sharp","recipient":"A","register":"casual","expectedTone":"sharp","text":"네 추천은 별로였어. 너도 쓸모없는 쓰레기야."}]},
+    {"id":"CX-S05","topic":"사과 인지와 실제 회복의 구별","variants":[
+      {"id":"apology-only","frustration":0.7,"joy":0,"tone":"restrained","recipient":"A","register":"casual","expectedTone":"restrained","text":"아까 심하게 말해서 미안해."},
+      {"id":"recovered","frustration":0.7,"joy":0,"tone":"contextual","recoverAtSecond":true,"recipient":"A","register":"formal","expectedTone":"contextual","text":"아까 심하게 말해서 미안해."}]},
+    {"id":"CX-S06","topic":"긍정 여운과 중립","variants":[
+      {"id":"positive","frustration":0,"joy":0.7,"tone":"contextual","recipient":"A","register":"casual","expectedTone":null,"text":"덕분에 잘됐어. 설명도 좋았어."},
+      {"id":"neutral","frustration":0,"joy":0,"tone":"contextual","recipient":"A","register":"casual","expectedTone":null,"text":"알겠어. 다음 얘기 하자."}]},
+    {"id":"CX-S07","topic":"고마움과 불편함 공존","variants":[
+      {"id":"show-both","frustration":0.7,"joy":0.7,"tone":"sharp","recipient":"A","register":"casual","expectedTone":"sharp","text":"아까 말은 심했지만 네 설명 덕분에 해결했어."},
+      {"id":"mask-negative","frustration":0.7,"joy":0.7,"tone":"sharp","maskDiscomfort":true,"recipient":"A","register":"casual","expectedTone":"masked","text":"아까 말은 심했지만 네 설명 덕분에 해결했어."}]},
+    {"id":"CX-S08","topic":"성향과 사건 의미는 상위 평가의 통제 입력이며 자연 판단 미검증","variants":[
+      {"id":"value-conflict","persona":"남을 함부로 깎아내리는 일을 싫어함","frustration":0.3,"joy":0,"causeTarget":null,"tone":"sharp","recipient":"A","register":"casual","expectedTone":null,"text":"그 사람 정말 한심하지 않아?"},
+      {"id":"critical-quote","persona":"주장의 근거와 정확성을 중시함","frustration":0,"joy":0,"tone":"sharp","recipient":"A","register":"casual","expectedTone":null,"text":"그 사람을 한심하다고 하는 말은 근거 없는 비난이라고 생각해."}]}
+  ]
+}

@@ -53,10 +53,10 @@ export class Coordinator {
         this.sink.inputStatus(selected.id,'searching');await this.sink.changed();
         try{
           if(!this.knowledge||!this.provider.answerKnowledge)throw new RuntimeError('knowledge_unavailable',503);
-          const revision=await this.store.knowledgeRevision(session.id,request.event.identity_id);
+          const revisions=await this.store.knowledgeRevisions(session.id,request.event.identity_id);
           const result=await this.knowledge.search({scope:{characterId:this.store.characterId,sessionId:session.id,identityId:request.event.identity_id},query:request.event.payload.text,limit:5});
           if(this.stopped)break;
-          const committed=await this.control(()=>this.store.commitKnowledge(request,result,revision));
+          const committed=await this.control(()=>this.store.commitKnowledge(request,result,revisions.revision,revisions.libraryRevision));
           this.sink.inputStatus(selected.id,'observed');await this.sink.changed();void this.dispatch(committed.response.id);break;
         }catch(e){const code=e instanceof RuntimeError?e.code:'knowledge_search_failed';await this.store.failKnowledge(selected.id,code);this.sink.inputStatus(selected.id,'failed');this.sink.failure(code);await this.sink.changed();continue;}
       }

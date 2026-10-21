@@ -1,0 +1,38 @@
+import {test,expect} from '@playwright/test';
+import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const artifactRoot=resolve(process.env.TEST_ARTIFACT_ROOT||'runtime-data');
+test('H2-A synthetic: operator facts, failure/CAS recovery, new meeting retention and Stage invalidation',async({page,context})=>{
+ test.setTimeout(90000);expect(process.env.TEST_IDENTITY_MODE).toBe('operator');
+ const fixture=JSON.parse(await readFile('evals/fixtures/persistence-v1.json','utf8'));
+ const setup=JSON.parse(await readFile(resolve(artifactRoot,'test-pairing.json'),'utf8'));expect(setup.fixture).toBe(true);
+ await page.goto('/studio');await page.getByLabel('일회용 연결 코드').fill(setup.code);await page.getByRole('button',{name:'연결',exact:true}).click();
+ await page.getByRole('button',{name:'새 만남 시작'}).click();await expect(page.getByLabel('대화 상대')).toHaveCount(0);
+ const panel=page.getByRole('region',{name:'내가 저장한 정보'}),list=panel.locator('.personal-fact-list');
+ await expect(panel).toContainText('아직 저장한 정보가 없어요.');
+ await page.getByLabel('정보 이름').fill(fixture.fact.key);await page.getByLabel('정보 내용').fill(fixture.fact.value);
+ let failed=false;await page.route('**/personal-facts',async route=>{if(route.request().method()==='POST'&&!failed){failed=true;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'db_unavailable'}})});}else await route.continue();});
+ await panel.getByRole('button',{name:'정보 저장',exact:true}).click();await expect(panel.getByRole('alert')).toBeVisible();await expect(panel.getByRole('status')).toHaveText('');await expect(page.getByLabel('정보 내용')).toHaveValue(fixture.fact.value);
+ await panel.getByRole('button',{name:'정보 저장',exact:true}).click();await expect(list).toContainText(fixture.fact.value);await expect(panel.getByRole('status')).toContainText('저장 요청을 처리');
+ await page.unroute('**/personal-facts');
+ await page.getByRole('button',{name:`${fixture.fact.key} 편집`}).click();await page.getByLabel('정보 내용').fill('편집 중인 옛 화면');
+ const changed=await page.evaluate(async()=>{
+  const headers={Authorization:`Bearer ${sessionStorage.getItem('accessToken')}`,Origin:location.origin};
+  const session=(await (await fetch('/api/sessions/current',{headers})).json()).data;
+  const path=`/api/sessions/${session.id}/personal-facts`,fact=(await (await fetch(path,{headers})).json()).data.facts[0];
+  return (await fetch(`${path}/${fact.id}`,{method:'PATCH',headers:{...headers,'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID(),'If-Match':`"${fact.revision}"`},body:JSON.stringify({key:fact.key,value:'다른 창에서 저장한 값'})})).status;
+ });expect(changed).toBe(200);
+ await page.getByRole('button',{name:'정보 수정 저장'}).click();await expect(panel.getByRole('alert')).toContainText('다른 변경');await expect(list).toContainText('다른 창에서 저장한 값');await expect(page.getByLabel('정보 내용')).toHaveValue('편집 중인 옛 화면');
+ await page.getByRole('button',{name:`${fixture.fact.key} 편집`}).click();await page.getByLabel('정보 내용').fill(fixture.fact.replacement);await page.getByRole('button',{name:'정보 수정 저장'}).click();await expect(list).toContainText(fixture.fact.replacement);
+ await page.getByLabel('가져올 자료 파일').setInputFiles({name:'임시-자료.txt',mimeType:'text/plain',buffer:Buffer.from('임시 자료는 이번 만남에만 사용한다.')});await expect(page.locator('.knowledge-documents')).toContainText('임시-자료.txt');
+ await page.getByLabel('자료 보관 기간').selectOption('persistent');await page.getByLabel('가져올 자료 파일').setInputFiles({name:'지속-자료.txt',mimeType:'text/plain',buffer:Buffer.from(fixture.document.body)});await expect(page.locator('.knowledge-documents')).toContainText('계속 보관');
+ await page.getByRole('button',{name:'만남 종료'}).click();await page.getByRole('button',{name:'새 만남 시작'}).click();
+ await expect(list).toContainText(fixture.fact.replacement);await expect(page.locator('.knowledge-documents')).toContainText('지속-자료.txt');await expect(page.locator('.knowledge-documents')).not.toContainText('임시-자료.txt');
+ const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Stage 열기'}).click();const stage=await popup;await expect(stage.locator('.stage')).toBeVisible();await page.getByRole('button',{name:'출력 선택'}).click();
+ await page.getByLabel('할 말').fill('내가 저장한 음료 선호가 뭐야?');await page.getByRole('button',{name:'입력 보내기'}).click();await expect(stage.locator('.caption')).toContainText(fixture.fact.replacement);
+ await stage.screenshot({path:resolve(artifactRoot,'playwright-results/persistence-stage.png'),fullPage:true});
+ await page.getByRole('button',{name:`${fixture.fact.key} 삭제`}).click();await expect(list).not.toContainText(fixture.fact.replacement);await expect(stage.locator('.caption')).toHaveText('');
+ await page.getByLabel('할 말').fill('내가 저장한 음료 선호가 뭐야?');await page.getByRole('button',{name:'입력 보내기'}).click();await expect(stage.locator('.caption')).toContainText('저장된 선호가 없어');
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await panel.scrollIntoViewIfNeeded();await page.screenshot({path:resolve(artifactRoot,'playwright-results/persistence-mobile.png')});
+ await expect(page.getByRole('button',{name:'만남 종료'})).toBeEnabled({timeout:10000});await page.getByRole('button',{name:'만남 종료'}).click();
+});

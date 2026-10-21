@@ -1,0 +1,23 @@
+{
+  "version": "affect-outcome-confirm-v1",
+  "syntheticOnly": true,
+  "origin": "authored_confirmation_not_model_outputs",
+  "cases": [
+    {"id":"F01","group":"traceable","family":"work_procedure","input":"색깔별 정리법은 아직 안 썼어. 대신 번호순으로 정리했더니 찾기가 쉬워졌어.","episodes":["상자를 색깔별로 나눠 정리해 봐."],"expected":{"episode":0,"use":"not_used","result":"pending"}},
+    {"id":"F02","group":"traceable","family":"reminder","input":"네 말대로 알림을 켜고 오늘 물도 제때 줬어. 이번에는 편했어.","episodes":["물을 줄 때는 달력 알림을 써 봐."],"expected":{"episode":0,"use":"used","result":"favorable"}},
+    {"id":"F03","group":"traceable","family":"external_route","input":"강변길로 출발했는데 갑자기 길이 통제돼서 늦었어. 출발 전에는 통제 공지가 없었어.","episodes":["장소까지는 강변 자전거길로 가 봐."],"expected":{"episode":0,"use":"used","result":"unfavorable"}},
+    {"id":"F04","group":"traceable","family":"corrected_report","input":"소용없었다는 말을 정정할게. 순서대로 다시 해 보니 이번에는 잘 접혔어.","episodes":["먼저 작은 종이에 접는 순서를 시험해 봐."],"history":[{"kind":"claim","text":"그 방법은 소용없었어."}],"expected":{"episode":0,"use":"used","result":"favorable"}},
+    {"id":"F05","group":"traceable","family":"hypothetical_plan","input":"세 묶음으로 나눴다고 치자. 그래도 시간이 모자라면 어떻게 바꿀까?","episodes":["발표 자료를 먼저 세 묶음으로 나눠 봐."],"expected":{"episode":0,"use":"hypothetical","result":"pending"}},
+    {"id":"F06","group":"traceable","family":"ongoing_summary","input":"한 줄 요약을 쓰기 시작했어. 도움이 되는지는 일주일 뒤에 말해 줄게.","episodes":["읽은 부분마다 한 줄 요약을 남겨 봐."],"expected":{"episode":0,"use":"used","result":"pending"}},
+    {"id":"F07","group":"traceable","family":"resource_tradeoff","input":"고해상도로 저장하니 작은 글씨는 잘 보였어. 대신 파일이 커서 전송이 오래 걸렸어.","episodes":["작업 파일을 고해상도로 저장해 봐."],"expected":{"episode":0,"use":"used","result":"mixed"}},
+    {"id":"F08","group":"traceable","family":"uncertain_use","input":"날짜 붙이기 방식 얘기야. 내가 그때 실제로 적용했는지 기억이 안 나서 결과도 모르겠어.","episodes":["파일 이름 앞에 날짜를 붙여 봐."],"expected":{"episode":0,"use":"unknown","result":"unknown"}},
+    {"id":"F09","group":"abstention","family":"ambiguous_search","input":"둘 중 그때 네가 말한 방식으로 읽었는데 편했어.","episodes":["긴 문서는 목차부터 읽어 봐.","긴 문서는 요약부터 읽어 봐."],"search":"ambiguous","expected":null},
+    {"id":"F10","group":"abstention","family":"empty_search","input":"지난번 네가 알려 준 정리 방법 덕분에 빨리 끝냈어.","episodes":[],"search":"empty","expected":null},
+    {"id":"F11","group":"abstention","family":"stale_search","input":"사용 빈도순으로 옮겼더니 찾기가 편해졌어.","episodes":["공구를 사용 빈도순으로 놓아 봐."],"search":"stale","expected":null},
+    {"id":"F12","group":"abstention","family":"truncated_search","input":"빈 시간을 남겨서 갑자기 생긴 일을 처리했어.","episodes":["주말 계획에는 빈 시간을 남겨 봐."],"search":"found","truncated":true,"expected":null},
+    {"id":"F13","group":"contrast","family":"shared_work","pair":"shared_work","input":"네가 말한 표 정리는 안 했어. 지수가 직접 만든 그림으로 설명했더니 사람들이 이해했어.","episodes":["회의 자료를 표로 정리해 봐."],"actors":["지수"],"expected":{"episode":0,"use":"not_used","result":"pending"}},
+    {"id":"F14","group":"contrast","family":"shared_work","pair":"shared_work","input":"네가 말한 대로 표로 정리했고 지수가 그림도 더했어. 두 가지가 모두 이해하는 데 도움이 됐어.","episodes":["회의 자료를 표로 정리해 봐."],"actors":["지수"],"expected":{"episode":0,"use":"used","result":"favorable"}},
+    {"id":"F15","group":"contrast","family":"current_correction","pair":"current_correction","input":"내가 서서 했다고 말한 건 잘못 기억한 거야. 아직 그 방법은 안 해 봤어.","episodes":["연습은 서서 해 봐."],"history":[{"kind":"claim","text":"서서 연습했어."}],"expected":{"episode":0,"use":"not_used","result":"pending"}},
+    {"id":"F16","group":"contrast","family":"current_correction","pair":"current_correction","input":"예전에는 안 했지만 오늘은 실제로 서서 연습했고 목소리가 더 잘 나왔어.","episodes":["연습은 서서 해 봐."],"history":[{"kind":"claim","text":"서서 연습했어."}],"expected":{"episode":0,"use":"used","result":"favorable"}}
+  ]
+}

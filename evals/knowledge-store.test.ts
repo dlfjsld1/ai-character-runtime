@@ -16,7 +16,7 @@ const put=(body='필터 교체: 여섯 달에 한 번.',extra:Record<string,stri
 it('H1 migration reruns without loss; documents retain scoped revision and authoritative chunks',async()=>{
  const doc=await put('첫 문단.\n\n둘째 문단.');await migrate(db);
  expect(doc).toMatchObject({revision:'1',collectionRevision:'1',deleted:false});
- expect(await store.locked(c=>listKnowledgeDocuments(c,scope))).toEqual([{documentId:doc.documentId,title:'합성 공기청정기',revision:'1',deleted:false}]);
+ expect(await store.locked(c=>listKnowledgeDocuments(c,scope))).toEqual([{documentId:doc.documentId,title:'합성 공기청정기',revision:'1',retention:'session',deleted:false}]);
  const rows=(await db.pool.query('SELECT revision,chunk_id,ordinal,body FROM knowledge_chunks WHERE document_id=$1 ORDER BY ordinal',[doc.documentId])).rows;
  expect(rows).toEqual([{revision:'1',chunk_id:'c1',ordinal:0,body:'첫 문단.'},{revision:'1',chunk_id:'c2',ordinal:1,body:'둘째 문단.'}]);
 });

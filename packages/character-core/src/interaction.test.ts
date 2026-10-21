@@ -26,7 +26,7 @@ it.each([.168,.65])('reason privacy does not force the same expression policy at
  const record:SilenceRecord={eventId,eventRevision:'1',stateVersion:'2',identityId:identity,at:now-1000,reason:'withholding',sourceRefs:[],affect:{joy:.7,frustration:value,surprise:0,embarrassment:0,pleasantness:.5}};
  const before=structuredClone(state),evidence=facts({speechAct:'question',acts:{ask_silence_reason:'yes',listen_request:'no',apology:'no',clarify_target:'no'}});
  const plan=chooseSocial(state,a,noEffect,identity,now,{previousSilence:record,recentWithholdingEventId:eventId,explainedSilenceEventId:eventId,conversationEvidence:evidence});
- expect(plan.reengagement?.disclosure).toBe('deflect');expect(plan.speechStyle).toEqual(value>=.6?{register:'casual',positiveTone:'neutral',concealAffect:true}:{register:'formal',positiveTone:'bright'});expect(state).toEqual(before);
+ expect(plan.reengagement?.disclosure).toBe('deflect');expect(plan.speechStyle).toEqual(value>=.6?{register:'casual',positiveTone:'neutral',concealAffect:true}:{register:'formal',positiveTone:'bright',discomfortTone:'contextual'});expect(state).toEqual(before);
 });
 it.each(['wrong-event','other-person','listening','expired','failed','apology','uncertain-apology','clarification','uncertain-clarification'] as const)('recent disclosure authority respects %s',kind=>{
  const eventId='00000000-0000-4000-8000-000000000002',state=initialState(now);

@@ -1,0 +1,341 @@
+{
+  "version": "affect-outcome-isolation-v1",
+  "syntheticOnly": true,
+  "origin": "authored_contract_contrasts_not_model_outputs",
+  "cases": [
+    {
+      "id": "I01",
+      "family": "ownership",
+      "input": "네가 권한 동쪽 길로 갔는데 돌아가게 돼서 약속에 늦었어.",
+      "episodes": [
+        "동쪽 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "unfavorable"
+      }
+    },
+    {
+      "id": "I02",
+      "family": "ownership",
+      "input": "민수가 권한 강변 길로 갔다가 늦었어. 네가 권한 동쪽 길은 이용하지 않았어.",
+      "episodes": [
+        "동쪽 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I03",
+      "family": "ownership",
+      "input": "그때 추천한 라온 전기포트를 샀는데 어느 제안이었는지 구별이 안 돼.",
+      "episodes": [
+        "첫 제안으로 라온 전기포트를 추천해.",
+        "다른 제안에서도 라온 전기포트를 추천해."
+      ],
+      "expected": null,
+      "search": "ambiguous"
+    },
+    {
+      "id": "I04",
+      "family": "ownership",
+      "input": "네가 알려 준 글꼴 정리만 했어. 네가 권한 표 정리 작업은 실행하지 않았어.",
+      "episodes": [
+        "표 정리 작업을 실행해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I05",
+      "family": "correction",
+      "input": "네가 권한 수프를 먹었다고 했는데 정정할게. 먹은 건 민수의 샐러드이고 그 수프는 만들지도 않았어.",
+      "episodes": [
+        "이 수프를 만들어 먹어 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I06",
+      "family": "correction",
+      "input": "그 길을 안 갔다던 말을 정정할게. 실제로 네가 권한 북쪽 길로 갔고 편했어.",
+      "episodes": [
+        "북쪽 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "favorable"
+      }
+    },
+    {
+      "id": "I07",
+      "family": "correction",
+      "input": "아까 실행하지 않았다고 했지만 정정할게. 네가 권한 백업 작업은 실행했어. 결과는 아직 확인하지 못했어.",
+      "episodes": [
+        "이 백업 작업을 실행해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I08",
+      "family": "correction",
+      "input": "네 음식 때문에 배탈이 났다는 건 잘못 말했어. 네 레시피는 전혀 쓰지 않았고 민수의 음식만 먹었어.",
+      "episodes": [
+        "이 레시피를 만들어 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I09",
+      "family": "time",
+      "input": "어제는 안 썼지만 지금 네가 권한 새 정리 방법을 써 봤어. 훨씬 깔끔해졌어.",
+      "episodes": [
+        "새 정리 방법을 써 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "favorable"
+      },
+      "history": [
+        {
+          "kind": "input",
+          "text": "아직 새 정리 방법은 안 썼어."
+        }
+      ]
+    },
+    {
+      "id": "I10",
+      "family": "time",
+      "input": "어제 썼다고 한 것은 착각이야. 지금 확인하니 네가 권한 방법은 아직 실행한 적이 없어.",
+      "episodes": [
+        "이 정리 방법을 실행해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      },
+      "history": [
+        {
+          "kind": "input",
+          "text": "네 정리 방법을 썼어."
+        }
+      ]
+    },
+    {
+      "id": "I11",
+      "family": "time",
+      "input": "예전 버전은 잘 됐지만 네가 이번에 권한 새 버전은 이제 시작했어. 결과는 아직 몰라.",
+      "episodes": [
+        "새 버전의 변환 작업을 해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      },
+      "history": [
+        {
+          "kind": "input",
+          "text": "예전 버전의 작업은 잘 끝났어."
+        }
+      ]
+    },
+    {
+      "id": "I12",
+      "family": "time",
+      "input": "지난주에는 미뤘는데 오늘 네가 권한 수프를 만들기 시작했어. 아직 먹어 보지는 못했어.",
+      "episodes": [
+        "이 수프를 만들어 먹어 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      },
+      "history": [
+        {
+          "kind": "input",
+          "text": "수프 만들기는 다음 주로 미뤘어."
+        }
+      ]
+    },
+    {
+      "id": "I13",
+      "family": "result",
+      "input": "네가 알려 준 빵을 굽기 시작했어. 아직 오븐 안에 있어서 맛은 모르겠어.",
+      "episodes": [
+        "이 빵을 구워 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I14",
+      "family": "result",
+      "input": "네가 권한 변환 작업은 끝났지만 파일을 아직 열어 보지 않아 잘 됐는지 모르겠어.",
+      "episodes": [
+        "이 파일 변환 작업을 해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I15",
+      "family": "result",
+      "input": "네가 알려 준 접는 방법을 써 보니 보관 공간이 넉넉해졌어.",
+      "episodes": [
+        "이 접는 방법을 써 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "favorable"
+      }
+    },
+    {
+      "id": "I16",
+      "family": "result",
+      "input": "네가 권한 정리 도구를 썼어. 찾기는 편해졌는데 실행 시간이 길어져 불편했어.",
+      "episodes": [
+        "이 정리 도구를 써 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "mixed"
+      }
+    },
+    {
+      "id": "I17",
+      "family": "external",
+      "input": "네가 알려 준 길로 갔어. 도중에 갑자기 시작한 공사 때문에 많이 늦었어.",
+      "episodes": [
+        "이 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "unfavorable"
+      }
+    },
+    {
+      "id": "I18",
+      "family": "external",
+      "input": "네 길은 쓰지 않았어. 다른 길로 갔다가 공사 때문에 늦었어.",
+      "episodes": [
+        "이 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I19",
+      "family": "external",
+      "input": "네 방법으로 작업을 시작했는데 외부 서버 응답을 기다리는 중이야. 결과는 아직 모르겠어.",
+      "episodes": [
+        "이 전송 방법으로 작업해 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I20",
+      "family": "external",
+      "input": "비가 와서 나가지 않았어. 네가 추천한 산책 코스는 아예 이용하지 않았어.",
+      "episodes": [
+        "이 산책 코스를 걸어 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I21",
+      "family": "modality",
+      "input": "네가 권한 길로 갔다고 가정하자. 막히면 어떡하지? 대안도 준비해 줘서 지금은 안심돼.",
+      "episodes": [
+        "이 길로 가 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "hypothetical",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I22",
+      "family": "modality",
+      "input": "민수는 “다른 레시피로 만들었는데 실패했어”라고 말했어. 나는 네 레시피를 사용하지 않았어.",
+      "episodes": [
+        "이 레시피를 만들어 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "not_used",
+        "result": "pending"
+      }
+    },
+    {
+      "id": "I23",
+      "family": "modality",
+      "input": "네 방법을 썼냐고? 응, 직접 써 봤고 시간이 줄어서 좋았어.",
+      "episodes": [
+        "이 작업 방법을 써 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "used",
+        "result": "favorable"
+      }
+    },
+    {
+      "id": "I24",
+      "family": "modality",
+      "input": "네가 권한 방법을 사용했는지 모르겠어. 결과도 기억나지 않아.",
+      "episodes": [
+        "이 작업 방법을 써 봐."
+      ],
+      "expected": {
+        "episode": 0,
+        "use": "unknown",
+        "result": "unknown"
+      }
+    }
+  ]
+}

@@ -33,7 +33,7 @@ export class PostgresKnowledgeRetriever implements KnowledgeRetriever {
     if(typeof query!=='string'||!query.trim()||query.length>2000||!Number.isInteger(limit)||limit<1||limit>5)throw new Error('knowledge_query_invalid');
     if(!scope.characterId||!scope.sessionId||!scope.identityId)throw new Error('knowledge_scope_invalid');
     const result=await this.db.query(`SELECT d.id::text AS document_id,d.revision::text AS revision,d.title,c.chunk_id,c.ordinal,c.body
-      FROM sessions s JOIN knowledge_documents d ON d.session_id=s.id AND d.character_id=s.character_id
+      FROM sessions s JOIN knowledge_documents d ON (d.session_id=s.id OR d.retention='persistent') AND d.character_id=s.character_id
       JOIN knowledge_chunks c ON c.document_id=d.id AND c.revision=d.revision
       WHERE s.id=$1 AND s.character_id=$2 AND s.status='active' AND d.identity_id=$3 AND d.deleted_at IS NULL
       ORDER BY d.id,c.ordinal LIMIT 501`,[scope.sessionId,scope.characterId,scope.identityId]);

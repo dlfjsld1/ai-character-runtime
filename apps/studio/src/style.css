@@ -2,3 +2,5 @@
 
 .repair-connection{position:fixed;right:8px;bottom:8px;z-index:5;font-size:11px;padding:5px 9px;min-height:30px;background:#f3f2eb!important}
 .knowledge-documents,.knowledge-citations{list-style:none;padding:0;overflow-wrap:anywhere}.knowledge-documents li,.knowledge-citations li{padding:12px 0;border-bottom:1px solid var(--line)}.knowledge-documents small,.knowledge-citations small{display:block;margin:4px 0 8px}.knowledge-citations blockquote{margin:8px 0;padding-left:12px;border-left:2px solid var(--line);white-space:pre-wrap;font-size:14px;line-height:1.6}.stage .knowledge-citations{max-width:850px;width:100%;font-size:14px}.stage .knowledge-citations small{color:#bbd0c0}.stage .knowledge-citations blockquote{max-height:140px;overflow:auto}.knowledge-answer{margin-top:18px;padding:16px;background:#fff}
+
+.personal-fact-list{list-style:none;padding:0;overflow-wrap:anywhere}.personal-fact-list li{padding:16px 0;border-bottom:1px solid var(--line)}.personal-fact-list p{white-space:pre-wrap;margin:8px 0 12px}.knowledge-panel>select{margin-bottom:12px}

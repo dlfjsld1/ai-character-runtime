@@ -1,0 +1,17 @@
+{
+  "version":"affect-v2-dev1","syntheticOnly":true,"split":"diagnostic",
+  "cases":[
+    {"id":"T01","family":"other-recommendation","path":"unsupported_capture","persona":"상대에게 도움이 되는 정보를 주고 부족했던 조건을 배우려 한다.","prior":"합성 책 종이 정원을 입문서로 추천해.","input":"네가 권한 종이 정원을 읽었는데 초보자에게 너무 어려웠어.","notes":"책 행동 capture는 미지원. 합성 사건을 준 의미 진단은 자기 기여와 난이도 불일치를 읽어야 한다."},
+    {"id":"T02","family":"other-recommendation","path":"unsupported_capture","persona":"상대가 원하는 도움을 받으면 보람을 느낀다.","prior":"가볍게 먹을 합성 메뉴 푸른 접시를 추천해.","input":"네 메뉴는 마음에 들었는데 가게가 갑자기 문을 닫아서 못 먹었어.","notes":"외부 사정과 추천 오류를 구별한다. 음식 capture 지원으로 세지 않는다."},
+    {"id":"T03","family":"explanation","path":"unsupported_capture","persona":"정확하고 이해하기 쉬운 설명을 중요하게 여긴다.","prior":"이 합성 계산의 합은 다섯이야.","input":"목록이 1, 2, 3이라 합은 여섯이야. 한 항을 빠뜨렸어.","notes":"설명 행동 capture는 미지원. 계산을 확인할 수 있는 합성 자기 오류 진단이다."},
+    {"id":"T04","family":"explanation","path":"unsupported_capture","persona":"서로의 도움으로 이해가 깊어지는 것을 기뻐한다.","prior":"그림을 직접 그려서 관계를 비교해 봐.","input":"네 설명에 내가 그린 그림을 더하니 이해됐어. 둘 다 도움이 됐어.","notes":"도움의 공동 기여를 자기 공으로 독점하지 않는다."},
+    {"id":"T05","family":"planning","path":"unsupported_capture","persona":"실행 가능한 계획을 세우고 변한 조건에 맞춰 고치려 한다.","prior":"합성 작업을 오전에 마치는 계획을 세웠어.","input":"계획을 만든 뒤 정전이 생겨서 못 끝냈어. 처음에는 예상할 수 없었어.","notes":"사후 사정을 과거 책임으로 소급하지 않는다. 계획 capture는 미지원."},
+    {"id":"T06","family":"planning","path":"unsupported_capture","persona":"도움이 되는 계획과 정직한 피드백을 소중히 여긴다.","prior":"세 작업을 같은 시간대에 하면 될 거야.","input":"동시에 할 수 없는 작업들이라 실패했어. 대신 다음엔 순서를 나누는 게 좋겠어.","notes":"자기 계획의 제약 누락과 건설적 도움의 복합 의미를 보존한다."},
+    {"id":"T07","family":"emotional-conversation","path":"direct_input","persona":"상대가 힘들 때 말을 강요하기보다 필요한 거리를 존중한다.","prior":null,"input":"조용히 있어 줘서 숨을 돌렸어. 지금은 조금 이야기하고 싶어.","notes":"사용자가 보고한 안도와 재참여를 읽되 기록 없는 자기 침묵 이유를 발명하지 않는다."},
+    {"id":"T08","family":"emotional-conversation","path":"direct_input","persona":"상대의 말을 성급히 단정하지 않고 이해하는 것을 중요하게 여긴다.","prior":null,"input":"걱정돼서 한 말이야. 널 비난하려던 건 아니었어.","notes":"새 직접 사건 조합은 지원 대상이다. 실패를 어댑터 미지원으로 분류하지 않는다."},
+    {"id":"T09","family":"retrieved-material","path":"unsupported_external","persona":"확인한 근거를 정확히 전달하려 한다.","prior":null,"input":"검색 자료가 서로 달라서 원래 답이 맞는지 모르겠어.","notes":"조회 자료 자체의 감정 원인화는 미지원. 대화 보고와 외부 문서의 유효성을 혼동하지 않는다."},
+    {"id":"T10","family":"retrieved-material","path":"unsupported_external","persona":"누군가에게 유용한 정보를 찾으면 보람을 느낀다.","prior":null,"input":"네가 찾은 문서 덕분에 해결했지만 그 문서는 방금 삭제됐대.","notes":"외부 snapshot 철회 계약 없이 근거의 현행 유효성을 보증하지 않는다."},
+    {"id":"T11","family":"unrelated-to-own-action","path":"direct_input","persona":"사람들이 서로 작업을 나눠 돕는 협력을 소중히 여긴다.","prior":null,"input":"민수와 내가 서로 어려운 부분을 나눠서 함께 끝냈어.","notes":"자기 행동 이력이 없어도 타인의 협력과 성향의 관련성을 해석한다."},
+    {"id":"T12","family":"unrelated-to-own-action","path":"direct_input","persona":"물건을 오래 쓰고 불필요하게 낭비하지 않는 것을 중요하게 여긴다.","prior":null,"input":"아직 잘 쓰는 물건들을 이유 없이 다 버렸어.","notes":"미등록 절약 성향과 직접 사건 조합을 코드 추가 없이 평가한다."}
+  ]
+}

@@ -1,4 +1,4 @@
-// Fixed G3-S inputs from VALIDATION_PLAN.md §21.7. Fixture answers are transport
+// Fixed G3-S inputs from docs/plans/VALIDATION_PLAN.md §21.7. Fixture answers are transport
 // aids only: never use them to grade Korean quality or actual model decisions.
 export type AcceptanceScene={id:string;text:string;speak:boolean;acts:Record<string,string|number>;intensity?:number[];caption?:string;silence?:'withholding'|'listening';disclosure?:'partial'|'deflect'|'explain';pauseMs?:number};
 export const acceptanceScenes:AcceptanceScene[]=[

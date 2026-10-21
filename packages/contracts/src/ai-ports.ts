@@ -2,14 +2,18 @@ import type { Appraisal, Candidate, Plan, SilenceRecord, AffectEvidence } from '
 import type { AppraisalEvaluation, AppraisalMetadata } from './appraisal.ts';
 import type {ConversationSnapshot,ConversationContext,ConversationEvidence} from './conversation.ts';
 import type {KnowledgeChunk} from './knowledge.ts';
+import type {PersonalFactSnapshot} from './personal-facts.ts';
+import type {EventInterpretationRequest,EventInterpretationResult} from './affect-appraisal.ts';
+import type {DialogueTurn,ExperienceReadRequest,ExperienceReadResult} from './outcomes.ts';
 
 export type Message={role:'system'|'user'|'assistant';content:string};
 export interface TokenCounter { count(messages:Message[]):Promise<number>; countText(text:string):Promise<number> }
 export type DialogueSource={readonly id?:string;readonly revision?:string;readonly identity_id?:string|null;readonly payload?:Readonly<Record<string,unknown>>};
 export type DialogueMemory={readonly id?:string;readonly content?:string|null;readonly content_version?:string;readonly facts?:Readonly<Record<string,unknown>>|null;readonly participants?:readonly string[]|null};
-export type DialogueKnowledge={readonly query:string;readonly chunks:readonly KnowledgeChunk[];readonly revision:string};
+export type DialogueKnowledge={readonly query:string;readonly chunks:readonly KnowledgeChunk[];readonly revision:string;readonly libraryRevision?:string};
 export type KnowledgeAnswer={sentences:string[];status:'answered'|'not_found'|'conflict';citationIds:string[]};
 export type DialogueContext={
+  readonly personalFacts?:PersonalFactSnapshot;
   readonly knowledge?:DialogueKnowledge;
   readonly conversation?:ConversationSnapshot;
   readonly currentInput?:DialogueSource|null;
@@ -25,9 +29,15 @@ export interface DialogueGenerator {
   readiness?():{status:string;inferenceVerified:boolean;preparationError:string|null};
   fitConversation(plan:Plan,context:DialogueContext):Promise<{conversation:ConversationSnapshot|undefined;inputTokens:number}>;
   dialogue(plan:Plan,context:DialogueContext):Promise<string[]>;
+  generateTurn?(plan:Plan,context:DialogueContext):Promise<DialogueTurn>;
   answerKnowledge?(plan:Plan,context:DialogueContext):Promise<KnowledgeAnswer>;
 }
 export interface ActivitySolver { solve(activityId:string,context:object):Promise<Candidate> }
+export interface EventInterpreter {
+  readonly promptVersion:string;
+  interpret(input:EventInterpretationRequest):Promise<EventInterpretationResult>;
+}
+export interface ExperienceReadPort { read(request:ExperienceReadRequest):Promise<ExperienceReadResult> }
 export type AppraisalEvent={id:string;text:string;identityId:string;revision?:string};
 export type PraiseSource={eventId:string;revision:string;text:string};
 export type RecentPraise={asOf:number;complete:boolean;items:readonly PraiseSource[]};

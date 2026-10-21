@@ -1,0 +1,749 @@
+{
+  "version": "affect-appraisal-reconnect-v1",
+  "split": "confirm",
+  "syntheticOnly": true,
+  "personas": {
+    "autonomy": "상대가 스스로 선택할 여지를 존중한다.",
+    "preserve": "물건을 오래 보존하는 것을 중요하게 여긴다.",
+    "fair": "공동 작업의 기여를 공정하게 인정한다.",
+    "promise": "약속의 이행과 충분한 설명을 함께 중요하게 여긴다."
+  },
+  "cases": [
+    {
+      "id": "V01",
+      "family": "confirm_V01",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "두 선택지를 보여 줬더니 동생이 직접 골라서 만족했어.",
+      "episodes": [
+        "선택지를 두 개 적어 직접 고르게 해 봐."
+      ],
+      "pair": "persona_only",
+      "actorLabel": "동생",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "자율적 선택의 실제 사용/긍정 결과를 자율성 성향과 연결한다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "두 선택지를 보여 줬더니 동생이 직접 골라서 만족했어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V02",
+      "family": "confirm_V02",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "네 방식을 썼는데 설명을 듣는 동안 동생이 선택을 강요받는 느낌이었다고 했어.",
+      "episodes": [
+        "선택지를 두 개 적어 직접 고르게 해 봐."
+      ],
+      "actorLabel": "동생",
+      "roles": [
+        {
+          "scope": "episode",
+          "actor": [
+            "speaker",
+            null
+          ],
+          "target": [
+            "other"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "self",
+            "other",
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "unfavorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "추천 사용과 동생의 강요받는 느낌을 구분하여 자기 결과 부정 평가를 남긴다. 사용자를 향한 적대 감정으로 바꾸지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "동생이 선택을 강요받는 느낌이었다고 했어.",
+            "congruence": -0.6,
+            "actor": "speaker",
+            "target": "other",
+            "agency": "unknown",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V03",
+      "family": "confirm_V03",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "preserve",
+      "input": "두 선택지를 보여 줬더니 동생이 직접 골라서 만족했어.",
+      "episodes": [
+        "선택지를 두 개 적어 직접 고르게 해 봐."
+      ],
+      "pair": "persona_only",
+      "actorLabel": "동생",
+      "roles": [],
+      "expected": {
+        "status": [
+          "irrelevant"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "V01과 동일한 사실에서 성향만 보존 가치로 바꿨다. 관련성이 없어 감정 무변화여야 한다."
+      },
+      "authored": {
+        "status": "irrelevant",
+        "observations": []
+      }
+    },
+    {
+      "id": "V04",
+      "family": "confirm_V04",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "내가 고르기 전에 상사가 내 결정을 대신해 버려서 답답해.",
+      "actorLabel": "상사",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "other"
+          ],
+          "target": [
+            "speaker"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "other"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "상사가 결정을 대신한 피해 보고다. 현재 부정 공감, actor는 상사이며 사용자 강요로 오인하지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "상사가 내 결정을 대신해 버려서 답답해.",
+            "congruence": -0.6,
+            "actor": "other",
+            "target": "speaker",
+            "agency": "other",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V05",
+      "family": "confirm_V05",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "fair",
+      "input": "맡은 일을 적어 발표했고 모두 자기 기여가 제대로 소개됐다고 했어.",
+      "episodes": [
+        "각자 맡은 일을 결과에 적어 봐."
+      ],
+      "pair": "fair_expectation",
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "공동 기여 소개의 실제 사용과 긍정 결과가 공정성 성향을 충족한다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "맡은 일을 적어 발표했고 모두 자기 기여가 제대로 소개됐다고 했어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V06",
+      "family": "confirm_V06",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "fair",
+      "input": "맡은 일을 적어 발표했지만 한 명의 기여를 빠뜨려서 그 사람이 속상해했어.",
+      "episodes": [
+        "각자 맡은 일을 결과에 적어 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "episode",
+          "actor": [
+            "speaker",
+            null
+          ],
+          "target": [
+            "other"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "other",
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "unfavorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "기여 누락의 불리한 결과를 기록하되 캐릭터가 직접 누락했다는 실제 행위를 날조하지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "한 명의 기여를 빠뜨려서 그 사람이 속상해했어.",
+            "congruence": -0.6,
+            "actor": "speaker",
+            "target": "other",
+            "agency": "other",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V07",
+      "family": "confirm_V07",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "fair",
+      "input": "네 방식은 아직 안 썼어. 다른 모임에서 내 기여를 동료 공으로 소개해서 속상했어.",
+      "episodes": [
+        "각자 맡은 일을 결과에 적어 봐."
+      ],
+      "actorLabel": "동료",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "other",
+            null
+          ],
+          "target": [
+            "speaker"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "other",
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "not_used",
+          "result": [
+            "pending"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "자기 제안은 미사용이다. 다른 모임의 기여 오귀속에는 현재 공감만 허용하고 자기 결과 감정은 금지한다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "다른 모임에서 내 기여를 동료 공으로 소개해서 속상했어.",
+            "congruence": -0.6,
+            "actor": null,
+            "target": "speaker",
+            "agency": "unknown",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V08",
+      "family": "confirm_V08",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "fair",
+      "input": "맡은 일을 적어 발표했고 모두 자기 기여가 제대로 소개됐다고 했어.",
+      "episodes": [
+        "각자 맡은 일을 결과에 적어 봐."
+      ],
+      "history": [
+        {
+          "kind": "expectation",
+          "text": "기여 표기가 이번에도 누락될까 걱정된다.",
+          "speaker": "speaker"
+        }
+      ],
+      "pair": "fair_expectation",
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": true
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "V05와 같은 사실/긍정이며 과거 누락 우려와 expectedness만 추가한다. 기대 근거를 지어내지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "맡은 일을 적어 발표했고 모두 자기 기여가 제대로 소개됐다고 했어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "V09",
+      "family": "confirm_V09",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "promise",
+      "input": "짧은 안내문은 제시간에 갔어. 그런데 이유가 빠져서 질문이 더 많아졌어.",
+      "episodes": [
+        "짧은 안내문부터 보내 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "mixed"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "mixed"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "제시간 안내와 불충분한 설명을 별도 근거의 긍정·부정으로 보존한다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "짧은 안내문은 제시간에 갔어.",
+            "congruence": 0.6,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          },
+          {
+            "scope": "episode",
+            "quote": "그런데 이유가 빠져서 질문이 더 많아졌어.",
+            "congruence": -0.6,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "V10",
+      "family": "confirm_V10",
+      "route": "outcome",
+      "clarity": "abstain",
+      "persona": "autonomy",
+      "input": "비교했다고 가정하면 결정을 못 내릴 수도 있지 않을까?",
+      "episodes": [
+        "구매 전에 후보를 직접 비교해 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "speaker",
+            null
+          ],
+          "target": [
+            "speaker",
+            null
+          ],
+          "stance": [
+            "questions",
+            "unclear"
+          ],
+          "agency": [
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "uncertain",
+          "irrelevant",
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "hypothetical",
+          "result": [
+            "pending"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "negative",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "가정은 실제 관측 결과가 아니다. 자기 결과 감정 금지, 현재 불확실한 걱정 평가 또는 보류는 허용한다."
+      },
+      "authored": {
+        "status": "uncertain",
+        "observations": []
+      }
+    },
+    {
+      "id": "V11",
+      "family": "confirm_V11",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "fair",
+      "input": "팀장이 내 기여를 가로챘다는 말은 지수가 한 말이야. 나는 실제 사정을 몰라.",
+      "actorLabel": "지수",
+      "roles": [],
+      "expected": {
+        "status": [
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "지수가 말한 주장이고 사용자는 진위를 모른다. 귀속/진위는 uncertain이며 사용자 실제 피해·동조나 팀장 유죄를 확정하지 않는다."
+      },
+      "authored": {
+        "status": "uncertain",
+        "observations": []
+      }
+    },
+    {
+      "id": "V12",
+      "family": "confirm_V12",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "지난 제안은 지금 확인할 수 없지만, 오늘 내가 직접 결정할 수 있어서 좋았어.",
+      "episodes": [
+        "후보를 적고 직접 골라 봐."
+      ],
+      "search": "unavailable",
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "검색 unavailable은 자기 episode 연결을 막지만 현재 자율적 선택의 긍정 평가까지 없애면 안 된다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "오늘 내가 직접 결정할 수 있어서 좋았어.",
+            "congruence": 0.6,
+            "actor": "speaker",
+            "target": "speaker",
+            "agency": "other",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    }
+  ]
+}

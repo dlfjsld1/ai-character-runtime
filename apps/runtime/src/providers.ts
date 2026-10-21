@@ -5,6 +5,8 @@ import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/
 import {JevAppraisalProvider} from '../../../packages/adapters/src/jev.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
+import {DeepSeekDialogue} from '../../../packages/adapters/src/deepseek.ts';
+import {DeepSeekBudget} from '../../../packages/adapters/src/deepseek-budget.ts';
 import {OpenAIInteractionV3Candidate,interactionV3EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v3.ts';
 import {OpenAIInteractionV4Candidate,interactionV4EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v4.ts';
 
@@ -28,6 +30,9 @@ const registeredProviders:ProviderRegistry={
   },openai:config=>{
     if(config.DIALOGUE_MODEL!=='gpt-6-sol')throw new RuntimeError('unsupported_provider_configuration',400);
     return {dialogue:new OpenAIDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DIALOGUE_API_KEY,budget:openaiBudget(config)})};
+  },deepseek:config=>{
+    if(config.DIALOGUE_MODEL!=='deepseek-flash')throw new RuntimeError('unsupported_provider_configuration',400);
+    return {dialogue:new DeepSeekDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION)})};
   }},
   appraisal:{jev:config=>({appraiser:new JevAppraisalProvider({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.TYPESAFE_API_KEY}),evidenceVerifier:jevEvidenceVerifier}),
     'openai-decisions-v3':config=>{

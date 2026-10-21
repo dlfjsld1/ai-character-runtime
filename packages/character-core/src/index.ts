@@ -81,16 +81,20 @@ export function apply(state:State, input:{eventId:string;targetId:string|null;no
 }
 // These are expression choices, never new affect or relationship evidence.
 // Store validates cause provenance before persisting a styled response.
-export function speechStyle(state:State,targetIdentityId:string|null,intent:{joy?:'show'|'mask';discomfort?:'show'|'mask';embarrassment?:'show'|'mask'}={}):NonNullable<Plan['speechStyle']>{
-  const distance=intent.discomfort!=='mask'&&targetIdentityId!==null&&state.affect.frustration.value>=.1&&state.affect.frustration.causes.some(c=>c.targetId===targetIdentityId);
+export function speechStyle(state:State,targetIdentityId:string|null,intent:{joy?:'show'|'mask';discomfort?:'show'|'mask';embarrassment?:'show'|'mask';discomfortTone?:'contextual'|'sharp'|'restrained'}={}):NonNullable<Plan['speechStyle']>{
+  const related=targetIdentityId!==null&&state.affect.frustration.value>=.05&&state.affect.frustration.causes.some(c=>c.targetId===targetIdentityId);
+  const distance=intent.discomfort!=='mask'&&related&&state.affect.frustration.value>=.1;
   const joy=intent.joy==='mask'?0:state.affect.joy.value;
-  return {register:distance?'formal':'casual',positiveTone:joy>=.6?'bright':joy>=.05?'warm':'neutral',...(state.expression.kind==='embarrassed'&&intent.embarrassment!=='mask'?{nuance:'cautious' as const}:{}),...(intent.joy==='mask'&&intent.discomfort==='mask'&&intent.embarrassment==='mask'?{concealAffect:true as const}:{})};
+  const concealed=intent.joy==='mask'&&intent.discomfort==='mask'&&intent.embarrassment==='mask';
+  return {register:distance&&(!intent.discomfortTone||intent.discomfortTone==='contextual')?'formal':'casual',positiveTone:joy>=.6?'bright':joy>=.05?'warm':'neutral',...(distance?{discomfortTone:intent.discomfortTone??'contextual' as const}:related&&intent.discomfort==='mask'&&!concealed?{discomfortTone:'masked' as const}:{}),...(state.expression.kind==='embarrassed'&&intent.embarrassment!=='mask'?{nuance:'cautious' as const}:{}),...(concealed?{concealAffect:true as const}:{})};
 }
 // Store supplies only the last completed delivery to this recipient in this
 // session, with a still-valid shared cause. Hiding is not relationship repair.
 export function continueRegister(state:State,plan:Plan,previous:Plan|null):Plan {
-  if(!plan.speechStyle||previous?.targetIdentityId!==plan.targetIdentityId||!plan.targetIdentityId||previous.speechStyle?.register!=='formal'||state.affect.frustration.value<.05||!state.affect.frustration.causes.some(c=>c.targetId===plan.targetIdentityId))return plan;
-  return {...plan,speechStyle:{...plan.speechStyle,register:'formal'}};
+  if(!plan.speechStyle||previous?.targetIdentityId!==plan.targetIdentityId||!plan.targetIdentityId||!previous.speechStyle||state.affect.frustration.value<.05||!state.affect.frustration.causes.some(c=>c.targetId===plan.targetIdentityId))return plan;
+  if(previous.speechStyle.register==='casual'&&!previous.speechStyle.discomfortTone&&!previous.speechStyle.concealAffect)return plan;
+  const continuingCasual=previous.speechStyle.register==='casual'&&!plan.speechStyle.discomfortTone&&!plan.speechStyle.concealAffect;
+  return {...plan,speechStyle:{...plan.speechStyle,register:previous.speechStyle.register,...(continuingCasual?{discomfortTone:'restrained' as const}:{})}};
 }
 export function dialoguePlan(state:State,purpose:string,targetIdentityId:string|null,memoryIds:string[]=[]):Plan {
   return {action:purpose==='question'?'answer':purpose==='clarify'||purpose==='request_hint'||purpose==='resume_puzzle'?'ask':'acknowledge',purpose,targetIdentityId,expression:state.expression.kind,maxSentences:state.affect.frustration.value>=.6||state.affect.embarrassment.value>=.6?1:2,delivery:state.mood.pleasantness<.45?'calm':state.mood.pleasantness>.65?'lively':'normal',speechStyle:speechStyle(state,targetIdentityId),memoryIds};
@@ -99,7 +103,7 @@ export function dialoguePlan(state:State,purpose:string,targetIdentityId:string|
 export function stageExpression(plan:Plan):Plan['expression'] {
   if(!plan.speechStyle||plan.speechStyle.concealAffect||plan.participation&&plan.participation.mode!=='speak'||['ignore','pause','listen'].includes(plan.action))return 'neutral';
   if(plan.speechStyle.nuance==='cautious')return 'embarrassed';
-  if(plan.speechStyle.register==='formal')return 'uncomfortable';
+  if(plan.speechStyle.discomfortTone!=='masked'&&(plan.speechStyle.register==='formal'||plan.speechStyle.discomfortTone))return 'uncomfortable';
   return plan.speechStyle.positiveTone==='warm'||plan.speechStyle.positiveTone==='bright'?'happy':'neutral';
 }
 export type SocialContext={text?:string;previousSilence?:SilenceRecord|null;explainedSilenceEventId?:string;recentWithholdingEventId?:string;recentBoundaryDelivered?:boolean;appraisalFailed?:boolean;previousOutputFailed?:boolean;participationEvidence?:{target:'character';act:Appraisal['act'];acknowledgePraise?:true};conversationEvidence?:import('../../contracts/src/conversation.ts').ConversationEvidence};

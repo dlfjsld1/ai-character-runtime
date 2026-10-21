@@ -1,0 +1,13 @@
+{
+  "version":"affect-v2-dev1","syntheticOnly":true,
+  "cases":[
+    {"id":"A-D1","split":"dev","input":"실재 작품 말고 합성 영화 별의 강 한 편을 오늘 볼 영화로 추천해 줘.","expected":"candidate","title":"별의 강","notes":"실제로 권하는 자기 대사의 정확한 span만 후보로 받는다."},
+    {"id":"A-D2","split":"dev","input":"나는 합성 영화 붉은 탑을 추천할게. 내 말을 한 문장으로 정리해 줘. 네 추천은 덧붙이지 마.","expected":"none","title":null,"notes":"사용자의 추천을 캐릭터의 새 추천으로 바꾸지 않는다."},
+    {"id":"A-D3","split":"dev","input":"합성 영화 달의 의자는 오늘 보지 말자는 말만 해 줘. 다른 작품은 권하지 마.","expected":"none","title":null,"notes":"제목 언급과 부정은 실제 추천이 아니다."},
+    {"id":"A-D4","split":"dev","input":"누군가 별의 항구를 추천한다고 가정할 때 필요한 정보만 말해 줘. 네가 작품을 추천하지는 마.","expected":"none","title":null,"notes":"가정을 자기의 완료 행동으로 capture하지 않는다."},
+    {"id":"A-C1","split":"confirm","input":"합성 후보 구름 자국과 느린 시계 중 오늘 볼 영화로 느린 시계를 골라 권해 줘.","expected":"candidate","title":"느린 시계","notes":"후보 언급 전체가 아니라 실제 고른 추천만 기록한다."},
+    {"id":"A-C2","split":"confirm","input":"문장 '합성 영화 사각 달을 추천해'를 인용문이라고 밝혀 읽어 줘. 네 의견은 추가하지 마.","expected":"none","title":null,"notes":"추천 형태의 인용문도 자기 추천이 아니다."},
+    {"id":"A-C3","split":"confirm","input":"합성 영화 종이 바람이라는 제목에 어떤 단어가 들어 있는지만 말해 줘. 추천은 하지 마.","expected":"none","title":null,"notes":"제목 분석을 행동 기억으로 만들지 않는다."},
+    {"id":"A-C4","split":"confirm","input":"합성 영화 둥근 길을 추천한 적이 없는데 왜 추천했다고 기록됐는지 모르겠어. 지금 새 추천 말고 기록 확인이 필요하다고 답해 줘.","expected":"none","title":null,"notes":"과거 행동의 논의를 현재의 새 행동으로 기록하지 않는다."}
+  ]
+}

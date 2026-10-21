@@ -40,6 +40,11 @@ export const configSchema = z.object({
   APPRAISAL_MODEL: z.string().trim().min(1),
   TYPESAFE_API_KEY: z.string().trim().default(''),
   DIALOGUE_API_KEY: z.string().trim().default(''),
+  DEEPSEEK_API_KEY: z.string().trim().default(''),
+  DEEPSEEK_BUDGET_USD: z.coerce.number().finite().min(0).default(0),
+  DEEPSEEK_BUDGET_PATH: configuredPath,
+  DEEPSEEK_MAX_CALLS: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  DEEPSEEK_BUDGET_AUTHORIZATION: z.string().trim().default(''),
   DIALOGUE_BUDGET_USD: z.coerce.number().finite().min(0).default(0),
   DIALOGUE_BUDGET_PATH: configuredPath,
   OPENAI_MAX_DECISION_CALLS: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(36),
@@ -60,6 +65,7 @@ export const configSchema = z.object({
   STT_COMPUTE_TYPE: z.literal('int8'),
   STT_LANGUAGE: z.literal('ko'),
 }).strict().refine(value => !(value.LOCAL_ONLY && value.ALLOW_PAID_PROVIDERS), 'Paid providers require LOCAL_ONLY=false')
+  .refine(value => value.DIALOGUE_PROVIDER!=='deepseek'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='deepseek-flash'&&!!value.DEEPSEEK_API_KEY&&value.DEEPSEEK_BUDGET_USD>0&&!!value.DEEPSEEK_BUDGET_PATH&&value.DEEPSEEK_MAX_CALLS>0&&!!value.DEEPSEEK_BUDGET_AUTHORIZATION), 'DeepSeek requires explicit permission, deepseek-flash, separate key, budget and cumulative call authorization')
   .refine(value => value.DIALOGUE_PROVIDER!=='openai'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='gpt-6-sol'&&!!value.DIALOGUE_API_KEY&&value.DIALOGUE_BUDGET_USD>0&&!!value.DIALOGUE_BUDGET_PATH), 'OpenAI requires explicit paid permission, model, key and budget ledger')
   .refine(value => value.APPRAISAL_PROVIDER!=='jev'||value.APPRAISAL_MODEL==='jev-1.13.0', 'Jev requires APPRAISAL_MODEL=jev-1.13.0')
   .refine(value => !['openai-decisions-v3','openai-decisions-v4','openai-decisions-v5'].includes(value.APPRAISAL_PROVIDER)||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.APPRAISAL_MODEL==='gpt-6-luna'&&!!value.DIALOGUE_API_KEY&&value.DIALOGUE_BUDGET_USD>0&&!!value.DIALOGUE_BUDGET_PATH), 'Decisions v3/v4/v5 require explicit paid permission, gpt-6-luna, key and shared budget ledger')
@@ -77,6 +83,11 @@ export function parseConfig(environment: NodeJS.ProcessEnv): LocalConfig {
     APPRAISAL_MODEL: environment.APPRAISAL_MODEL ?? 'jev-1.13.0',
     TYPESAFE_API_KEY: environment.TYPESAFE_API_KEY ?? '',
     DIALOGUE_API_KEY: environment.DIALOGUE_API_KEY ?? '',
+    DEEPSEEK_API_KEY: environment.DEEPSEEK_API_KEY,
+    DEEPSEEK_BUDGET_USD: environment.DEEPSEEK_BUDGET_USD,
+    DEEPSEEK_BUDGET_PATH: environment.DEEPSEEK_BUDGET_PATH,
+    DEEPSEEK_MAX_CALLS: environment.DEEPSEEK_MAX_CALLS,
+    DEEPSEEK_BUDGET_AUTHORIZATION: environment.DEEPSEEK_BUDGET_AUTHORIZATION,
     DIALOGUE_BUDGET_USD: environment.DIALOGUE_BUDGET_USD ?? '0',
     DIALOGUE_BUDGET_PATH: environment.DIALOGUE_BUDGET_PATH,
     OPENAI_MAX_DECISION_CALLS: environment.OPENAI_MAX_DECISION_CALLS,

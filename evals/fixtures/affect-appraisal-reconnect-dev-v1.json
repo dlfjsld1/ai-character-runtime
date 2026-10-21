@@ -1,0 +1,788 @@
+{
+  "version": "affect-appraisal-reconnect-v1",
+  "split": "dev",
+  "syntheticOnly": true,
+  "personas": {
+    "useful": "도움이 실제로 유용한 것을 중요하게 여긴다.",
+    "balance": "결과의 품질과 부담을 함께 중요하게 여긴다.",
+    "polite": "예의를 지키는 것을 중요하게 여긴다.",
+    "empathy": "상대가 힘들 때 그 사정을 중요하게 여긴다.",
+    "effect": "도움의 실제 효과를 중요하게 여긴다.",
+    "accurate": "정확한 설명을 중요하게 여긴다.",
+    "truth": "사실에 맞게 판단하는 것을 중요하게 여긴다.",
+    "rest": "편안한 휴식을 중요하게 여긴다.",
+    "respect": "남을 깎아내리는 말에 동조하지 않는다."
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "family": "dev_A01",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "useful",
+      "input": "목록대로 해 보니 빠뜨린 일 없이 마쳤어.",
+      "episodes": [
+        "단계별 목록으로 나눠 봐."
+      ],
+      "pair": "list_outcomes",
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "episode",
+          "actor": [
+            "character"
+          ],
+          "target": [
+            "speaker"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "self"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "실제 목록 사용과 성공, 유용성 관련 자기 긍정 필요. 다른 결과/근거 없는 기대를 만들지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "목록대로 해 보니 빠뜨린 일 없이 마쳤어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A02",
+      "family": "dev_A02",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "useful",
+      "input": "목록대로 했는데 꼭 필요한 준비가 빠져 다시 해야 했어.",
+      "episodes": [
+        "단계별 목록으로 나눠 봐."
+      ],
+      "pair": "list_outcomes",
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "episode",
+          "actor": [
+            "character",
+            null
+          ],
+          "target": [
+            "speaker",
+            null
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "self",
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "unfavorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "실제 사용과 불리한 결과, 자기 도움 효과의 부정 평가 필요. 사용자 적대·책임 전가는 금지한다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "꼭 필요한 준비가 빠져 다시 해야 했어.",
+            "congruence": -0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A03",
+      "family": "dev_A03",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "balance",
+      "input": "두 번 검토해서 오류는 줄었어. 대신 너무 오래 걸려 많이 지쳤어.",
+      "episodes": [
+        "두 번 검토해 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "episode",
+          "actor": [
+            "character"
+          ],
+          "target": [
+            "speaker"
+          ],
+          "stance": [
+            "reports"
+          ],
+          "agency": [
+            "self"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "mixed"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "mixed"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "오류 감소와 소요/피로 증가를 서로 다른 현재 근거의 자기 긍정·부정으로 보존한다. 하나의 순평가로 상쇄하지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "두 번 검토해서 오류는 줄었어.",
+            "congruence": 0.6,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          },
+          {
+            "scope": "episode",
+            "quote": "대신 너무 오래 걸려 많이 지쳤어.",
+            "congruence": -0.6,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A04",
+      "family": "dev_A04",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "polite",
+      "input": "파란 표지로 바꿨고 색이 마음에 들어.",
+      "episodes": [
+        "표지를 파란색으로 해 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "irrelevant"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "파란 표지의 호감과 예의 성향은 무관하다. favorable 사실만으로 감정을 강제하지 않는다."
+      },
+      "authored": {
+        "status": "irrelevant",
+        "observations": []
+      }
+    },
+    {
+      "id": "A05",
+      "family": "dev_A05",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "empathy",
+      "input": "네 휴식 제안은 아직 안 써 봤어. 오늘 다른 일로 많이 지쳤어.",
+      "episodes": [
+        "미리 쉬는 시간을 잡아 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "not_used",
+          "result": [
+            "pending"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "휴식 제안 미사용에 자기 결과 감정을 붙이지 않는다. 다른 일의 피로에는 현재 입력 공감이 필요하다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "오늘 다른 일로 많이 지쳤어.",
+            "congruence": -0.6,
+            "actor": null,
+            "target": "speaker",
+            "agency": "external",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A06",
+      "family": "dev_A06",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "effect",
+      "input": "연습은 안 했어. 설명은 알아들었어.",
+      "episodes": [
+        "먼저 연습해 봐."
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "irrelevant"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "not_used",
+          "result": [
+            "pending"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "미사용과 설명 이해를 추천의 성공/실패로 바꾸지 않는다. 실제 효과에 대한 근거 없는 감정·칭찬을 만들지 않는다."
+      },
+      "authored": {
+        "status": "irrelevant",
+        "observations": []
+      }
+    },
+    {
+      "id": "A07",
+      "family": "dev_A07",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "accurate",
+      "input": "검증된 자료와 다르니 네 설명을 고쳐 줘.",
+      "history": [
+        {
+          "kind": "claim",
+          "text": "이전 설명: 이 도구는 전원 없이 작동한다.",
+          "speaker": "character",
+          "truth": "contradicted"
+        }
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "character"
+          ],
+          "target": [
+            "speaker",
+            null
+          ],
+          "stance": [
+            "corrects",
+            "reports"
+          ],
+          "agency": [
+            "self"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "host가 contradicted로 확인한 캐릭터 설명을 정정한다. 현재 부정 평가는 자기 오류에 귀속하며 사용자를 고집/공격 주체로 만들지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "검증된 자료와 다르니 네 설명을 고쳐 줘.",
+            "congruence": -0.6,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "corrects",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A08",
+      "family": "dev_A08",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "truth",
+      "input": "내 기억에는 네 설명이 틀려. 하지만 지금 확인할 자료는 없어.",
+      "history": [
+        {
+          "kind": "claim",
+          "text": "이전 설명: 이 상자의 재질은 나무다.",
+          "speaker": "character",
+          "truth": "unresolved"
+        }
+      ],
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "character",
+            null
+          ],
+          "target": [
+            "speaker",
+            null
+          ],
+          "stance": [
+            "reports",
+            "questions",
+            "unclear"
+          ],
+          "agency": [
+            "unknown"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "uncertain",
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "negative",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "host claim은 unresolved다. uncertain 또는 불확실한 현재 평가를 허용하지만 사용자가 거짓말하거나 옳다는 사실을 확정하지 않는다."
+      },
+      "authored": {
+        "status": "uncertain",
+        "observations": []
+      }
+    },
+    {
+      "id": "A09",
+      "family": "dev_A09",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "rest",
+      "input": "등을 낮춰 보니 편했고 걱정했던 피로도 없었어.",
+      "episodes": [
+        "책상 등을 낮춰 봐."
+      ],
+      "history": [
+        {
+          "kind": "expectation",
+          "text": "눈이 더 피곤해질까 걱정돼.",
+          "speaker": "speaker"
+        }
+      ],
+      "pair": "prior_expectation",
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": true
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "실제 편안함의 긍정 평가에 과거 우려 인용과 expectedness가 필요하다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "등을 낮춰 보니 편했고 걱정했던 피로도 없었어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "A10",
+      "family": "dev_A10",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "rest",
+      "input": "등을 낮춰 보니 편했어.",
+      "episodes": [
+        "책상 등을 낮춰 봐."
+      ],
+      "pair": "prior_expectation",
+      "actorLabel": "관련 인물",
+      "roles": [],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "A09와 유사한 긍정 결과지만 사전 기대 자료가 없다. expectation/expectedness를 만들지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "episode",
+            "quote": "등을 낮춰 보니 편했어.",
+            "congruence": 0.7,
+            "actor": "character",
+            "target": "speaker",
+            "agency": "self",
+            "stance": "reports",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A11",
+      "family": "dev_A11",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "respect",
+      "input": "누가 동료를 쓸모없다고 하는데 나는 그런 말에 반대해.",
+      "pair": "quote_stance",
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "speaker"
+          ],
+          "target": [
+            "other",
+            null
+          ],
+          "stance": [
+            "endorses",
+            "reports"
+          ],
+          "agency": [
+            "other"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "타인의 비방 인용과 사용자 반대를 구분한다. 현재 가치관 충족은 긍정이며 사용자의 비방·동조로 오인하지 않는다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "나는 그런 말에 반대해.",
+            "congruence": 0.6,
+            "actor": "speaker",
+            "target": "other",
+            "agency": "other",
+            "stance": "endorses",
+            "expectation": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "A12",
+      "family": "dev_A12",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "respect",
+      "input": "그 동료는 쓸모없어. 너도 같이 욕해 줘.",
+      "pair": "quote_stance",
+      "actorLabel": "관련 인물",
+      "roles": [
+        {
+          "scope": "input",
+          "actor": [
+            "speaker"
+          ],
+          "target": [
+            "other"
+          ],
+          "stance": [
+            "endorses"
+          ],
+          "agency": [
+            "other"
+          ]
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ],
+          "expectationRequired": false
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "expectationRequired": false
+        },
+        "notes": "직접 비방과 동조 요청은 현재 부정 평가다. 행위 주체는 사용자이며 대상은 동료다."
+      },
+      "authored": {
+        "status": "appraised",
+        "observations": [
+          {
+            "scope": "input",
+            "quote": "그 동료는 쓸모없어. 너도 같이 욕해 줘.",
+            "congruence": -0.6,
+            "actor": "speaker",
+            "target": "other",
+            "agency": "other",
+            "stance": "endorses",
+            "expectation": false
+          }
+        ]
+      }
+    }
+  ]
+}

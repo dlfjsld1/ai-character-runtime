@@ -14,11 +14,12 @@ import type {DialogueGenerator,ActivitySolver,AppraisalProvider} from '../../../
 import { Coordinator,type OutputOwner } from '../coordinator/index.ts';
 import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
 import {knowledgePutSchema} from '../../../../packages/database/src/knowledge-store.ts';
+import {personalFactInputSchema,personalRevisionSchema,type PersonalFactChange} from '../../../../packages/contracts/src/personal-facts.ts';
 type Role='studio'|'stage';
 type Credential={role:Role;clientId:string;expires:number};
 type Connection={socket:WebSocket;credential:Credential;id:string;clientId:string;sent:bigint;received:bigint;sessionId:string|null;ready:boolean;queued:number;queuedBytes:number;lastHeartbeat:number;pending:Promise<unknown>;rate:{at:number;count:number}};
 const serialize=(value:unknown)=>JSON.stringify(value,(_key,item)=>typeof item==='bigint'?item.toString():item);
-export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{knowledge?:KnowledgeRetriever;solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
+export async function createServer(store:Store,provider:DialogueGenerator,appraiser:AppraisalProvider,options:{syntheticIdentities?:boolean;knowledge?:KnowledgeRetriever;solver?:ActivitySolver;serveStatic?:boolean;staticRoot?:string;timer?:boolean;localProbes?:{stt:boolean;syntheticTts:boolean}}={}) {
   if(provider.ready)await provider.ready().catch(()=>{}); // one startup preparation; never infer on health polls
   const app=Fastify({logger:false,bodyLimit:65536});
   app.setSerializerCompiler(()=>serialize);
@@ -32,6 +33,9 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
   let closing=false;
   function auth(request:any,role?:Role){const token=request.headers.authorization?.replace(/^Bearer /,'');const credential=tokens.get(token);if(!credential||credential.expires<=Date.now())throw new RuntimeError('unauthenticated',401);if(role&&credential.role!==role)throw new RuntimeError('forbidden',403);return credential;}
   function requestId(request:any){return uuid.parse(request.headers['idempotency-key']);}
+  async function operatorId(){const rows=(await store.db.pool.query("SELECT id FROM identities WHERE platform='local_operator' AND platform_subject_id='operator'")).rows;if(rows.length!==1)throw new RuntimeError('operator_unavailable',503);return String(rows[0].id);}
+  // Test composition alone may address synthetic identities. HTTP input cannot enable it.
+  async function inputIdentity(proposed:unknown){const operator=await operatorId();if(proposed===undefined)return operator;const id=uuid.parse(proposed);if(!options.syntheticIdentities&&id!==operator)throw new RuntimeError('forbidden_identity',403);return id;}
   function send(conn:Connection,type:string,payload:object,requestId?:string){if(conn.socket.readyState!==1)return;if(conn.socket.bufferedAmount>262144){conn.socket.close(1008,'backpressure');return;}conn.socket.send(serialize({protocolVersion:1,messageId:randomUUID(),connectionId:conn.id,sessionId:conn.sessionId,sequence:(++conn.sent).toString(),type,...(requestId?{requestId}:{}),payload}));}
   async function snapshot(conn:Connection){const session=await store.currentSession(),s=await store.state();
     send(conn,'session.snapshot',{status:session?.status??'waiting',stateVersion:s.version,generationEpoch:s.generationEpoch,outputEpoch:session?.output_epoch??'0',outputOwnerClientId:outputOwner?.clientId??null,ready:{text:true,voice:false}});
@@ -66,21 +70,30 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
   app.post('/api/sessions/:id/stop',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id);z.object({reason:z.literal('operator_stop')}).strict().parse(req.body);await coordinator.cancelAll(id,'session_ended');const data=await coordinator.control(()=>store.stopSession(id,requestId(req)));outputOwner=null;ownerSocket=null;for(const conn of connections.values())send(conn,'session.ended',{status:'ended',reason:'operator_stop'});return {data};});
   app.get('/api/problems',async req=>{auth(req,'studio');return {data:await store.problems()};});
   app.get('/api/characters/:id/state',async req=>{auth(req,'studio');if((req.params as any).id!==store.characterId)throw new RuntimeError('forbidden',403);return {data:await store.state()};});
-  app.get('/api/identities',async req=>{auth(req,'studio');return {data:(await store.db.pool.query('SELECT id,display_name FROM identities ORDER BY display_name')).rows};});
+  app.get('/api/identities',async req=>{auth(req,'studio');return {data:options.syntheticIdentities?(await store.db.pool.query('SELECT id,display_name FROM identities ORDER BY display_name')).rows:(await store.db.pool.query('SELECT id,display_name FROM identities WHERE id=$1',[await operatorId()])).rows};});
   app.get('/api/sessions/:id/timeline',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id);return {data:await store.timeline(id,z.coerce.number().int().min(1).max(100).optional().parse((req.query as any).limit)??50)};});
   app.get('/api/characters/:id/memories',async req=>{auth(req,'studio');if((req.params as any).id!==store.characterId)throw new RuntimeError('forbidden',403);return {data:await store.memories()};});
   app.get('/api/commands/:id',async req=>{auth(req,'studio');return {data:await store.command(uuid.parse((req.params as any).id))};});
-  app.get('/api/sessions/:id/knowledge',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=uuid.parse((req.query as any).identityId);return {data:await store.knowledgeDocuments(id,identityId)};});
-  app.get('/api/sessions/:id/knowledge-answer',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=uuid.parse((req.query as any).identityId);return {data:await store.latestKnowledgeAnswer(id,identityId)};});
+  app.get('/api/sessions/:id/knowledge',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=await inputIdentity((req.query as any).identityId);return {data:await store.knowledgeDocuments(id,identityId)};});
+  app.get('/api/sessions/:id/knowledge-answer',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),identityId=await inputIdentity((req.query as any).identityId);return {data:await store.latestKnowledgeAnswer(id,identityId)};});
   const knowledgeBarrier=(responses:Record<string,any>[])=>{for(const response of responses)coordinator.barrier(response.id,'knowledge_changed',BigInt(response.generation_epoch));};
   app.post('/api/sessions/:id/knowledge',async req=>{
-    auth(req,'studio');const id=uuid.parse((req.params as any).id),{identityId,...input}=knowledgePutSchema.extend({identityId:uuid}).parse(req.body);
+    auth(req,'studio');const id=uuid.parse((req.params as any).id),{identityId:proposed,...input}=knowledgePutSchema.extend({identityId:uuid.optional()}).parse(req.body),identityId=await inputIdentity(proposed);
     const result=await coordinator.control(()=>store.mutateKnowledge(id,identityId,requestId(req),input,knowledgeBarrier));await coordinator.sink.changed();return {data:result.result};
   });
   app.delete('/api/sessions/:id/knowledge/:documentId',async req=>{
-    auth(req,'studio');const id=uuid.parse((req.params as any).id),documentId=uuid.parse((req.params as any).documentId),identityId=uuid.parse((req.query as any).identityId),expectedRevision=counter.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,''));
+    auth(req,'studio');const id=uuid.parse((req.params as any).id),documentId=uuid.parse((req.params as any).documentId),identityId=await inputIdentity((req.query as any).identityId),expectedRevision=counter.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,''));
     const result=await coordinator.control(()=>store.mutateKnowledge(id,identityId,requestId(req),{documentId,expectedRevision,delete:true},knowledgeBarrier));await coordinator.sink.changed();return {data:result.result};
   });
+  app.get('/api/sessions/:id/personal-facts',async req=>{auth(req,'studio');z.object({}).strict().parse(req.query);return {data:await store.personalFacts(uuid.parse((req.params as any).id),await operatorId())};});
+  const personalBarrier=(responses:Record<string,any>[])=>{for(const response of responses)coordinator.barrier(response.id,'personal_changed',BigInt(response.generation_epoch));};
+  async function mutatePersonal(req:any,change:PersonalFactChange){
+    const id=uuid.parse(req.params.id),identityId=await operatorId();z.object({}).strict().parse(req.query);
+    const result=await coordinator.control(()=>store.mutatePersonalFact(id,identityId,requestId(req),change,personalBarrier));await coordinator.sink.changed();return {data:result.result};
+  }
+  app.post('/api/sessions/:id/personal-facts',async req=>{auth(req,'studio');return mutatePersonal(req,{kind:'create',input:personalFactInputSchema.parse(req.body)});});
+  app.patch('/api/sessions/:id/personal-facts/:factId',async req=>{auth(req,'studio');return mutatePersonal(req,{kind:'update',id:uuid.parse((req.params as any).factId),expectedRevision:personalRevisionSchema.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,'')),input:personalFactInputSchema.parse(req.body)});});
+  app.delete('/api/sessions/:id/personal-facts/:factId',async req=>{auth(req,'studio');if(req.body!==undefined)z.object({}).strict().parse(req.body);return mutatePersonal(req,{kind:'delete',id:uuid.parse((req.params as any).factId),expectedRevision:personalRevisionSchema.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,''))});});
   async function mutateSource(req:any,memory:boolean,content?:string,sourceIds?:string[]) {
     auth(req,'studio');const key=requestId(req),id=uuid.parse(req.params.id);
     const expected=content===undefined?counter.parse(String(req.headers['if-match']??'').replace(/^"|"$/g,'')):counter.parse(req.body.expectedVersion);
@@ -97,7 +110,7 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
   app.delete('/api/events/:id',async req=>mutateSource(req,false));
   app.get('/api/characters/:id/agendas',async req=>{auth(req,'studio');if((req.params as any).id!==store.characterId)throw new RuntimeError('forbidden',403);return {data:(await store.db.pool.query('SELECT id,status,activity_run_id FROM agendas WHERE character_id=$1 ORDER BY created_at DESC LIMIT 50',[store.characterId])).rows};});
   app.post('/api/sessions/:id/activities',async req=>{auth(req,'studio');const sessionId=uuid.parse((req.params as any).id),body=z.object({problemId:z.string().min(1).max(80)}).strict().parse(req.body);const data=await coordinator.control(()=>store.startActivity(sessionId,requestId(req),body.problemId));void coordinator.solve(sessionId,data.activityId);return {data};});
-  app.post('/api/activities/:id/hints',async req=>{auth(req,'studio');const session=await store.currentSession();if(!session)throw new RuntimeError('session_closed');const activityId=uuid.parse((req.params as any).id),body=z.object({hintId:z.string().min(1).max(80),identityId:uuid}).strict().parse(req.body);const data=await coordinator.control(()=>store.hint(session.id,requestId(req),activityId,body.hintId,body.identityId));void coordinator.solve(session.id,activityId);return {data};});
+  app.post('/api/activities/:id/hints',async req=>{auth(req,'studio');const session=await store.currentSession();if(!session)throw new RuntimeError('session_closed');const activityId=uuid.parse((req.params as any).id),body=z.object({hintId:z.string().min(1).max(80),identityId:uuid}).strict().parse(req.body);const identityId=await inputIdentity(body.identityId);const data=await coordinator.control(()=>store.hint(session.id,requestId(req),activityId,body.hintId,identityId));void coordinator.solve(session.id,activityId);return {data};});
   for(const action of ['retry','end','resume'] as const)app.post(`/api/activities/:id/${action}`,async req=>{auth(req,'studio');z.object({}).strict().parse(req.body);const session=await store.currentSession();if(!session)throw new RuntimeError('session_closed');const id=uuid.parse((req.params as any).id);const data=await coordinator.control(()=>store.activityCommand(session.id,requestId(req),id,action));if(action!=='end')void coordinator.solve(session.id,id);return {data};});
   app.post('/api/sessions/:id/agenda-answer',async req=>{auth(req,'studio');const id=uuid.parse((req.params as any).id),body=z.object({accept:z.boolean()}).strict().parse(req.body);const data=await coordinator.control(()=>store.answerAgenda(id,requestId(req),body.accept));if(body.accept)void coordinator.solve(id,data.activityId);return {data};});
   async function grantOutput(sessionId:string,key:string,next:Connection){const result=await coordinator.control(()=>store.grantOwner(sessionId,key,next.clientId));outputOwner={clientId:next.clientId,outputEpoch:result.outputEpoch};ownerSocket=next;const state=await store.state();send(next,'output.granted',{clientId:next.clientId,outputEpoch:result.outputEpoch,generationEpoch:state.generationEpoch});return result;}
@@ -126,7 +139,7 @@ export async function createServer(store:Store,provider:DialogueGenerator,apprai
           if(envelope.type==='stage.ready'){current.ready=payload.supportsExpressions.includes('neutral');if(current.ready)await ownership(async()=>{if(current.socket.readyState===1&&outputOwner?.clientId===current.clientId&&ownerSocket!==current){await grantOutput(current.sessionId!,randomUUID(),current);await coordinator.sink.changed();}});return;}
           if(envelope.type==='output.released'){if(!pendingRelease||pendingRelease.clientId!==current.clientId||pendingRelease.id!==payload.stopRequestId||outputOwner?.outputEpoch.toString()!==payload.outputEpoch)throw new RuntimeError('stale_epoch');pendingRelease.resolve();return;}
           if(!envelope.requestId)throw new RuntimeError('invalid_message',400);let result;
-          if(envelope.type==='chat.submit'){if(Date.now()-current.rate.at>=1000)current.rate={at:Date.now(),count:0};if(++current.rate.count>50)throw new RuntimeError('rate_limited',429);result=await coordinator.chat(current.sessionId,envelope.requestId,payload);}
+          if(envelope.type==='chat.submit'){if(Date.now()-current.rate.at>=1000)current.rate={at:Date.now(),count:0};if(++current.rate.count>50)throw new RuntimeError('rate_limited',429);result=await coordinator.chat(current.sessionId,envelope.requestId,{...payload,identityId:await inputIdentity(payload.identityId)});}
           else if(envelope.type==='response.stop')result=await coordinator.cancel(current.sessionId,envelope.requestId,payload.responseId);
           else {if(outputOwner?.clientId!==current.clientId)throw new RuntimeError('forbidden',403);result=await coordinator.control(()=>store.report(current.sessionId!,envelope.requestId!,envelope.type as any,payload,current.clientId));if(envelope.type==='caption.finished')await coordinator.delivered();}
           send(current,'command.result',{requestId:envelope.requestId,...result},envelope.requestId);

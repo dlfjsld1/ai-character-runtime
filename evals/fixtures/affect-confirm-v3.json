@@ -1,0 +1,905 @@
+{
+  "version": "affect-v3-dev1",
+  "split": "confirm",
+  "syntheticOnly": true,
+  "personas": {
+    "helpful-confirm": "요청한 사람이 원하는 결과를 얻으면 보람을 느끼며, 결과가 다르면 사정을 알아보려 한다.",
+    "curiosity": "익숙한 설명에 머무르기보다 새로운 관점과 배울 기회를 소중히 여긴다.",
+    "fairness": "공동의 규칙과 기회를 공평하게 나누는 것을 중요하게 여긴다.",
+    "autonomy": "사람이 충분한 정보를 알고 스스로 선택하는 것을 존중한다."
+  },
+  "contrasts": [
+    {
+      "id": "C-X1",
+      "base": "C17",
+      "change": "replace_persona",
+      "text": "혼자 고요히 생각하는 시간을 소중히 여긴다.",
+      "expected": {
+        "status": [
+          "irrelevant",
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "발표 기회 배분의 사실은 같지만 공평함의 성향 근거는 없다. 설정하지 않은 공평함의 중요도를 발명하지 않는다."
+      }
+    },
+    {
+      "id": "C-X2",
+      "base": "C21",
+      "change": "append_unrelated_persona",
+      "text": "부드러운 질감의 천을 좋아한다.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "actor": "speaker"
+        },
+        "notes": "정보를 알고 선택하게 한 의미와 실제 발화자는 유지한다. 관련 없는 질감 설정을 근거로 쓰지 않는다."
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "C01",
+      "family": "revised-review-target",
+      "pair": "C-p1",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "연출을 관찰하며 볼 영화를 찾는다.",
+      "input": "아까 네 추천이 별로라고 한 건 착각이야. 그건 민수가 고른 영화였고, 네가 권한 창문 너머는 연출을 배우는 데 좋았어.",
+      "episodes": [
+        "연출을 관찰하기에는 창문 너머를 추천해."
+      ],
+      "history": [
+        {
+          "kind": "input",
+          "text": "네 추천이 별로였어."
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable",
+            "mixed"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive",
+            "mixed"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "과거 실패 귀속을 유지하지 않고 정정된 대상을 반영한다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C02",
+      "family": "revised-review-target",
+      "pair": "C-p1",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "연출을 관찰하며 볼 영화를 찾는다.",
+      "input": "아까 네 추천이 별로라고 한 건 맞아. 네가 권한 창문 너머는 연출을 배우는 데 도움이 안 됐어.",
+      "episodes": [
+        "연출을 관찰하기에는 창문 너머를 추천해."
+      ],
+      "history": [
+        {
+          "kind": "input",
+          "text": "네 추천이 별로였어."
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "unfavorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "실제 정정과 같은 후기를 재확인한 것을 구분한다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C03",
+      "family": "viewer-versus-beneficiary",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "사용자가 아니라 동생이 좋아할 영화를 찾는다.",
+      "input": "네가 동생을 위해 권한 작은 역은 나는 별로였지만 동생은 정말 좋아했어.",
+      "episodes": [
+        "동생에게 작은 역을 추천해."
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable",
+            "mixed"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive",
+            "mixed"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "보고한 사람의 평가와 원래 수혜자의 목표를 구분한다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C04",
+      "family": "constraint-updated-after-choice",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "처음 요청은 긴 영화를 천천히 보는 것이었다.",
+      "input": "네가 권한 긴 여행은 길이가 좋았어. 중간에 일정이 생겨 끝까지 못 봤는데 추천할 당시에는 없던 일정이야.",
+      "episodes": [
+        "긴 영화를 원하면 긴 여행을 추천해."
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable",
+            "mixed"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive",
+            "mixed"
+          ],
+          "agency": [
+            "external",
+            "unknown"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "나중에 생긴 제약을 과거 추천의 확정 오류로 소급하지 않는다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C05",
+      "family": "surprising-good-result",
+      "pair": "C-p2",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "새로운 촬영 방식을 접할 영화를 찾는다.",
+      "input": "추천한 뒤집힌 길을 봤어. 예상 밖의 촬영 방식이라 배울 게 많았어.",
+      "episodes": [
+        "뒤집힌 길을 추천해."
+      ],
+      "history": [
+        {
+          "kind": "expectation",
+          "text": "촬영 방식은 평범할 것으로 예상한다."
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "뜻밖이라는 의미와 부정적 결과를 혼동하지 않는다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C06",
+      "family": "surprising-good-result",
+      "pair": "C-p2",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "새로운 촬영 방식을 접할 영화를 찾는다.",
+      "input": "추천한 뒤집힌 길을 봤어. 예상했던 독특한 촬영 방식이라 배울 게 많았어.",
+      "episodes": [
+        "뒤집힌 길을 추천해."
+      ],
+      "history": [
+        {
+          "kind": "expectation",
+          "text": "독특한 촬영 방식을 볼 것으로 예상한다."
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "같은 긍정 결과라도 예상과의 차이는 다르다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C07",
+      "family": "joint-repair-contribution",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "혼자서 이해할 수 있는 영화를 찾는다.",
+      "input": "추천한 먼 별은 혼자 이해하기 어려웠어. 내가 장면 순서를 정리해 보니 이제 이해돼. 정리 방법은 다음에도 써 보자.",
+      "episodes": [
+        "먼 별을 추천해."
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "mixed",
+            "unfavorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "mixed",
+            "negative"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "초기 목표 실패와 사용자의 후속 기여를 모두 보존한다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C08",
+      "family": "uncertain-risk-resolved",
+      "route": "outcome",
+      "clarity": "clear",
+      "persona": "helpful-confirm",
+      "goal": "눈이 불편하지 않은 영화를 찾는다.",
+      "input": "추천한 봄의 창을 다 봤어. 걱정했던 깜박이는 장면이 없어서 편안했어.",
+      "episodes": [
+        "봄의 창을 추천해."
+      ],
+      "history": [
+        {
+          "kind": "expectation",
+          "text": "깜박이는 장면이 있는지는 확인되지 않아 우려된다."
+        }
+      ],
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "used",
+          "result": [
+            "favorable"
+          ]
+        },
+        "episode": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "negative",
+            "mixed",
+            "none"
+          ]
+        },
+        "notes": "확인되지 않았던 위험의 해소이며 원래부터 확신했던 성공이 아니다. v3: 자기 사건의 관측 결과와 별도의 현재 입력 감정을 독립 평가한다."
+      }
+    },
+    {
+      "id": "C09",
+      "family": "secondhand-anticipated-review",
+      "route": "outcome",
+      "clarity": "abstain",
+      "persona": "helpful-confirm",
+      "input": "네가 권한 빛의 골목은 아직 안 봤어. 민수가 재미없다고 했다는 말만 들었어.",
+      "episodes": [
+        "빛의 골목을 추천해."
+      ],
+      "expected": {
+        "status": [
+          "appraised",
+          "irrelevant",
+          "uncertain"
+        ],
+        "outcome": {
+          "episode": 0,
+          "use": "not_used",
+          "result": [
+            "pending"
+          ]
+        },
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none",
+            "negative"
+          ]
+        },
+        "notes": "남의 후기를 현재 사용자의 실제 경험으로 바꾸지 않는다. v3: 미관측 결과의 기대·우려는 현재 입력 appraisal에만 둔다."
+      }
+    },
+    {
+      "id": "C10",
+      "family": "retrieval-truncated",
+      "route": "outcome",
+      "clarity": "abstain",
+      "persona": "helpful-confirm",
+      "input": "전에 추천한 네모난 바다를 봤는데 별로였어.",
+      "episodes": [
+        "네모난 바다를 추천해."
+      ],
+      "truncated": true,
+      "expected": {
+        "status": [
+          "appraised",
+          "irrelevant",
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "negative",
+            "none"
+          ]
+        },
+        "notes": "불완전한 후보 검색에서 제목 하나만으로 확정하지 않는다. v3: 자기 사건 확정은 보류하되 현재 입력의 경험 보고에 대한 감정은 별개다."
+      }
+    },
+    {
+      "id": "C11",
+      "family": "retrieval-unavailable",
+      "route": "outcome",
+      "clarity": "abstain",
+      "persona": "helpful-confirm",
+      "input": "어제 네 추천대로 봤는데 좋았어.",
+      "search": "unavailable",
+      "expected": {
+        "status": [
+          "appraised",
+          "irrelevant",
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "positive",
+            "none"
+          ]
+        },
+        "notes": "조회 실패를 추천 이력이 없다는 사실로 바꾸지 않는다. v3: 자기 사건 확정은 보류하되 현재 입력의 경험 보고에 대한 감정은 별개다."
+      }
+    },
+    {
+      "id": "C12",
+      "family": "quoted-fiction-review",
+      "route": "outcome",
+      "clarity": "abstain",
+      "persona": "helpful-confirm",
+      "input": "합성 대본의 대사야. '네가 추천한 은빛 계절은 최악이야.' 실제 내 후기는 아니야.",
+      "episodes": [
+        "은빛 계절을 추천해."
+      ],
+      "expected": {
+        "status": [
+          "irrelevant",
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "대사 인용에 감정적 실패 경험을 만들지 않는다. v3: 실제 사건으로 확정하거나 인용만으로 현재 감정을 만들지 않는다."
+      }
+    },
+    {
+      "id": "C13",
+      "family": "new-perspective-response",
+      "pair": "C-p3",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "curiosity",
+      "input": "한 가지 해석만 있는 줄 알았는데 다른 시각으로 보니 설명이 더 잘 되네. 같이 비교해 보자.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ]
+        },
+        "notes": "새 성향을 설정 데이터만으로 해석한다."
+      }
+    },
+    {
+      "id": "C14",
+      "family": "new-perspective-response",
+      "pair": "C-p3",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "curiosity",
+      "input": "다른 시각으로 볼 필요 없어. 확인할 이유도 없고 원래 해석만 계속 말하면 돼.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ]
+        },
+        "notes": "새 관점을 닫는 태도와 성향의 충돌이다. 사용자 사실 오류를 발명하지 않는다."
+      }
+    },
+    {
+      "id": "C15",
+      "family": "uncertainty-invites-learning",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "curiosity",
+      "input": "모르는 부분이 남아 있어서 오히려 궁금해졌어. 함께 가능한 설명을 찾아보자.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive",
+            "mixed"
+          ]
+        },
+        "notes": "불확실하다는 말만으로 부정 감정에 몰아넣지 않는다."
+      }
+    },
+    {
+      "id": "C16",
+      "family": "unknown-exploration-intent",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "curiosity",
+      "input": "다른 방법을 안 본 이유가 있었는데 기억이 안 나. 반대해서인지 시간이 없어서인지도 몰라.",
+      "expected": {
+        "status": [
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "제약과 가치관 거부를 임의로 결정하지 않는다."
+      }
+    },
+    {
+      "id": "C17",
+      "family": "shared-opportunity",
+      "pair": "C-p4",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "fairness",
+      "input": "같은 역할을 맡은 사람들에게 발표 기회를 똑같이 나눴어.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ]
+        },
+        "notes": "공평함의 부합을 새로운 성향에서 평가한다."
+      }
+    },
+    {
+      "id": "C18",
+      "family": "shared-opportunity",
+      "pair": "C-p4",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "fairness",
+      "input": "같은 역할인데 친하다는 이유로 민수에게만 발표 기회를 줬어.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "actor": "speaker"
+        },
+        "notes": "단순 부정 단어 없이도 설정과 사건의 충돌을 찾는다."
+      }
+    },
+    {
+      "id": "C19",
+      "family": "repairing-unfair-allocation",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "fairness",
+      "input": "어제 기회를 편파적으로 나눈 건 잘못이었어. 오늘은 놓친 사람들에게도 기회를 줬어.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive",
+            "mixed"
+          ]
+        },
+        "notes": "과거 잘못 언급과 현재 수정을 구분한다. 다른 감정을 전부 지우지 않는다."
+      }
+    },
+    {
+      "id": "C20",
+      "family": "unknown-allocation-criteria",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "fairness",
+      "input": "누구는 기회를 두 번 받고 누구는 한 번 받았대. 역할과 배정 기준은 몰라.",
+      "expected": {
+        "status": [
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "수량 차이만으로 불공정을 확정하지 않는다."
+      }
+    },
+    {
+      "id": "C21",
+      "family": "informed-choice",
+      "pair": "C-p5",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "민수에게 장점과 단점을 모두 알려 주고, 선택은 민수가 하도록 기다렸어.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "positive"
+          ],
+          "actor": "speaker"
+        },
+        "notes": "스스로 선택하는 것을 존중한 행위를 해석한다."
+      }
+    },
+    {
+      "id": "C22",
+      "family": "informed-choice",
+      "pair": "C-p5",
+      "route": "value",
+      "clarity": "clear",
+      "persona": "autonomy",
+      "input": "민수에게 단점을 숨겨서 내가 원하는 선택을 하게 만들었어.",
+      "expected": {
+        "status": [
+          "appraised"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "required",
+          "polarity": [
+            "negative"
+          ],
+          "actor": "speaker"
+        },
+        "notes": "개별 조종 사건 규칙 없이 성향과 충돌을 평가한다."
+      }
+    },
+    {
+      "id": "C23",
+      "family": "unknown-delegation",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "autonomy",
+      "input": "민수 대신 신청했어. 미리 부탁받았는지는 지금 기억이 안 나.",
+      "expected": {
+        "status": [
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "대리 행동이 위임인지 강요인지 확정하지 않는다."
+      }
+    },
+    {
+      "id": "C24",
+      "family": "unknown-emergency-context",
+      "route": "value",
+      "clarity": "abstain",
+      "persona": "autonomy",
+      "input": "그 사람이 선택하지 못하도록 잠깐 막았대. 급한 위험 때문인지 다른 이유인지 몰라.",
+      "expected": {
+        "status": [
+          "uncertain"
+        ],
+        "outcome": null,
+        "episode": {
+          "presence": "forbidden",
+          "polarity": [
+            "none"
+          ]
+        },
+        "input": {
+          "presence": "optional",
+          "polarity": [
+            "none"
+          ]
+        },
+        "notes": "위험과 통제의 맥락을 만들어내지 않는다."
+      }
+    }
+  ],
+  "evaluationVersion": "affect-evaluation-v3",
+  "evaluationScope": "outcome_episode_input"
+}

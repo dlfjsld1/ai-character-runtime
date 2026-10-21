@@ -1,7 +1,11 @@
 import {readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {RuntimeError,type Plan} from '../../contracts/src/domain.ts';
-import type {DialogueGenerator,DialogueContext,Message} from '../../contracts/src/ai-ports.ts';
+import type {DialogueGenerator,DialogueContext,Message,EventInterpreter} from '../../contracts/src/ai-ports.ts';
+import type {EventInterpretationRequest} from '../../contracts/src/affect-appraisal.ts';
+import {StructuredEventInterpreter,eventInterpreterVersion} from './event-interpreter.ts';
+import type {EventWireFormat} from './event-reference-codec.ts';
+import {buildAnnotatedDialogueRequest,decodeAnnotatedDialogueOutput} from './recommendation-capture.ts';
 import {budgetConversation,dropOldestExchange,type ConversationSnapshot} from '../../contracts/src/conversation.ts';
 import {buildDialogueRequest,decodeDialogueOutput,buildKnowledgeRequest,decodeKnowledgeOutput} from './dialogue-request.ts';
 
@@ -10,8 +14,18 @@ export const openaiCandidate={model:'gpt-6-sol',inputUsdPerMillion:2.5,outputUsd
 export const openaiDecisionCandidate={model:'gpt-6-luna',inputUsdPerMillion:.10,maxCalls:36} as const;
 type CountContinuation={entryId:string;authorization:string;kind?:'count'|'decision';maxDecisionCalls?:number};
 export type RuntimeBudgetAuthorization={authorization:string;maxDecisionCalls:number;maxDialogueCalls:number;acknowledgedCountEntryId?:string;acknowledgedDialogueEntryId?:string};
-type Entry={id:string;kind:'count'|'dialogue'|'decision';status:'reserved'|'completed'|'unknown';usd:number;usage?:{input_tokens:number;output_tokens:number;cached_tokens:number};continuedAfter?:CountContinuation;runtimeAuthorization?:RuntimeBudgetAuthorization;model?:string;inputUsdPerMillion?:number};
+type Entry={id:string;kind:'count'|'dialogue'|'decision';status:'reserved'|'completed'|'unknown';usd:number;maxOutputTokens?:number;usage?:{input_tokens:number;output_tokens:number;cached_tokens:number};continuedAfter?:CountContinuation;runtimeAuthorization?:RuntimeBudgetAuthorization;model?:string;inputUsdPerMillion?:number};
 type Ledger={version:1;model:string;limitUsd:number;entries:Entry[]};
+export const openaiAffectLimits={inputTokens:8192,outputTokens:2048,annotationOutputTokens:512} as const;
+function outputLimit(body:object){
+  const value=(body as {max_output_tokens?:number}).max_output_tokens??openaiCandidate.outputTokens;
+  if(!Number.isSafeInteger(value)||value<1||value>openaiAffectLimits.outputTokens)throw new RuntimeError('dialogue_output_limit_invalid',400);
+  return value;
+}
+export function openaiReservationUsd(kind:Entry['kind'],body:object){
+  const rate=kind==='decision'?openaiDecisionCandidate.inputUsdPerMillion:openaiCandidate.inputUsdPerMillion;
+  return ((Buffer.byteLength(JSON.stringify(body))+1024)*rate+(kind==='dialogue'?outputLimit(body)*openaiCandidate.outputUsdPerMillion:0))/1e6;
+}
 export class DialogueBudget {
   constructor(readonly path:string,readonly limitUsd:number,private countContinuation?:CountContinuation,private runtimeAuthorization?:RuntimeBudgetAuthorization){
     if(!path||!Number.isFinite(limitUsd)||limitUsd<=0)throw new RuntimeError('dialogue_budget_required',400);
@@ -23,6 +37,7 @@ export class DialogueBudget {
     let ledger:Ledger;
     try{ledger=JSON.parse(readFileSync(this.path,'utf8'));}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw new RuntimeError('dialogue_budget_invalid',503);ledger={version:1,model:openaiCandidate.model,limitUsd:this.limitUsd,entries:[]};}
     if(ledger.version!==1||ledger.model!==openaiCandidate.model||ledger.limitUsd!==this.limitUsd||!Array.isArray(ledger.entries)||ledger.entries.some(e=>!e.id||!['count','dialogue','decision'].includes(e.kind)||!['reserved','completed','unknown'].includes(e.status)||!Number.isFinite(e.usd)||e.usd<0||(e.kind==='decision'&&(e.model!==openaiDecisionCandidate.model||e.inputUsdPerMillion!==openaiDecisionCandidate.inputUsdPerMillion))))throw new RuntimeError('dialogue_budget_invalid',503);
+    if(ledger.entries.some(e=>e.maxOutputTokens!==undefined&&(e.kind!=='dialogue'||!Number.isSafeInteger(e.maxOutputTokens)||e.maxOutputTokens<1||e.maxOutputTokens>openaiAffectLimits.outputTokens)))throw new RuntimeError('dialogue_budget_invalid',503);
     return ledger;
   }
   private transaction<T>(fn:(ledger:Ledger)=>T):T{
@@ -48,8 +63,7 @@ export class DialogueBudget {
     if(kind==='decision'&&ledger.entries.filter(e=>e.kind==='decision').length>=(this.runtimeAuthorization?.maxDecisionCalls??this.countContinuation?.maxDecisionCalls??openaiDecisionCandidate.maxCalls))throw new RuntimeError('decision_attempt_limit',503);
     // UTF-8 byte bound plus framing allowance, not an exact tokenizer estimate.
     // Token-count requests retain this conservative allowance: their billing is unverified.
-    const rate=kind==='decision'?openaiDecisionCandidate.inputUsdPerMillion:openaiCandidate.inputUsdPerMillion;
-    const usd=((Buffer.byteLength(JSON.stringify(body))+1024)*rate+(kind==='dialogue'?256*openaiCandidate.outputUsdPerMillion:0))/1e6;
+    const usd=openaiReservationUsd(kind,body);
     if(ledger.entries.reduce((sum,e)=>sum+e.usd,0)+usd>this.limitUsd)throw new RuntimeError('dialogue_budget_exceeded',503);
     return usd;
   }
@@ -74,7 +88,7 @@ export class DialogueBudget {
   }
   reserve(kind:Entry['kind'],body:object){return this.transaction(ledger=>{
     const usd=this.reservationCost(ledger,kind,body);
-    const id=randomUUID();ledger.entries.push({id,kind,status:'reserved',usd,...(kind==='decision'?{model:openaiDecisionCandidate.model,inputUsdPerMillion:openaiDecisionCandidate.inputUsdPerMillion}:{}),...(this.countContinuation?{continuedAfter:this.countContinuation}:{}),...(this.runtimeAuthorization?{runtimeAuthorization:{...this.runtimeAuthorization}}:{})});return id;
+    const id=randomUUID();ledger.entries.push({id,kind,status:'reserved',usd,...(kind==='dialogue'?{maxOutputTokens:outputLimit(body)}:{}),...(kind==='decision'?{model:openaiDecisionCandidate.model,inputUsdPerMillion:openaiDecisionCandidate.inputUsdPerMillion}:{}),...(this.countContinuation?{continuedAfter:this.countContinuation}:{}),...(this.runtimeAuthorization?{runtimeAuthorization:{...this.runtimeAuthorization}}:{})});return id;
   });}
   finish(id:string,usage?:Entry['usage']){return this.transaction(ledger=>{
     const entry=ledger.entries.find(e=>e.id===id);if(!entry||entry.status!=='reserved')throw new RuntimeError('dialogue_budget_invalid',503);
@@ -82,7 +96,7 @@ export class DialogueBudget {
       if(!usage){entry.status='unknown';return false;}
       if(![usage.input_tokens,usage.output_tokens,usage.cached_tokens].every(n=>Number.isSafeInteger(n)&&n>=0)||usage.cached_tokens>usage.input_tokens)throw new RuntimeError('dialogue_usage_unconfirmed',503);
       const usd=entry.kind==='decision'?usage.input_tokens*entry.inputUsdPerMillion!/1e6:(usage.input_tokens*openaiCandidate.inputUsdPerMillion+usage.output_tokens*openaiCandidate.outputUsdPerMillion)/1e6;
-      if(usd>entry.usd){entry.usd=usd;entry.status='unknown';entry.usage=usage;return false;}
+      if(usd>entry.usd||entry.kind==='dialogue'&&usage.output_tokens>(entry.maxOutputTokens??256)){entry.usd=Math.max(entry.usd,usd);entry.status='unknown';entry.usage=usage;return false;}
       entry.usd=usd;entry.usage=usage;
     }
     entry.status='completed';
@@ -97,11 +111,11 @@ export function openaiSchema(value:any):any{
   return value;
 }
 type Options={localOnly:boolean;allowPaidProviders:boolean;apiKey:string;budget:DialogueBudget;fetcher?:typeof fetch;deadlineMs?:number;physicalTimeoutMs?:number;onCall?:(record:Record<string,unknown>)=>void;onContent?:(text:string)=>void};
-export class OpenAIDialogue implements DialogueGenerator {
+class OpenAIResponses {
   readonly name='openai';readonly model=openaiCandidate.model;
-  private busy=false;private verified=false;private stopped=false;
+  private busy=false;private verified=false;protected stopped=false;
   // One prepared request only; never persist or reuse across a provider call.
-  private preparedCount?:{body:string;inputTokens:number};
+  protected preparedCount?:{body:string;inputTokens:number};
   readonly counter={count:(messages:Message[])=>this.countInput(messages),countText:(text:string)=>this.countInput(text)};
   constructor(private options:Options){
     if(options.localOnly||!options.allowPaidProviders)throw new RuntimeError('paid_provider_disabled',400);
@@ -109,7 +123,7 @@ export class OpenAIDialogue implements DialogueGenerator {
   }
   readiness(){const error=this.stopped?'dialogue_provider_stopped':this.busy?null:this.options.budget.availability('dialogue').errorCode;return {status:this.busy?'busy':this.stopped?'unavailable':error?'blocked':this.verified?'ready':'not_verified',inferenceVerified:this.verified,preparationError:error};}
   async ready(){return this.readiness();} // Never hides a paid preparation call.
-  private async request(kind:'count'|'dialogue',body:object,expectedInputTokens?:number):Promise<any>{
+  protected async request(kind:'count'|'dialogue',body:object,expectedInputTokens?:number,inputLimit=3328):Promise<any>{
     this.preparedCount=undefined;
     if(this.stopped)throw new RuntimeError('dialogue_provider_stopped',503);
     if(this.busy)throw new RuntimeError('physical_call_unconfirmed',503);
@@ -127,9 +141,10 @@ export class OpenAIDialogue implements DialogueGenerator {
           this.options.budget.finish(id);return data;
         }
         const u=data.usage,cached=u?.input_tokens_details?.cached_tokens??0;
-        if(!u||![u.input_tokens,u.output_tokens,cached].every(n=>Number.isSafeInteger(n)&&n>=0)||cached>u.input_tokens||u.output_tokens>256)throw new RuntimeError('dialogue_usage_unconfirmed',503);
-        usage={input_tokens:u.input_tokens,output_tokens:u.output_tokens,cached_tokens:cached};this.options.budget.finish(id,usage);
-        if(u.input_tokens>3328||u.input_tokens!==expectedInputTokens)throw new RuntimeError('dialogue_token_count_mismatch',503);
+        if(!u||![u.input_tokens,u.output_tokens,cached].every(n=>Number.isSafeInteger(n)&&n>=0)||cached>u.input_tokens)throw new RuntimeError('dialogue_usage_unconfirmed',503);
+        usage={input_tokens:u.input_tokens,output_tokens:u.output_tokens,cached_tokens:cached};
+        if(!this.options.budget.finish(id,usage))throw new RuntimeError('dialogue_usage_unconfirmed',503);
+        if(u.input_tokens>inputLimit||u.input_tokens!==expectedInputTokens)throw new RuntimeError('dialogue_token_count_mismatch',503);
         if(data.status!=='completed'||data.model!==this.model)throw new RuntimeError('dialogue_incomplete_or_model_mismatch',503);
         if(!Array.isArray(data.output)||data.output.some((o:any)=>o.type!=='message'||o.role!=='assistant'||!Array.isArray(o.content)||o.content.some((c:any)=>c.type!=='output_text')))throw new RuntimeError('invalid_output',503);
         const text=data.output.flatMap((o:any)=>o.content.map((c:any)=>c.text)).join('');if(typeof text!=='string'||!text)throw new RuntimeError('invalid_output',503);
@@ -147,14 +162,16 @@ export class OpenAIDialogue implements DialogueGenerator {
     return Promise.race([physical,logical]);
   }
   private async countInput(input:Message[]|string){return (await this.request('count',{model:this.model,input})).input_tokens as number;}
-  private compose(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});}
-  private payload(request:{messages:Message[];format?:object}){return {model:this.model,input:request.messages,store:false,reasoning:{effort:'none'},temperature:.2,max_output_tokens:256,text:{format:{type:'json_schema',name:'character_dialogue',strict:true,schema:openaiSchema(request.format)}}};}
-  private async countPayload(body:ReturnType<OpenAIDialogue['payload']>){
+  protected payload(request:{messages:Message[];format?:object},maxOutputTokens:number=256,name='character_dialogue'){return {model:this.model,input:request.messages,store:false,reasoning:{effort:'none'},temperature:.2,max_output_tokens:maxOutputTokens,text:{format:{type:'json_schema',name,strict:true,schema:openaiSchema(request.format)}}};}
+  protected async countPayload(body:ReturnType<OpenAIResponses['payload']>){
     // InputTokenCountParams excludes store/temperature/max_output_tokens.
     // Preserve all input-bearing fields, including the structured output schema.
     const {model,input,reasoning,text}=body;
     return (await this.request('count',{model,input,reasoning,text})).input_tokens as number;
   }
+}
+export class OpenAIDialogue extends OpenAIResponses implements DialogueGenerator {
+  private compose(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});}
   async fitConversation(plan:Plan,context:object){
     this.preparedCount=undefined;
     if(plan.purpose==='knowledge_answer'){
@@ -182,5 +199,31 @@ export class OpenAIDialogue implements DialogueGenerator {
     const inputTokens=prepared?.body===JSON.stringify(body)?prepared.inputTokens:await this.countPayload(body);
     if(inputTokens>3328)throw new RuntimeError('context_limit',503);
     return decodeKnowledgeOutput(request,await this.request('dialogue',body,inputTokens),plan.maxSentences);
+  }
+  async generateTurn(plan:Plan,context:DialogueContext){
+    // A plain dialogue fit has a different schema and cannot authorize this count.
+    this.preparedCount=undefined;
+    if(plan.purpose==='knowledge_answer')throw new RuntimeError('recommendation_capture_unsupported',400);
+    const request=buildAnnotatedDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});
+    const body=this.payload(request,openaiAffectLimits.annotationOutputTokens,'character_recommendation'),inputTokens=await this.countPayload(body);
+    if(inputTokens>3328)throw new RuntimeError('context_limit',503);
+    return decodeAnnotatedDialogueOutput(request,await this.request('dialogue',body,inputTokens),plan.maxSentences);
+  }
+}
+
+// Uses the same bounded HTTP/accounting machinery, but has no dialogue role.
+export class OpenAIEventInterpreter extends OpenAIResponses implements EventInterpreter {
+  readonly promptVersion:string;
+  constructor(options:Options,private readonly wireFormat:EventWireFormat='uuid-v3'){super(options);this.promptVersion=eventInterpreterVersion(wireFormat);}
+  async interpret(input:EventInterpretationRequest){
+    const interpreter=new StructuredEventInterpreter(async request=>{
+      const body=this.payload({messages:request.messages,format:request.schema},openaiAffectLimits.outputTokens,'character_event');
+      const inputTokens=await this.countPayload(body);
+      if(inputTokens>openaiAffectLimits.inputTokens)throw new RuntimeError('context_limit',503);
+      return this.request('dialogue',body,inputTokens,openaiAffectLimits.inputTokens);
+    },undefined,this.wireFormat);
+    const result=await interpreter.interpret(input);
+    if(result.status==='unavailable')this.stopped=true;
+    return result;
   }
 }

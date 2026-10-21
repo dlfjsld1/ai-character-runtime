@@ -87,6 +87,10 @@ async function settleNewEntries(beforeLength:number){
 }
 
 export async function main(args=process.argv.slice(2)){
+ if(args[0]==='--mock-contextual'){
+  if(args.length!==3||args[1]!=='--output')throw Error('usage: --mock-contextual --output NEW_DIRECTORY');
+  const {writeContextualMock}=await import('./contextual-expression.ts');console.log(JSON.stringify(await writeContextualMock(resolve(args[2]!))));return;
+ }
  const preflight=args[0]==='--preflight';
  if((preflight?args.length!==3:args.length!==5)||!['--preflight','--live'].includes(args[0]??'')||args[1]!=='--attempt'||!/^r[1-9]\d*$/.test(args[2]??'')||!preflight&&(args[3]!=='--synthetic-inputs'||args[4]!=='--allow-paid-providers'))throw Error('usage: --preflight --attempt r1 OR --live --attempt r1 --synthetic-inputs --allow-paid-providers');
  const attempt=args[2]!,root=resolve('J:/ai/ai-character-runtime/mixed-affect-expression-20261016-'+attempt);

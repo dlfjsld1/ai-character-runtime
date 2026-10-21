@@ -33,15 +33,15 @@ export async function readExplicitKnowledgeFile(file:string){
 export async function importKnowledgeMain(args=process.argv.slice(2)){
  const files:string[]=[];const opts:Record<string,string>={};
  for(let i=0;i<args.length;i++){
-  const key=args[i];if(!['--session','--identity','--file','--document','--revision'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('usage: --session UUID --identity UUID --file exact.md [--file exact.txt] [--document UUID --revision N]');
+  const key=args[i];if(!['--session','--identity','--file','--document','--revision','--retention'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('usage: --session UUID --file exact.md [--file exact.txt] [--retention session|persistent] [--identity UUID] [--document UUID --revision N]');
   const value=args[++i];if(key==='--file')files.push(value);else{if(opts[key])throw new Error('duplicate_option');opts[key]=value;}
  }
- const sessionId=z.uuid().parse(opts['--session']),identityId=z.uuid().parse(opts['--identity']);
+ const sessionId=z.uuid().parse(opts['--session']),identityId=z.uuid().optional().parse(opts['--identity']),retention=z.enum(['session','persistent']).optional().parse(opts['--retention']);
  if(!files.length||files.length>20||(opts['--document']||opts['--revision'])&&files.length!==1)throw new Error('knowledge_explicit_files_required');
  if(Boolean(opts['--document'])!==Boolean(opts['--revision']))throw new Error('knowledge_update_requires_document_and_revision');
  const token=process.env.STUDIO_ACCESS_TOKEN;if(!token||!/^[0-9a-f]{64}$/.test(token))throw new Error('studio_access_token_required');
  // Validate every explicitly listed file before any mutation; paths never leave this process.
- const documents=[];for(const file of files)documents.push(knowledgePutSchema.parse({...await readExplicitKnowledgeFile(file),...(opts['--document']?{documentId:opts['--document'],expectedRevision:opts['--revision']}:{})}));
+ const documents=[];for(const file of files)documents.push(knowledgePutSchema.parse({...await readExplicitKnowledgeFile(file),...(retention?{retention}:{}),...(opts['--document']?{documentId:opts['--document'],expectedRevision:opts['--revision']}:{})}));
  const results=[];
  for(const document of documents){
   const response=await fetch(`http://127.0.0.1:3001/api/sessions/${sessionId}/knowledge`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{origin:'http://127.0.0.1:3001',authorization:`Bearer ${token}`,'content-type':'application/json','idempotency-key':randomUUID()},body:JSON.stringify({identityId,...document})});

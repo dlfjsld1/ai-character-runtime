@@ -9,7 +9,7 @@ const origin='http://127.0.0.1:3001',identityId=IDENTITY_IDS[0],query='합성 �
 const documentInput={identityId,title:'합성 필터 설명',body:'합성 필터의 교체 주기는 여섯 달이다.'};
 beforeAll(async()=>{db=await testDatabase();});
 beforeEach(async()=>{
- await reset(db);store=new Store(db);runtime=await createServer(store,fixtureProvider,mockJevAppraiser(),{knowledge:new PostgresKnowledgeRetriever(db.pool),serveStatic:false,timer:false});
+ await reset(db);store=new Store(db);runtime=await createServer(store,fixtureProvider,mockJevAppraiser(),{knowledge:new PostgresKnowledgeRetriever(db.pool),syntheticIdentities:true,serveStatic:false,timer:false});
  const exchange=await runtime.app.inject({method:'POST',url:'/api/auth/exchange',headers:{origin,'content-type':'application/json'},payload:{code:runtime.studioCode,clientInstanceId:randomUUID()}});studioToken=exchange.json().data.accessToken;
  const pair=(await request('/api/stage-pairings','POST',{})).json().data;stageToken=(await request('/api/auth/exchange','POST',{code:pair.code,clientInstanceId:randomUUID()})).json().data.accessToken;
  sessionId=randomUUID();expect((await request('/api/sessions','POST',{sessionId,characterId:CHARACTER_ID,configVersion:'1'})).statusCode).toBe(200);

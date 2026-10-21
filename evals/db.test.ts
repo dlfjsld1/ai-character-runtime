@@ -5,8 +5,8 @@ import {Store} from '../packages/database/src/store.ts';
 import {jevEvidenceVerifier} from '../packages/adapters/src/appraisal-evidence.ts';
 import { migrate } from '../packages/database/src/migrate.ts';
 import { seed } from '../packages/database/src/seed.ts';
-import { initialState } from '../packages/character-core/src/index.ts';
-import { neutralAppraisal } from '../packages/contracts/src/domain.ts';
+import { initialState,dialoguePlan,speechStyle } from '../packages/character-core/src/index.ts';
+import { neutralAppraisal,type Plan } from '../packages/contracts/src/domain.ts';
 import { mapJevResponse } from '../packages/adapters/src/jev.ts';
 import { recordedJevResponse } from './jev-fixture.ts';
 import { OllamaProvider } from '../packages/adapters/src/ollama.ts';
@@ -112,6 +112,74 @@ async function deliverStyle(id:string,response:NonNullable<Awaited<ReturnType<St
  for(const segment of output.segments){const report={responseId:response.id,segmentId:segment.id,generationEpoch:output.response.generation_epoch,outputEpoch:owner.outputEpoch.toString()};await store.report(id,randomUUID(),'caption.shown',report,clientId);await store.report(id,randomUUID(),'caption.finished',report,clientId);}
  now+=100;
 }
+// Only the expression intent is controlled here. Accepted causes, response
+// provenance, completed delivery and invalidation run against the dedicated DB.
+// This does not claim a model naturally selects sharpness or partial hiding.
+async function contextualStyleResponse(id:string,intent:Parameters<typeof speechStyle>[2]={},identityId=IDENTITY_IDS[0]){
+ return store.locked(async(c,s)=>{
+  const trigger=await (store as any).event(c,id,'contextual.fixture',randomUUID(),{text:'합성 표현 계약 검사'},identityId);
+  const plan:Plan={...dialoguePlan(s.body,'question',identityId),speechStyle:speechStyle(s.body,identityId,intent)};
+  const response=await (store as any).response(c,s,id,trigger,plan) as NonNullable<Awaited<ReturnType<Store['commitAppraisal']>>['response']>|null;
+  expect(response).not.toBeNull();return response!;
+ });
+}
+async function contextualCauseRef(responseId:string,causeId:string){
+ return (await db.pool.query('SELECT event_id,source_version FROM response_sources WHERE response_id=$1 AND event_id=$2',[responseId,causeId])).rows;
+}
+it.each(['partial','full'] as const)('CX-DB01 completed casual sharp survives %s hiding, restart and a new topic with the same cause',async mask=>{
+ const setup=await mixedStyleFixture(),first=await contextualStyleResponse(setup.id,{discomfortTone:'sharp'});
+ expect(first.plan.speechStyle).toEqual({register:'casual',positiveTone:'bright',discomfortTone:'sharp'});
+ expect(await contextualCauseRef(first.id,setup.frustration.eventId)).toEqual([{event_id:setup.frustration.eventId,source_version:'1'}]);
+ await deliverStyle(setup.id,first);store=new Store(db,CHARACTER_ID,()=>now,jevEvidenceVerifier);
+ const hidden=await contextualStyleResponse(setup.id,mask==='full'?{joy:'mask',discomfort:'mask',embarrassment:'mask'}:{discomfort:'mask'});
+ expect(hidden.plan.speechStyle).toEqual(mask==='full'?{register:'casual',positiveTone:'neutral',concealAffect:true}:{register:'casual',positiveTone:'bright',discomfortTone:'masked'});
+ expect(await contextualCauseRef(hidden.id,setup.frustration.eventId)).toEqual([{event_id:setup.frustration.eventId,source_version:'1'}]);
+ await deliverStyle(setup.id,hidden);
+ const next=await contextualStyleResponse(setup.id);
+ expect(next.plan.speechStyle).toEqual({register:'casual',positiveTone:'bright',discomfortTone:'contextual'});
+ expect(await contextualCauseRef(next.id,setup.frustration.eventId)).toEqual([{event_id:setup.frustration.eventId,source_version:'1'}]);
+ expect((await db.pool.query('SELECT status FROM response_runs WHERE id=ANY($1::uuid[])',[ [first.id,hidden.id] ])).rows.every(r=>r.status==='completed')).toBe(true);
+});
+it.each([
+ {tone:'sharp',change:'deleted'},{tone:'sharp',change:'revised'},
+ {tone:'partial',change:'deleted'},{tone:'partial',change:'revised'},
+ {tone:'full',change:'deleted'},{tone:'full',change:'revised'},
+] as const)('CX-DB02 $tone cause $change fences pending generation',async({tone,change})=>{
+ const setup=await mixedStyleFixture();
+ const current=await contextualStyleResponse(setup.id,tone==='sharp'?{discomfortTone:'sharp'}:tone==='partial'?{discomfort:'mask'}:{joy:'mask',discomfort:'mask',embarrassment:'mask'});
+ expect(await contextualCauseRef(current.id,setup.frustration.eventId)).toEqual([{event_id:setup.frustration.eventId,source_version:'1'}]);
+ const clientId=randomUUID(),owner=await store.grantOwner(setup.id,randomUUID(),clientId),epoch=(await store.state()).generationEpoch;
+ if(change==='deleted'){
+  const deletion=await store.deleteEvent(setup.frustration.eventId,'1',randomUUID());expect(deletion.cancelled).toContain(current.id);
+  expect((await db.pool.query('SELECT status,plan,cancel_reason FROM response_runs WHERE id=$1',[current.id])).rows[0]).toEqual({status:'cancelled',plan:null,cancel_reason:'source_invalidated'});
+ }else{
+  // No event correction API exists; change only the synthetic source revision.
+  await db.pool.query('UPDATE events SET revision=revision+1 WHERE id=$1',[setup.frustration.eventId]);
+  expect((await store.state()).generationEpoch).toBe(epoch);
+ }
+ expect(await store.generated(current.id,['늦게 도착한 합성 문장.'],{clientId,outputEpoch:owner.outputEpoch})).toBeNull();
+ expect((await db.pool.query('SELECT count(*) FROM speech_segments WHERE response_id=$1',[current.id])).rows[0].count).toBe('0');
+ if(change==='deleted')expect(await store.busy()).toBe(false);
+});
+it.each(['failed','incomplete'] as const)('CX-DB03 %s casual delivery cannot establish register continuity',async mode=>{
+ const setup=await mixedStyleFixture(),first=await contextualStyleResponse(setup.id,{discomfortTone:'sharp'});
+ if(mode==='failed')await store.failResponse(first.id,'fixture_not_delivered');else{
+  await deliverStyle(setup.id,first);
+  // A completed status alone is insufficient: inspect actual delivery evidence.
+  await db.pool.query("UPDATE speech_segments SET text_shown_at=NULL,delivery_status='not_sent' WHERE response_id=$1",[first.id]);
+ }
+ const next=await contextualStyleResponse(setup.id);expect(next.plan.speechStyle?.register).toBe('formal');
+ expect(await contextualCauseRef(next.id,setup.frustration.eventId)).toHaveLength(1);
+});
+it('CX-DB03 another recipient does not inherit casual sharpness or its source',async()=>{
+ const setup=await mixedStyleFixture(),first=await contextualStyleResponse(setup.id,{discomfortTone:'sharp'});await deliverStyle(setup.id,first);
+ const other=await contextualStyleResponse(setup.id,{},IDENTITY_IDS[1]);
+ expect(other.plan.speechStyle).toEqual({register:'casual',positiveTone:'bright'});
+ expect(await contextualCauseRef(other.id,setup.frustration.eventId)).toEqual([]);await deliverStyle(setup.id,other);
+ const returning=await contextualStyleResponse(setup.id);
+ expect(returning.plan.speechStyle).toEqual({register:'casual',positiveTone:'bright',discomfortTone:'contextual'});
+ expect(await contextualCauseRef(returning.id,setup.frustration.eventId)).toHaveLength(1);
+});
 it('RC05 delivered formal speech survives hiding, a Store restart and a new topic',async()=>{
  const setup=await mixedStyleFixture(),first=await styleQuestion(setup.id);await deliverStyle(setup.id,first.response);
  store=new Store(db,CHARACTER_ID,()=>now,jevEvidenceVerifier);
@@ -133,7 +201,7 @@ it.each(['failed','deleted','revised','recovered','new-session'] as const)('RC06
 });
 it('MX01/03/07 same-person mixed affect keeps formal positive tone and hides style-only cause text',async()=>{
  const setup=await mixedStyleFixture(),before=(await store.state()).body.affect,current=await styleQuestion(setup.id);
- expect(current.response.plan.speechStyle).toEqual({register:'formal',positiveTone:'bright'});expect(current.response.plan.maxSentences).toBe(1);
+ expect(current.response.plan.speechStyle).toEqual({register:'formal',positiveTone:'bright',discomfortTone:'contextual'});expect(current.response.plan.maxSentences).toBe(1);
  expect((await store.state()).body.affect).toEqual(before);expect(current.selected.conversation.turns).toEqual([]);
  const sourceRows=(await db.pool.query('SELECT event_id,source_version FROM response_sources WHERE response_id=$1 AND event_id=ANY($2::uuid[])',[current.response.id,[setup.frustration.eventId,setup.joy.eventId]])).rows;
  expect(sourceRows).toHaveLength(2);expect(sourceRows.every(r=>r.source_version==='1')).toBe(true);
@@ -143,7 +211,7 @@ it('MX01/03/07 same-person mixed affect keeps formal positive tone and hides sty
 });
 it('MX04 another recipient keeps positive tone without inheriting the first person distance',async()=>{
  const setup=await mixedStyleFixture(IDENTITY_IDS[0],IDENTITY_IDS[1]),before=(await store.state()).body.affect;
- const first=await styleQuestion(setup.id,IDENTITY_IDS[0]);expect(first.response.plan.speechStyle).toEqual({register:'formal',positiveTone:'bright'});expect((await store.state()).body.affect).toEqual(before);
+ const first=await styleQuestion(setup.id,IDENTITY_IDS[0]);expect(first.response.plan.speechStyle).toEqual({register:'formal',positiveTone:'bright',discomfortTone:'contextual'});expect((await store.state()).body.affect).toEqual(before);
  await store.failResponse(first.response.id,'fixture_no_stage');const current=await styleQuestion(setup.id,IDENTITY_IDS[1]);
  expect(current.response.plan.speechStyle).toEqual({register:'casual',positiveTone:'bright'});expect((await store.state()).body.affect).toEqual(before);
  const refs=(await db.pool.query('SELECT event_id FROM response_sources WHERE response_id=$1',[current.response.id])).rows.map(r=>r.event_id);
@@ -286,7 +354,7 @@ it('JR05 old appraisal metadata remains nullable and restart preserves Jev resul
   const accepted=await store.acceptChat(id,randomUUID(),{identityId:IDENTITY_IDS[1],text:'합성 칭찬'}),selected=(await store.select(accepted.eventId))!,evaluation=mapJevResponse(recordedJevResponse('praise','character',3),accepted.eventId);
   await store.commitAppraisal(selected,evaluation.appraisal,evaluation.metadata);await store.recover();
   expect((await db.pool.query('SELECT provider_result FROM appraisals WHERE event_id=$1',[accepted.eventId])).rows[0].provider_result).toEqual(evaluation.metadata.providerResult);
-  expect((await db.pool.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map(r=>r.name)).toEqual(['0001_m1.sql','0002_m2.sql','0003_jev_appraisal.sql','0004_conversation_context.sql','0005_knowledge.sql']);
+  expect((await db.pool.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map(r=>r.name)).toEqual(['0001_m1.sql','0002_m2.sql','0003_jev_appraisal.sql','0004_conversation_context.sql','0005_knowledge.sql','0006_home_assistant_persistence.sql']);
 });
 it('DB18 empty migration and seed repeat preserves identities and initial state',async()=>{await migrate(db);await seed(db);expect((await db.pool.query('SELECT count(*) FROM identities')).rows[0].count).toBe('4');expect((await store.state()).version).toBe(0n);});
 it('DB01 concurrent duplicate key and collision are atomic without deadlock',async()=>{const id=await session(),key=randomUUID();const blocker=await db.pool.connect();await blocker.query('BEGIN');await blocker.query('SELECT * FROM sessions WHERE id=$1 FOR UPDATE',[id]);let release!:()=>void;const barrier=new Promise<void>(resolve=>{release=resolve;});const submit=async()=>{await barrier;return store.acceptChat(id,key,{identityId:IDENTITY_IDS[0],text:'합성 입력'});};const first=submit(),second=submit();release();await blocker.query('COMMIT');blocker.release();const results=await Promise.all([first,second]);expect(results.map(r=>r.status).sort()).toEqual(['committed','duplicate']);expect(results[0].eventId).toBe(results[1].eventId);await expect(store.acceptChat(id,key,{identityId:IDENTITY_IDS[0],text:'다른 입력'})).rejects.toMatchObject({code:'idempotency_conflict'});});
