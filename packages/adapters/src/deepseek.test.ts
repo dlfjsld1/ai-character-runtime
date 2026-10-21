@@ -2,7 +2,7 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {mkdtempSync,readFileSync,writeFileSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DeepSeekBudget,deepseekInputBound,deepseekReservationUsd} from './deepseek-budget.ts';
+import {DeepSeekBudget,deepseekCandidate,deepseekInputBound,deepseekReservationUsd} from './deepseek-budget.ts';
 import {DeepSeekDialogue,DeepSeekEventInterpreter,DeepSeekOutcomeProbe,DeepSeekAppraisalProbe,deepseekPayload,createDeepSeekEventInterpreter,o2Timeouts} from './deepseek.ts';
 import {prepareAppraisalProbe} from './appraisal-probe.ts';
 import {prepareOutcomeProbe} from './outcome-probe.ts';
@@ -190,5 +190,16 @@ it('O2 runtime interpreter: deadline never leaves an open reservation; an HTTP e
       expect(entries.map((e:{status:string})=>e.status)).toEqual(['unknown']);
       expect(budget.availability()).toBe('deepseek_usage_unconfirmed');
     }
+  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+it('O2 runtime interpreter: a settled reply that fails the probe contract is invalid_output and leaves the ledger usable',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'o2-format-'));
+  try{
+    const path=join(dir,'format.json'),budget=new DeepSeekBudget(path,1,10,'test');
+    const fetcher=(async()=>Response.json({model:deepseekCandidate.model,usage:{prompt_tokens:100,completion_tokens:10},choices:[{finish_reason:'stop',message:{role:'assistant',content:'{"unexpected":true}'}}]})) as typeof fetch;
+    const interpreter=createDeepSeekEventInterpreter({localOnly:false,allowPaidProviders:true,apiKey:'synthetic-key',budget,fetcher,...o2Timeouts(50)});
+    expect(await interpreter.interpret(affectRequest())).toMatchObject({status:'unavailable',reason:'invalid_output'});
+    expect(JSON.parse(readFileSync(path,'utf8')).entries.map((e:{status:string})=>e.status)).toEqual(['completed']);
+    expect(budget.availability()).toBeFalsy();
   }finally{rmSync(dir,{recursive:true,force:true});}
 });

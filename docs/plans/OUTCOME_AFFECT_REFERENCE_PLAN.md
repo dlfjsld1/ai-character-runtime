@@ -165,7 +165,7 @@ node --experimental-transform-types evals/affect-reconnect-live.ts --replay --re
 ### 후속·유보 항목과 감사 초점
 
 - 현재 유료 원장의 마지막 관측은64회/승인76회·총0.25다. 현재 live runner의 개발 시작 전제는52회이므로 남은12회를 사용해 새24회를 실행할 수 없다. 이번 BUILD에서 priorCalls·상한·중복 방어를 완화하지 않는다. 새 유료 실행 범위/원장 시작점/예약액은 로컬 감사 뒤 별도 계획·승인한다. 확인 평가 승인은 없다.
-- A06의 일반 분류 `transport_failed` 개선은 유보한다. 기존 raw와 하위 validator의 구체 코드로 이번 원인을 확인할 수 있다. 공개 오류 계약과 provider callback을 넓히는 변경은 이번 범위/의미 개선의 필수 조건이 아니다.
+- A06의 일반 분류 `transport_failed` 개선은 유보한다. 기존 raw와 하위 validator의 구체 코드로 이번 원인을 확인할 수 있다. 공개 오류 계약과 provider callback을 넓히는 변경은 이번 범위/의미 개선의 필수 조건이 아니다. (2026-10-22 운영 경로에서 해결: 분할 해석기가 probe의 `*_invalid_output`/`*_invalid_input` 코드를 그대로 분류한다. 저장된 C2-P 결과와 재생은 당시 소스 hash에 묶여 있어 바뀌지 않는다.)
 - 모델 교체·추가 판정 호출·감정 점수 조정·일괄 감정 없음 처리·공용 계약 강제 귀속은 제외한다. 새 후보 품질은 CR06 실평가 전까지 미검증이다.
 - 감사는 branch가 맥락을 삭제하지 않는지, input 공감과 external 귀속이 과도하게 막히지 않는지, 강화 rubric이 옛 결과를 덮어쓰지 않는지, 정답/문항 ID가 wire에 섞이지 않는지, 최초 실패·원장 연결 방어가 유지되는지를 확인한다.
 
