@@ -16,5 +16,5 @@ it('S1B-E participation remains separate from positive affect and preserves its 
  state.turn.acknowledgements['speaker:praise']=now;
  expect(chooseSocial(state,praise,effect,'speaker',now+1,context).participation).toEqual({mode:'silent',reason:'no_addition'});
  expect(chooseSocial(state,praise,effect,'speaker',now+15000,context).participation).toEqual({mode:'speak'});
- expect(chooseSocial(state,praise,effect,'speaker',now+15000,{...context,appraisalFailed:true}).participation).toEqual({mode:'defer'});
+ expect(chooseSocial(state,praise,effect,'speaker',now+15000,{...context,appraisalFailed:true}).participation).toEqual({mode:'speak'});
 });

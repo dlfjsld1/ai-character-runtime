@@ -3,6 +3,7 @@ import type {LocalConfig} from '../../../packages/contracts/src/local-config.ts'
 import type {DialogueGenerator,ActivitySolver,AppraisalProvider,AppraisalEvidenceVerifier,EventInterpreter} from '../../../packages/contracts/src/ai-ports.ts';
 import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/ollama.ts';
 import {JevAppraisalProvider} from '../../../packages/adapters/src/jev.ts';
+import {DailyCallCap} from '../../../packages/adapters/src/daily-call-cap.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
 import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
@@ -54,5 +55,7 @@ export function deepseekConfigured(config:LocalConfig){return !config.LOCAL_ONLY
 function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION),...o2Timeouts(20000)});}
 export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv=process.env,registry:ProviderRegistry=registeredProviders):RuntimeProviders {
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
-  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment),...(deepseekConfigured(config)?{interpreter:deepseekInterpreter(config)}:{})};
+  const appraisal=registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment);
+  if(config.APPRAISAL_DAILY_MAX_CALLS>0)appraisal.appraiser=new DailyCallCap(appraisal.appraiser,config.APPRAISAL_CALL_COUNT_PATH,config.APPRAISAL_DAILY_MAX_CALLS);
+  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...appraisal,...(deepseekConfigured(config)?{interpreter:deepseekInterpreter(config)}:{})};
 }

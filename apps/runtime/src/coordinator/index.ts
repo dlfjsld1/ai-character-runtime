@@ -68,7 +68,7 @@ export class Coordinator {
       try{const readiness=this.appraiser.readiness();if(readiness.status==='blocked'||readiness.status==='unavailable')throw new RuntimeError(readiness.errorCode??'appraisal_unavailable',503);request.conversation=budgetAppraisalConversation(request.conversation);request.conversationContext.history=request.conversation;const activity=await this.store.activity();const result=appraisalEvaluationSchema.parse(await this.appraiser.evaluate({id:request.event.id,text:request.event.payload.text,identityId:request.event.identity_id,revision:String(request.revision)},{activity:activity?{prompt:activity.public_prompt,status:activity.status}:null,recentPraise:request.praiseSnapshot.context,conversation:request.conversation,conversationContext:request.conversationContext}));appraisal=result.appraisal;metadata=result.metadata;}
       catch(e){failureCode=e instanceof RuntimeError?e.code:'invalid_output';this.sink.failure(failureCode);}
       const activity=await this.store.activity();const dialogueReady=this.provider.readiness?.();
-      const memories=failureCode||dialogueReady?.status==='blocked'||dialogueReady?.status==='unavailable'?[]:await this.memoryBudget(request.event.identity_id,activity?.id);
+      const memories=dialogueReady?.status==='blocked'||dialogueReady?.status==='unavailable'?[]:await this.memoryBudget(request.event.identity_id,activity?.id);
       if(this.stopped)break;
       const affect=await eventAffect;if(this.stopped)break;
       const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id),affect));

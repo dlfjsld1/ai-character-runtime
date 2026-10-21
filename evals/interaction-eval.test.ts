@@ -9,7 +9,8 @@ const ordinary:InteractionExpectation={facts:{version:2,acts:{ask_silence_reason
 it('known ordinary speech succeeds without affect; missing or uncertain semantics cannot pass as normal conversation',()=>{
  const c=control(scene),good=boundInteraction(interactionFixture(),c.event.id,c.context);expect(assessInteraction(good,c,ordinary).pass).toBe(true);
  const ambiguous=assessInteraction(boundInteraction(interactionFixture({ask_silence_reason:.5}),c.event.id,c.context),c,ordinary);expect(ambiguous.outcome).toBe('clarification');expect(ambiguous.checks.protection).toBe(true);expect(ambiguous.checks.engagement).toBe(false);expect(ambiguous.pass).toBe(false);
- good.metadata.failureCode='synthetic_timeout';const failed=assessInteraction(good,c,ordinary);expect(failed.outcome).toBe('technical_defer');expect(failed.pass).toBe(false);
+ // A failed provider still gets an ordinary reply, but unverified meaning never passes.
+ good.metadata.failureCode='synthetic_timeout';const failed=assessInteraction(good,c,ordinary);expect(failed.outcome).toBe('response');expect(failed.checks.meaning).toBe(false);expect(failed.pass).toBe(false);
 });
 it('intentional silence is a positive outcome only when expected, not a blanket response requirement',()=>{
  const c=control(scene),value=boundInteraction(interactionFixture({listen_request:1}),c.event.id,c.context),expected={...ordinary,facts:{...ordinary.facts,acts:{...ordinary.facts.acts,listen_request:'yes' as const}},outcomes:['intentional_silence' as const],purpose:'intentional_silence',silenceReason:'listening' as const};
@@ -31,7 +32,8 @@ it('a mixed apology and fresh attack stays protective when incident linkage is b
  expect(linked.plan.participation).toEqual({mode:'silent',reason:'withholding'});
 });
 it('historical defer accepted by no-special-action scorer is no longer conversation success',()=>{
- const c=control(scene),plan=chooseSocial(initialState(c.now),neutralAppraisal,{category:null,stimulus:0,n:0,habituation:1},c.event.identityId,c.now,{appraisalFailed:true}),rows=[{id:'old-defer',functionalPass:true,plan,expectation:{policy:'normal'}}];
+ // Historical rows carry the defer plans of their time; current Core no longer defers on failure.
+ const c=control(scene),plan={...chooseSocial(initialState(c.now),neutralAppraisal,{category:null,stimulus:0,n:0,habituation:1},c.event.identityId,c.now,{appraisalFailed:true}),participation:{mode:'defer' as const}},rows=[{id:'old-defer',functionalPass:true,plan,expectation:{policy:'normal'}}];
  expect(historicalOutcomes(rows)).toMatchObject({originalPass:1,outcomeAwarePass:0,deferredOriginalPass:['old-defer']});expect(rows[0]!.functionalPass).toBe(true);
 });
 it('prepared diagnostics preserve exact expectations and source context without running a provider',()=>{

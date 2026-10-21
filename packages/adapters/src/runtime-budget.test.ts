@@ -109,7 +109,8 @@ it.each(['decision','dialogue'] as const)('coordinator keeps %s exhaustion withi
  const store={db:{healthy:true},clock:()=>c.now,currentSession:async()=>({id:c.context.sessionId}),busy:async()=>false,candidates:async()=>done?[]:[{id:c.event.id,identity_id:c.event.identityId,received_at:new Date(c.now),payload:{}}],state:async()=>({body:c.state}),select:async()=>request,activity:async()=>null,memories,dialogueIdentities:async()=>[],commitAppraisal:commit} as unknown as Store;
  const failure=vi.fn(),sink:Sink={changed:async()=>{},inputStatus:()=>{},failure,owner:()=>null,sendOwner:()=>{}};
  const before=readFileSync(path,'utf8');await new Coordinator(store,p.dialogue,sink,p.appraiser).drain();
- expect(commit).toHaveBeenCalledOnce();expect(memories).not.toHaveBeenCalled();
- if(exhausted==='decision'){expect(fetcher).not.toHaveBeenCalled();expect(failure).toHaveBeenCalledWith('decision_attempt_limit');expect(readFileSync(path,'utf8')).toBe(before);}
+ // A decision failure still replies, so memory is read (and only token-counted) for the dialogue; an exhausted dialogue reads none.
+ expect(commit).toHaveBeenCalledOnce();expect(memories).toHaveBeenCalledTimes(exhausted==='decision'?1:0);
+ if(exhausted==='decision'){expect(fetcher.mock.calls.map(c=>String(c[0]))).toEqual(['https://api.openai.com/v1/responses/input_tokens']);expect(failure).toHaveBeenCalledWith('decision_attempt_limit');const decisions=(t:string)=>JSON.parse(t).entries.filter((e:{kind:string})=>e.kind==='decision');expect(decisions(readFileSync(path,'utf8'))).toEqual(decisions(before));}
  else{expect(fetcher).toHaveBeenCalledOnce();expect(String(fetcher.mock.calls[0]![0])).toMatch(/\/decisions$/);expect(failure).not.toHaveBeenCalled();expect(commit.mock.calls[0]![2]).toMatchObject({provider:'openai-decisions',promptVersion:'openai-interaction-v3'});}
 });

@@ -113,7 +113,9 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
     const last=state.turn.acknowledgements[`${identityId}:${category}`];
     if(last!==undefined&&now-last<15000)return {...dialoguePlan(state,'repeat',identityId),action:'ignore',participation:context.previousOutputFailed?{mode:'defer'}:{mode:'silent',reason:'no_addition'}};
   };
-  if(context.appraisalFailed) return {...dialoguePlan(state,'appraisal_failed',identityId),action:'listen',participation:{mode:'defer'}};
+  // No social meaning is known: reply without any social act or affect
+  // (2026-10-22 user decision; failure no longer means silence).
+  if(context.appraisalFailed) return speak('other');
   const text=(context.text??'').trim();
   const semantic=context.conversationEvidence,v2=isInteractionEvidence(semantic)?semantic:undefined;
   // v2 authority is already source-verified; uncertain affect never suppresses

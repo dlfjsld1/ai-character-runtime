@@ -38,7 +38,8 @@ it('normal registry and Store reuse one full count between fitting and Stage dis
   const segments=(await db.pool.query('SELECT * FROM speech_segments ORDER BY segment_index')).rows;expect(segments).toHaveLength(1);
   const start=send.mock.calls.find(([type])=>type==='response.start')![1];
   for(const s of segments)for(const report of ['caption.shown','caption.finished'] as const)await store.report(session,randomUUID(),report,{responseId:s.response_id,segmentId:s.id,generationEpoch:String(start.generationEpoch),outputEpoch:String(owner.outputEpoch)},clientId);
-  expect((await db.pool.query('SELECT status FROM response_runs')).rows.map(r=>r.status)).toEqual(['completed']);expect(await store.busy()).toBe(false);
+  // The fixture greeting fails this verifier, so it gets an ordinary reply that the helper fails.
+  expect((await db.pool.query('SELECT status FROM response_runs')).rows.map(r=>r.status).sort()).toEqual(['completed','failed']);expect(await store.busy()).toBe(false);
   expect(JSON.parse(readFileSync(path,'utf8')).entries.map((e:any)=>e.kind)).toEqual(['decision','count','count','dialogue']);
  }finally{await co.stop();rmSync(dir,{recursive:true,force:true});}
 });
@@ -54,10 +55,13 @@ it.each(['decision','dialogue'] as const)('real Store preserves role boundaries 
  try{
   const input=await store.acceptChat(session,randomUUID(),{identityId:IDENTITY_IDS[0],text:'너 정말 쓸모없어. 지금은 답하지 말고 들어줘.'});await co.drain();
   const a=(await db.pool.query('SELECT failure_code,provider,prompt_version,context_refs FROM appraisals WHERE event_id=$1',[input.eventId])).rows[0],state=(await store.state()).body;
-  expect(await store.busy()).toBe(false);expect(send).not.toHaveBeenCalled();
+  await vi.waitFor(async()=>expect(await store.busy()).toBe(false));expect(send).not.toHaveBeenCalled();
   expect((await db.pool.query('SELECT attention_status FROM events WHERE id=$1',[input.eventId])).rows[0].attention_status).toBe('observed');
   const after=JSON.parse(readFileSync(path,'utf8'));expect(after.entries[0]).toEqual(prior);
-  if(exhausted==='decision'){expect(fetcher).not.toHaveBeenCalled();expect(a.failure_code).toBe('decision_attempt_limit');expect(state.affect.frustration.value).toBe(0);expect(state.turn.recentSilences).toEqual([]);expect(after.entries).toHaveLength(1);}
+  // An exhausted decision quota still gets an ordinary reply, without social affect or silence;
+  // only the dialogue role may spend for it.
+  if(exhausted==='decision'){expect(fetcher.mock.calls.some(c=>String(c[0]).endsWith('/decisions'))).toBe(false);expect(a.failure_code).toBe('decision_attempt_limit');expect(state.affect.frustration.value).toBe(0);expect(state.turn.recentSilences).toEqual([]);expect(after.entries.filter((e:{kind:string})=>e.kind==='decision')).toEqual([prior]);
+   expect((await db.pool.query("SELECT r.plan->>'purpose' AS purpose FROM response_runs r JOIN events p ON p.id=r.trigger_event_id WHERE p.parent_event_id=$1",[input.eventId])).rows.map(r=>r.purpose)).toEqual(['other']);}
   else{expect(fetcher).toHaveBeenCalledOnce();expect(a.failure_code).toBeNull();expect(a.context_refs.length).toBeGreaterThan(1);expect(state.affect.frustration.value).toBeGreaterThan(0);expect(state.turn.recentSilences[0]?.eventId).toBe(input.eventId);expect(after.entries.at(-1)).toMatchObject({kind:'decision',status:'completed'});expect(failure).not.toHaveBeenCalled();}
  }finally{await co.stop();}
 });

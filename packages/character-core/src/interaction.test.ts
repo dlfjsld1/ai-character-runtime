@@ -113,8 +113,8 @@ it('praise plus a new question answers the question even after a recent praise a
  const plan=chooseSocial(state,a,noEffect,identity,now,{text:'정말 잘했어. 그런데 어떻게 푼 거야?',conversationEvidence:facts({directPraise:'yes',speechAct:'question'})});
  expect(plan).toMatchObject({action:'answer',purpose:'question',participation:{mode:'speak'}});
 });
-it('semantic uncertainty asks a question, while provider failure remains technical defer',()=>{
+it('semantic uncertainty asks a question, while provider failure replies without social meaning',()=>{
  const e=facts({acts:{ask_silence_reason:'unknown',listen_request:'no',apology:'no',clarify_target:'no'}});
  expect(chooseSocial(initialState(now),a,noEffect,identity,now,{conversationEvidence:e}).purpose).toBe('clarify');
- expect(chooseSocial(initialState(now),a,noEffect,identity,now,{conversationEvidence:e,appraisalFailed:true}).participation).toEqual({mode:'defer'});
+ expect(chooseSocial(initialState(now),a,noEffect,identity,now,{conversationEvidence:e,appraisalFailed:true})).toMatchObject({purpose:'other',participation:{mode:'speak'}});
 });

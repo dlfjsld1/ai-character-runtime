@@ -61,7 +61,7 @@ it('ER10/12: a deliberately concealed outward reply does not recover the stored 
 });
 it('ER10/11: reasons are identity scoped and failed/uncertain processing is not a fabricated intentional silence',async()=>{
  await silence();const second=await input('왜 말 안 해?',appraisal(),IDENTITY_IDS[1]);expect(second.response?.plan.reengagement).toEqual({silenceEventId:null,disclosure:'unknown'});expect((await store.responseContext(second.response!.id)).context.silence).toBeNull();await store.failResponse(second.response!.id,'fixture');
- now+=1;await input('고장 사례',neutralAppraisal,IDENTITY_IDS[0],'jev_unavailable');
+ now+=1;const broken=await input('고장 사례',neutralAppraisal,IDENTITY_IDS[0],'jev_unavailable');expect(broken.response?.plan.purpose).toBe('other');await store.failResponse(broken.response!.id,'fixture');
  expect((await store.state()).body.turn.recentSilences).toHaveLength(1);
  const next=await input('왜 말 안 해?');expect(next.response?.plan.reengagement).toEqual({silenceEventId:null,disclosure:'unknown'});expect((await store.responseContext(next.response!.id)).context.silence).toBeNull();
 });
@@ -195,13 +195,11 @@ it('Jev participation evidence rejects low confidence, ties, mismatches, unknown
  ];
  for(const item of cases){
   const result=await liveParticipationInput('listening',IDENTITY_IDS[0],item.adjust);
-  // Unsupported evidence never grants the listening silence or affect. Invalid or
-  // failed provider output still defers; merely uncertain meaning answers normally.
+  // Unsupported evidence never grants the listening silence or affect. Invalid,
+  // failed or merely uncertain provider output all get an ordinary reply.
   expect((await store.state()).body.turn.recentSilences,item.name).toEqual([]);
   const effects=(await db.pool.query('SELECT effects FROM transitions WHERE state_version=$1',[(await store.state()).version.toString()])).rows[0].effects;
   expect(effects,item.name).toMatchObject({stimulus:0,category:null});
-  if(item.name==='failed provider')expect(effects.participation,item.name).toEqual({mode:'defer'});
-  if(effects.participation.mode==='defer')expect(result.response,item.name).toBeNull();
-  else{expect(effects.participation,item.name).toEqual({mode:'speak'});expect(result.response?.plan.purpose,item.name).toBe('other');await store.failResponse(result.response!.id,'fixture_no_stage');}
+  expect(effects.participation,item.name).toEqual({mode:'speak'});expect(result.response?.plan.purpose,item.name).toBe('other');await store.failResponse(result.response!.id,'fixture_no_stage');
  }
 });

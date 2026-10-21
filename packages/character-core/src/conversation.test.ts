@@ -18,9 +18,9 @@ it.each([.01,.18,.65])('repair of frustration %s is bounded and never resets emo
  expect(result.state.affect.frustration.value).toBeGreaterThan(0);expect(result.state.mood.pleasantness).toBeCloseTo(decay(before,now+1000).mood.pleasantness+.1*result.amount,12);
  for(const key of ['joy','surprise','embarrassment'] as const)expect(result.state.affect[key]).toEqual(decay(before,now+1000).affect[key]);expect(result.state.affect.frustration.causes).toEqual(before.affect.frustration.causes);expect(result.state.affect.frustration.holdUntil).toBe(before.affect.frustration.holdUntil);expect(state).toEqual(before);
 });
-it('ineligible repair changes only elapsed decay; provider failures remain defer and never create reasons',()=>{
+it('ineligible repair changes only elapsed decay; provider failures reply without social meaning and never create reasons',()=>{
  const state=apply(initialState(now),{eventId,targetId:identityId,now,stimuli:{frustration:.5}});expect(applyRepair(state,now+7000,false)).toEqual({state:decay(state,now+7000),amount:0});
- expect(chooseSocial(state,appraisal,effect,identityId,now,{appraisalFailed:true,conversationEvidence:{act:'listen_request',repairTarget:'unknown'}}).participation).toEqual({mode:'defer'});
+ expect(chooseSocial(state,appraisal,effect,identityId,now,{appraisalFailed:true,conversationEvidence:{act:'listen_request',repairTarget:'unknown'}})).toMatchObject({purpose:'other',participation:{mode:'speak'}});
 });
 it.each([0,.5])('a new direct insult with stimulus %s takes precedence over a semantic apology label',stimulus=>{
  const state=apply(initialState(now),{eventId,targetId:identityId,now,stimuli:{frustration:.5}}),a={...appraisal,act:'criticism' as const,strength:3,hostility:3,uncertain:false};

@@ -192,13 +192,13 @@ it('reported speech responds, intentional listening retains reason, reason expla
  await attack();const before=(await store.state()).body,ordinary=await input('민수가 친구한테 왜 말 안 하냐고 물었대.');expect(ordinary.response?.plan.purpose).toBe('other');await finish(ordinary.response!.id);
  const heard=await input('답하지 말고 들어줘.',{listen_request:1});expect(heard.response).toBeNull();const why=await input('말하지 않은 까닭이 있어?',{ask_silence_reason:1,speech_form:'question'});expect(why.response?.plan).toMatchObject({purpose:'reengage',reengagement:{silenceEventId:heard.accepted.eventId,disclosure:'explain'}});expect((await store.state()).body.affect).toEqual(before.affect);
 });
-it.each(['hash','forged_appraisal','provider_failure','failure_and_forged_appraisal'])('%s is technical defer, never an invented intentional silence',async kind=>{
+it.each(['hash','forged_appraisal','provider_failure','failure_and_forged_appraisal'])('%s gets an ordinary reply, never an invented intentional silence or affect',async kind=>{
  const p=await prepare('안녕.',{speech_form:'greeting'});
  if(kind==='hash')p.v.metadata.providerResult!.contextHash='0'.repeat(64);
  if(kind==='forged_appraisal'||kind==='failure_and_forged_appraisal')p.v.appraisal={...p.v.appraisal,target:'character',act:'criticism',strength:3,hostility:3,uncertain:false};
  if(kind==='provider_failure'||kind==='failure_and_forged_appraisal')p.v.metadata.failureCode='synthetic_timeout';
- const result=await store.commitAppraisal(p.selected,p.v.appraisal,p.v.metadata);expect(result.response).toBeNull();const state=(await store.state()).body;expect(state.turn.recentSilences).toHaveLength(0);expect(state.affect.frustration.value).toBe(0);expect(await repairCount()).toBe(0);
- const effects=(await db.pool.query("SELECT effects FROM transitions WHERE appraisal_id IS NOT NULL ORDER BY state_version DESC LIMIT 1")).rows[0].effects;expect(effects.participation).toEqual({mode:'defer'});
+ const result=await store.commitAppraisal(p.selected,p.v.appraisal,p.v.metadata);expect(result.response?.plan).toMatchObject({purpose:'other',participation:{mode:'speak'}});const state=(await store.state()).body;expect(state.turn.recentSilences).toHaveLength(0);expect(state.affect.frustration.value).toBe(0);expect(await repairCount()).toBe(0);
+ const effects=(await db.pool.query("SELECT effects FROM transitions WHERE appraisal_id IS NOT NULL ORDER BY state_version DESC LIMIT 1")).rows[0].effects;expect(effects.participation).toEqual({mode:'speak'});
 });
 it('repeated praise keeps no-addition reason after a successful delivered acknowledgement',async()=>{
  const first=await input('잘했어.',{direct_praise:1},[0,0,1,0]);await finish(first.response!.id);const repeat=await input('잘했어.',{direct_praise:1},[0,0,1,0]);expect(repeat.response).toBeNull();expect((await store.state()).body.turn.recentSilences[0].reason).toBe('no_addition');
