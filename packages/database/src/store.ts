@@ -17,6 +17,7 @@ import {readPersonalFacts,changePersonalFact} from './personal-fact-store.ts';
 import {personalFactChangeSchema,personalFactSnapshotSchema,type PersonalFactChange} from '../../contracts/src/personal-facts.ts';
 import {eventAffectRecordSchema,type AffectSource,type EventAffectRecord,type EventInterpretationRequest,type EventInterpretationResult} from '../../contracts/src/affect-appraisal.ts';
 import {appendEventAffect,projectEventAffect,removeEventAffectSources,eventAffectStimuli,eventAffectPolicy} from '../../character-core/src/event-affect.ts';
+import {actionEpisodeSchema,confirmDeliveredRecommendation,episodeAffectSource,type DialogueTurn} from '../../contracts/src/outcomes.ts';
 type Client=pg.PoolClient;
 type Row=Record<string,any>;
 export type VersionedState={body:State;version:bigint;generationEpoch:bigint;configVersion:bigint;snapshotAt:Date};
@@ -24,6 +25,9 @@ const activeResponses="('planned','generating','synthesizing','delivering')";
 export type EventAffectAttempt={request:EventInterpretationRequest|null;result:EventInterpretationResult;promptVersion:string;latencyMs:number};
 // Contributions halve every 20 minutes; older records cannot move the snapshot.
 const affectWindowMs=6*3600000;
+// Delivered suggestions the interpreter may link to a later report: the newest
+// five within thirty days. More than five marks the read truncated.
+const episodeWindowMs=30*86400000,episodeLimit=5;
 export class Store {
   constructor(public db:Database,public characterId=CHARACTER_ID,public clock=()=>Date.now(),private evidenceVerifier?:AppraisalEvidenceVerifier){}
   async state():Promise<VersionedState>{const rows=await this.db.orm.select().from(characterState).where(eq(characterState.characterId,this.characterId));const r=rows[0];if(!r)throw new RuntimeError('character_not_found',404);return {...r,body:stateSchema.parse(r.body)};}
@@ -101,13 +105,16 @@ export class Store {
     const source=(id:string,revision:string,kind:AffectSource['kind'],text:string,at:number,speakerId:string|null):AffectSource=>({id,revision,kind,scope,text:text.slice(0,8000),at,speakerId,delivered:kind==='response',truth:'unresolved'});
     const sources:AffectSource[]=[source(e.id,String(e.revision),'input',e.payload.text,current,e.identity_id),...persona.map(v=>source(v.id,configVersion,v.kind,v.text,Math.min(v.created_at.getTime(),current),null))];
     const turns=selected.conversation.turns,eventIds=turns.filter(t=>t.source.kind==='event').map(t=>t.source.id),responseIds=turns.filter(t=>t.source.kind==='response').map(t=>t.source.id);
+    const episodeRows=(await pool.query("SELECT episode FROM action_episodes WHERE character_id=$1 AND owner_id=$2 AND status='active' AND delivered_at>$3 AND delivered_at<=$4 ORDER BY delivered_at DESC,id DESC LIMIT $5",[this.characterId,e.identity_id,new Date(current-episodeWindowMs),new Date(current),episodeLimit+1])).rows;
+    const episodes=episodeRows.slice(0,episodeLimit).map(r=>actionEpisodeSchema.parse(r.episode)).reverse(),truncated=episodeRows.length>episodeLimit;
+    sources.push(...episodes.map(episodeAffectSource));
     const timed=[...(await pool.query('SELECT id,received_at AS at FROM events WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,eventIds])).rows,...(await pool.query('SELECT id,COALESCE(finished_at,created_at) AS at FROM response_runs WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,responseIds])).rows];
     const times=new Map<string,number>(timed.map(r=>[r.id,Math.min(r.at.getTime(),current)]));
     for(const t of turns){const at=times.get(t.source.id);if(at===undefined||t.source.id===e.id)continue;
       sources.push(t.source.kind==='event'?source(t.source.id,t.source.revision,'input',t.text,at,e.identity_id):source(t.source.id,'1','response',t.text,at,this.characterId));}
     const now=Math.max(this.clock(),current),records=(await this.affectRecords(pool,e.identity_id,now)).filter(r=>r.eventId!==e.id);
     return {scope,eventId:e.id,eventRevision:String(e.revision),configVersion,eventKind:'input',now,sources:sources.slice(0,40),speakerId:e.identity_id,
-      actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:'캐릭터'}],experience:{status:'empty',revision:'1',truncated:false},
+      actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:'캐릭터'}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
   }
   private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object}>{
@@ -118,6 +125,8 @@ export class Store {
     const refs=(list:{sourceId:string;revision:string}[])=>JSON.stringify(list.map(r=>r.sourceId+':'+r.revision).sort());
     const history=request.eventId===e.id?(await this.affectRecords(c,e.identity_id,request.now)).filter(r=>r.eventId!==e.id):[];
     if(request.eventId!==e.id||request.eventRevision!==String(e.revision)||request.configVersion!==s.configVersion.toString()||request.scope.ownerId!==e.identity_id||request.scope.characterId!==this.characterId||refs(history.map(r=>({sourceId:r.eventId,revision:r.eventRevision})))!==refs(request.stateSourceRefs))return {body,effect:{...base,status:'stale'}};
+    const readEpisodes=request.sources.filter(x=>x.kind==='episode').map(x=>x.id);
+    if(readEpisodes.length&&(await c.query("SELECT count(*)::int n FROM action_episodes WHERE character_id=$1 AND id=ANY($2::uuid[]) AND status='active'",[this.characterId,readEpisodes])).rows[0].n!==readEpisodes.length)return {body,effect:{...base,status:'stale'}};
     let appended:ReturnType<typeof appendEventAffect>;
     try{appended=appendEventAffect(history,request,attempt.result.interpretation,e.id);}catch{return {body,effect:{...base,status:'invalid'}};}
     if(appended.status!=='applied'||(await c.query('SELECT 1 FROM affective_appraisals WHERE character_id=$1 AND event_id=$2 AND event_revision=$3',[this.characterId,e.id,e.revision])).rowCount)return {body,effect:{...base,status:'duplicate'}};
@@ -547,7 +556,7 @@ export class Store {
     const persona=(await c.query('SELECT kind,text FROM character_persona_values WHERE character_id=$1 AND config_version=$2 ORDER BY ordinal',[this.characterId,r.config_version])).rows.map(v=>({kind:v.kind,text:v.text}));
     return {response:r,context:{...(persona.length?{persona}:{}),...(r.knowledge_context?{knowledge:r.knowledge_context}:{}),...(r.personal_context?{personalFacts:r.personal_context}:{}),currentInput,sources,memories,identities,silence,conversation:conversation??undefined,emotion:this.emotion(decay(s.body,this.now(s)))} satisfies DialogueContext};
   }
-  async generated(id:string,sentences:string[],owner:{clientId:string;outputEpoch:bigint}|null,answer?:KnowledgeAnswer){return this.locked(async(c,s)=>{const r=await this.validResponse(c,id,s);if(!r)return null;if(!owner){await c.query("UPDATE response_runs SET status='failed',cancel_reason='stage_unavailable',finished_at=$2 WHERE id=$1",[id,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');return null;}
+  async generated(id:string,sentences:string[],owner:{clientId:string;outputEpoch:bigint}|null,answer?:KnowledgeAnswer,turn?:DialogueTurn){return this.locked(async(c,s)=>{const r=await this.validResponse(c,id,s);if(!r)return null;if(!owner){await c.query("UPDATE response_runs SET status='failed',cancel_reason='stage_unavailable',finished_at=$2 WHERE id=$1",[id,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');return null;}
     const session=await this.session(c,r.session_id);if(BigInt(session.output_epoch)!==owner.outputEpoch)return null;
     let knowledge: {status:KnowledgeAnswer['status'];citations:ReturnType<Store['knowledgeCitations']>}|undefined;
     if(r.knowledge_context){
@@ -556,9 +565,21 @@ export class Store {
       await c.query('UPDATE response_runs SET knowledge_context=$2 WHERE id=$1',[id,{...r.knowledge_context,answer}]);
     }else if(answer)throw new RuntimeError('invalid_knowledge_answer',503);
     await c.query("UPDATE response_runs SET status='delivering',segment_count=$2 WHERE id=$1",[id,sentences.length]);const segments=[];
+    if(turn&&JSON.stringify(turn.sentences)!==JSON.stringify(sentences))throw new RuntimeError('invalid_output',503);
+    // A suggestion annotation stays a candidate until every segment is delivered.
+    if(turn?.annotationStatus==='candidate'&&turn.recommendations[0]&&!r.knowledge_context&&r.plan?.targetIdentityId)await c.query("INSERT INTO action_episodes(id,character_id,owner_id,response_id,status,annotation) VALUES($1,$2,$3,$4,'candidate',$5)",[randomUUID(),this.characterId,r.plan.targetIdentityId,id,turn.recommendations[0]]);
     for(let i=0;i<sentences.length;i++){const segmentId=randomUUID();await c.query("INSERT INTO speech_segments(id,character_id,response_id,segment_index,text,synthesis_status,delivery_status,output_epoch,playback_client_id) VALUES($1,$2,$3,$4,$5,'ready','sent',$6,$7)",[segmentId,this.characterId,id,i,sentences[i],owner.outputEpoch.toString(),owner.clientId]);segments.push({id:segmentId,text:sentences[i],index:i});}
     return {response:r,segments,outputEpoch:owner.outputEpoch,...(knowledge?{knowledge}:{})};
   });}
+  private async confirmEpisode(c:Client,responseId:string){
+    const a=(await c.query("SELECT a.id,a.owner_id,a.annotation,r.segment_count,r.trigger_event_id FROM action_episodes a JOIN response_runs r ON r.id=a.response_id WHERE a.character_id=$1 AND a.response_id=$2 AND a.status='candidate' FOR UPDATE OF a",[this.characterId,responseId])).rows[0];if(!a)return;
+    const segments=(await c.query('SELECT id,segment_index,text,text_shown_at,delivery_status,updated_at FROM speech_segments WHERE response_id=$1 ORDER BY segment_index',[responseId])).rows;
+    const input=(await c.query("SELECT i.id,i.revision FROM events p JOIN events i ON i.id=p.parent_event_id WHERE p.id=$1 AND i.data_status='active'",[a.trigger_event_id])).rows[0];
+    const episode=input?confirmDeliveredRecommendation({id:a.id,scope:{ownerId:a.owner_id,characterId:this.characterId},responseId,responseRevision:'1',status:'completed',expectedSegments:a.segment_count,
+      segments:segments.map(x=>({id:x.id,index:x.segment_index,text:x.text,shownAt:x.text_shown_at?.getTime()??null,finishedAt:x.delivery_status==='finished'?x.updated_at.getTime():null})),annotation:a.annotation,sourceRefs:[{sourceId:input.id,revision:String(input.revision)}]}):null;
+    if(episode)await c.query("UPDATE action_episodes SET status='active',annotation=NULL,episode=$2,delivered_at=$3 WHERE id=$1",[a.id,episode,new Date(episode.deliveredAt)]);
+    else await c.query("UPDATE action_episodes SET status='rejected',annotation=NULL,closed_at=$2 WHERE id=$1",[a.id,new Date(this.clock())]);
+  }
   async failResponse(id:string,code:string){return this.locked(async(c,s)=>{await c.query(`UPDATE response_runs SET status='failed',cancel_reason=$3,finished_at=$4 WHERE id=$1 AND character_id=$2 AND status IN ${activeResponses}`,[id,this.characterId,code,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');});}
   private async resolveAttempt(c:Client,responseId:string,status:'not_delivered'|'unknown') {const a=(await c.query("UPDATE agenda_attempts SET delivery_status=$2,resolved_at=$3 WHERE response_id=$1 AND delivery_status='reserved' RETURNING agenda_id",[responseId,status,new Date(this.clock())])).rows[0];if(a)await c.query("UPDATE agendas SET status=$2,closed_reason=$3 WHERE id=$1 AND status='reserved'",[a.agenda_id,status==='not_delivered'?'pending':'expired',status]);}
   async report(sessionId:string,requestId:string,type:'caption.shown'|'caption.finished',body:{responseId:string;segmentId:string;generationEpoch:string;outputEpoch:string},clientId:string){return this.locked(async(c,s)=>{
@@ -579,7 +600,7 @@ export class Store {
       const attempt=(await c.query("UPDATE agenda_attempts SET delivery_status='delivered_text',resolved_at=COALESCE(resolved_at,$2) WHERE response_id=$1 AND delivery_status='reserved' RETURNING *",[body.responseId,new Date(this.clock())])).rows[0];
       if(attempt){await c.query("UPDATE agendas SET status='offered',offered_at=$2 WHERE id=$1 AND status='reserved'",[attempt.agenda_id,new Date(this.clock())]);const agenda=(await c.query('SELECT * FROM agendas WHERE id=$1',[attempt.agenda_id])).rows[0];await this.memory(c,sessionId,agenda.activity_run_id,`delivered_proposal:${agenda.activity_run_id}:${attempt.id}`,'delivered_proposal','남겨 둔 퍼즐을 이어 하자고 제안했다.',{agendaId:agenda.id,result:'offered'},[{event,role:'delivered'}],[]);}
     }
-    if(all.length===segment.segment_count&&all.every(x=>x.delivery_status==='finished')){await c.query("UPDATE response_runs SET status='completed',finished_at=$2 WHERE id=$1 AND status='delivering'",[body.responseId,new Date(this.clock())]);await c.query('UPDATE sessions SET last_output_end_at=$2 WHERE id=$1',[sessionId,new Date(this.clock())]);}
+    if(all.length===segment.segment_count&&all.every(x=>x.delivery_status==='finished')){const done=await c.query("UPDATE response_runs SET status='completed',finished_at=$2 WHERE id=$1 AND status='delivering'",[body.responseId,new Date(this.clock())]);if(done.rowCount)await this.confirmEpisode(c,body.responseId);await c.query('UPDATE sessions SET last_output_end_at=$2 WHERE id=$1',[sessionId,new Date(this.clock())]);}
     await this.bump(c,s,event,decay(s.body,this.now(s)));return {status:'committed',eventId:event.id};
   });}
   async cancel(sessionId:string,requestId:string,reason:string,responseId?:string){return this.locked(async(c,s)=>{await this.session(c,sessionId,false);
@@ -764,7 +785,8 @@ export class Store {
       for(const row of silences)reasons.add(row.id);
     }
     await this.redactSilences(c,s,memoryIds,eventIds,[...reasons]);
-    await this.removeEventAffect(c,s,[...eventIds,...responses]);
+    const episodes=(await c.query("UPDATE action_episodes SET status='deleted',annotation=NULL,episode=NULL,closed_at=$3 WHERE character_id=$1 AND response_id=ANY($2::uuid[]) AND status IN ('candidate','active') RETURNING id",[this.characterId,[...responses],new Date(this.now(s))])).rows.map(r=>r.id);
+    await this.removeEventAffect(c,s,[...eventIds,...responses,...episodes]);
     await c.query("UPDATE appraisals SET result=NULL,provider_result=NULL,context_refs='[]'::jsonb,status='stale' WHERE character_id=$1 AND id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     await c.query("UPDATE transitions SET effects=CASE WHEN effects ? 'repairUsed' THEN jsonb_build_object('repairUsed',effects->'repairUsed') ELSE NULL END,replay_status='source_redacted' WHERE character_id=$1 AND appraisal_id=ANY($2::uuid[])",[this.characterId,[...appraisals]]);
     const affected=[...responses].map(id=>({id}));

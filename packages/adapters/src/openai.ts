@@ -181,7 +181,8 @@ export class OpenAIDialogue extends OpenAIResponses implements DialogueGenerator
     }
     const original=(context as {conversation?:ConversationSnapshot}).conversation;
     let conversation=original?await budgetConversation(original,t=>this.counter.countText(t)):undefined;
-    for(;;){const body=this.payload(this.compose(plan,{...context,conversation})),inputTokens=await this.countPayload(body);if(inputTokens<=3328){this.preparedCount={body:JSON.stringify(body),inputTokens};return {conversation,inputTokens};}
+    // The runtime sends the annotated turn; fitting counts that same body.
+    for(;;){const body=this.turnPayload(plan,{...context,conversation}),inputTokens=await this.countPayload(body);if(inputTokens<=3328){this.preparedCount={body:JSON.stringify(body),inputTokens};return {conversation,inputTokens};}
       if(!conversation?.turns.length)throw new RuntimeError('context_limit',503);conversation=dropOldestExchange(conversation);
     }
   }
@@ -200,12 +201,13 @@ export class OpenAIDialogue extends OpenAIResponses implements DialogueGenerator
     if(inputTokens>3328)throw new RuntimeError('context_limit',503);
     return decodeKnowledgeOutput(request,await this.request('dialogue',body,inputTokens),plan.maxSentences);
   }
+  private turnPayload(plan:Plan,context:object){return this.payload(buildAnnotatedDialogueRequest(plan,context as DialogueContext,this.model,{promptVariant:'conversation-history-v1'}),openaiAffectLimits.annotationOutputTokens,'character_recommendation');}
   async generateTurn(plan:Plan,context:DialogueContext){
-    // A plain dialogue fit has a different schema and cannot authorize this count.
-    this.preparedCount=undefined;
+    // Only a fit of this identical annotated body authorizes reusing its count.
+    const prepared=this.preparedCount;this.preparedCount=undefined;
     if(plan.purpose==='knowledge_answer')throw new RuntimeError('recommendation_capture_unsupported',400);
     const request=buildAnnotatedDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});
-    const body=this.payload(request,openaiAffectLimits.annotationOutputTokens,'character_recommendation'),inputTokens=await this.countPayload(body);
+    const body=this.payload(request,openaiAffectLimits.annotationOutputTokens,'character_recommendation'),inputTokens=prepared?.body===JSON.stringify(body)?prepared.inputTokens:await this.countPayload(body);
     if(inputTokens>3328)throw new RuntimeError('context_limit',503);
     return decodeAnnotatedDialogueOutput(request,await this.request('dialogue',body,inputTokens),plan.maxSentences);
   }

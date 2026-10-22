@@ -26,13 +26,13 @@ it('P13 OpenAI counts and generates the same full personal snapshot without real
  const dir=mkdtempSync(join(tmpdir(),'personal-dialogue-'));directories.push(dir);const requests:any[]=[];
  const fetcher=vi.fn(async(url:any,init:any)=>{requests.push(JSON.parse(init.body));return String(url).endsWith('input_tokens')?Response.json({input_tokens:300}):Response.json({status:'completed',model:'gpt-6-sol',usage:{input_tokens:300,output_tokens:20},output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({content:'카페인 없는 차를 선호합니다.',sentences:['카페인 없는 차를 선호합니다.']})}]}]});});
  const provider=new OpenAIDialogue({localOnly:false,allowPaidProviders:true,apiKey:'unit-secret',budget:new DialogueBudget(join(dir,'ledger.json'),1),fetcher});
- await provider.fitConversation(plan(),context());expect(await provider.dialogue(plan(),context())).toEqual(['카페인 없는 차를 선호합니다.']);
+ await provider.fitConversation(plan(),context());expect((await provider.generateTurn(plan(),context())).sentences).toEqual(['카페인 없는 차를 선호합니다.']);
  expect(requests).toHaveLength(2);const {model,input,reasoning,text}=requests[1];expect(requests[0]).toEqual({model,input,reasoning,text});expect(JSON.stringify(input)).toContain('카페인 없는 차만 선호');
 });
 it('P13 Ollama counts the same personal messages and transmits them as untrusted data',async()=>{
  const requests:any[]=[],count=vi.fn(async(_messages:unknown)=>300),countText=vi.fn(async()=>300);
  const fetcher=vi.fn(async(_url:any,init:any)=>{requests.push(JSON.parse(init.body));return Response.json({done:true,message:{content:JSON.stringify({sentences:['카페인 없는 차를 선호합니다.']})}});});
  const provider=new OllamaProvider('qwen2.5:7b',{count,countText},'http://127.0.0.1:11434',fetcher);
- await provider.fitConversation(plan(),context());await provider.dialogue(plan(),context());
+ await provider.fitConversation(plan(),context());await provider.generateTurn(plan(),context());
  expect(count.mock.calls[0]![0]).toEqual(requests[0].messages);expect(countText).not.toHaveBeenCalled();
 });

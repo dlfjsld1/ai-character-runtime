@@ -96,8 +96,10 @@ export class Coordinator {
       const {response,context}=prepared;
       if(context.knowledge&&!this.provider.answerKnowledge)throw new RuntimeError('knowledge_unavailable',503);
       const answer=context.knowledge?await this.provider.answerKnowledge!(response.plan as Plan,context):undefined;
-      const sentences=answer?answer.sentences:await this.provider.dialogue(response.plan as Plan,context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
-      const generated=await this.control(()=>this.store.generated(id,sentences,this.sink.owner(),answer));if(!generated)return;
+      // A generator that can annotate its own suggestions does so on every ordinary reply.
+      const turn=answer||!this.provider.generateTurn?undefined:await this.provider.generateTurn(response.plan as Plan,context);
+      const sentences=answer?answer.sentences:turn?turn.sentences:await this.provider.dialogue(response.plan as Plan,context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
+      const generated=await this.control(()=>this.store.generated(id,sentences,this.sink.owner(),answer,turn));if(!generated)return;
       const common={responseId:id,generationEpoch:generated.response.generation_epoch,outputEpoch:generated.outputEpoch.toString()};
       // The transaction above committed every segment before the first send.
       if(this.blockedOutputs.has(id)||this.stopped)return;

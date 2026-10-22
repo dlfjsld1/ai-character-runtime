@@ -2,7 +2,8 @@ import {z} from 'zod';
 import {affectScopeSchema,affectReferenceSchema,type AffectSource} from './affect-appraisal.ts';
 
 export const recommendationAnnotationSchema=z.object({
-  kind:z.literal('movie'),title:z.string().trim().min(1).max(120),
+  // A short noun the model writes for what was suggested; not a fixed topic list.
+  kind:z.string().trim().min(1).max(40),title:z.string().trim().min(1).max(120),
   sentenceIndex:z.number().int().min(0).max(1),quote:z.string().min(1).max(120),
 }).strict();
 export type RecommendationAnnotation=z.infer<typeof recommendationAnnotationSchema>;
@@ -10,7 +11,7 @@ export type DialogueTurn={sentences:string[];recommendations:RecommendationAnnot
 export const actionEpisodeSchema=z.object({
   id:z.uuid(),revision:z.string().regex(/^[1-9]\d*$/),scope:affectScopeSchema,
   responseId:z.uuid(),responseRevision:z.string().regex(/^[1-9]\d*$/),segmentId:z.uuid(),
-  kind:z.literal('movie'),title:z.string().min(1).max(120),text:z.string().min(1).max(120),
+  kind:z.string().trim().min(1).max(40),title:z.string().min(1).max(120),text:z.string().min(1).max(120),
   span:z.object({start:z.number().int().nonnegative(),end:z.number().int().positive()}).strict(),
   deliveredAt:z.number().finite().nonnegative(),sourceRefs:z.array(affectReferenceSchema).min(1).max(40),
 }).strict();

@@ -71,7 +71,8 @@ export class DeepSeekDialogue extends DeepSeekChat implements DialogueGenerator 
       return {conversation:undefined,inputTokens};
     }
     let conversation=context.conversation?await budgetConversation(context.conversation,t=>this.counter.countText(t)):undefined;
-    for(;;){const inputTokens=deepseekInputBound(deepseekPayload(this.compose(plan,{...context,conversation}),256));
+    // generateTurn sends the annotated request with a 512-token reply; fit that one.
+    for(;;){const inputTokens=deepseekInputBound(deepseekPayload(buildAnnotatedDialogueRequest(plan,{...context,conversation},this.model,{promptVariant:'conversation-history-v1'}),512));
       if(inputTokens<=deepseekCandidate.inputBound)return {conversation,inputTokens};
       if(!conversation?.turns.length)throw new RuntimeError('context_limit',503);conversation=dropOldestExchange(conversation);
     }

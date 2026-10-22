@@ -31,10 +31,10 @@ it('uses the exact fitted request count once, without a second reservation or ch
  const requests:any[]=[],fetcher=vi.fn(async(url:any,init:any)=>{requests.push({url,body:JSON.parse(init.body)});return String(url).endsWith('input_tokens')?Response.json({input_tokens:100}):completed();});
  const {provider,path}=setup({},fetcher),p=plan(),context={currentInput:{payload:{text:'모임은 수요일이야. 요일을 알려줘.'}}};
  const fit=await provider.fitConversation(p,context);expect(fit.inputTokens).toBe(100);expect(requests).toHaveLength(1);
- await provider.dialogue(p,{...context,conversation:fit.conversation});
+ await provider.generateTurn(p,{...context,conversation:fit.conversation});
  expect(requests).toHaveLength(2);const {model,input,reasoning,text}=requests[1].body;expect(requests[0].body).toEqual({model,input,reasoning,text});
  expect(JSON.parse(readFileSync(path,'utf8')).entries.map((e:any)=>e.kind)).toEqual(['count','dialogue']);
- await provider.dialogue(p,{...context,conversation:fit.conversation});expect(requests).toHaveLength(4);
+ await provider.generateTurn(p,{...context,conversation:fit.conversation});expect(requests).toHaveLength(4);
 });
 it.each(['context','plan','intervening-count'])('recounts after %s changes instead of reusing stale preparation',async change=>{
  const requests:any[]=[],fetcher=vi.fn(async(url:any,init:any)=>{requests.push({url,body:JSON.parse(init.body)});return String(url).endsWith('input_tokens')?Response.json({input_tokens:100}):completed();});
@@ -49,7 +49,7 @@ it.each(['context','plan','intervening-count'])('recounts after %s changes inste
 it('MX07: fit and generation transmit the same mixed style without exposing hidden affect or rewriting speech',async()=>{
  const requests:any[]=[],fetcher=vi.fn(async(url:any,init:any)=>{requests.push({url,body:JSON.parse(init.body)});return String(url).endsWith('input_tokens')?Response.json({input_tokens:100}):completed('{"content":"칭찬을 고맙게 받는다.","sentences":["정말 감사합니다."]}');});
  const {provider}=setup({},fetcher),p={...plan(),speechStyle:{register:'formal' as const,positiveTone:'bright' as const}},context={currentInput:{payload:{text:'설명을 잘했어.'}},emotion:{joy:.7,frustration:.7,privateReason:'감춰 둔 원인'}};
- const fit=await provider.fitConversation(p,context);expect(await provider.dialogue(p,{...context,conversation:fit.conversation})).toEqual(['정말 감사합니다.']);
+ const fit=await provider.fitConversation(p,context);expect((await provider.generateTurn(p,{...context,conversation:fit.conversation})).sentences).toEqual(['정말 감사합니다.']);
  expect(requests).toHaveLength(2);expect(requests[0].body.input).toEqual(requests[1].body.input);
  const transmitted=JSON.stringify(requests[1].body.input);expect(transmitted).toContain('사무적인 존댓말');expect(transmitted).toContain('밝은 호응');expect(transmitted).not.toContain('감춰 둔 원인');expect(transmitted).not.toContain('"joy"');
 });
@@ -60,13 +60,13 @@ it.each(['unknown','cap','amount','lock'])('prepared counts do not bypass the cu
  if(guard==='cap')ledger.entries.push(...Array.from({length:24},(_,i)=>({id:'g'+i,kind:'dialogue',status:'completed',usd:0})));
  if(guard==='amount')ledger.entries.push({id:'spent',kind:'dialogue',status:'completed',usd:.99});
  writeFileSync(path,JSON.stringify(ledger));if(guard==='lock')writeFileSync(path+'.lock','');const before=readFileSync(path,'utf8');
- await expect(provider.dialogue(p,{})).rejects.toThrow({unknown:'dialogue_usage_unconfirmed',cap:'dialogue_attempt_limit',amount:'dialogue_budget_exceeded',lock:'dialogue_budget_locked'}[guard]);
+ await expect(provider.generateTurn(p,{})).rejects.toThrow({unknown:'dialogue_usage_unconfirmed',cap:'dialogue_attempt_limit',amount:'dialogue_budget_exceeded',lock:'dialogue_budget_locked'}[guard]);
  expect(fetcher).toHaveBeenCalledOnce();expect(readFileSync(path,'utf8')).toBe(before);
 });
 it('compares real generation usage with the reused count before exposing content',async()=>{
  const content=vi.fn(),fetcher=vi.fn(async(url:any)=>String(url).endsWith('input_tokens')?Response.json({input_tokens:99}):completed());
  const {provider}=setup({onContent:content},fetcher),p=plan();await provider.fitConversation(p,{});
- await expect(provider.dialogue(p,{})).rejects.toThrow('dialogue_token_count_mismatch');expect(fetcher).toHaveBeenCalledTimes(2);expect(content).not.toHaveBeenCalled();
+ await expect(provider.generateTurn(p,{})).rejects.toThrow('dialogue_token_count_mismatch');expect(fetcher).toHaveBeenCalledTimes(2);expect(content).not.toHaveBeenCalled();
 });
 it.each(['bad-json','too-long','no-korean','too-many-sentences'])('rejects %s without repair/retry',async kind=>{
  const text=kind==='bad-json'?'broken':kind==='too-long'?JSON.stringify({content:'가'.repeat(121),sentences:['안녕.']}):kind==='no-korean'?'{"content":"Hi.","sentences":["Hi."]}':'{"content":"안녕.","sentences":["안녕. 반가워."]}';

@@ -77,13 +77,14 @@ it('ledger validates cap metadata, preserves historical entries, and refuses out
 it.each([0,2049,NaN,1.5])('invalid requested cap %s cannot reserve',value=>{
   const {budget}=setup(vi.fn());expect(()=>budget.reserve('dialogue',{max_output_tokens:value})).toThrow('dialogue_output_limit_invalid');
 });
-it('annotation uses its own schema count, keeps valid speech on malformed capture, and does not reuse plain fit',async()=>{
+it('annotation reuses the fitted annotated count and keeps valid speech on malformed capture',async()=>{
   const bodies:any[]=[],fetcher=vi.fn(async(url:any,init:any)=>{bodies.push(JSON.parse(init.body));return String(url).endsWith('input_tokens')?Response.json({input_tokens:100}):completed({content:'영화를 권한다.',sentences:['별의 강을 추천해.'],recommendations:[{kind:'movie',title:'없는 제목',sentenceIndex:0,quote:'없는 제목을 추천해.'}]},{usage:{input_tokens:100,output_tokens:300}});});
   const {options,path}=setup(fetcher),provider=new OpenAIDialogue(options);await provider.fitConversation(plan(),{});
   expect(await provider.generateTurn(plan(),{})).toEqual({sentences:['별의 강을 추천해.'],recommendations:[],annotationStatus:'invalid'});
-  expect(bodies).toHaveLength(3);const {model,input,reasoning,text}=bodies[2];expect(bodies[1]).toEqual({model,input,reasoning,text});
-  expect(bodies[2].max_output_tokens).toBe(512);expect(bodies[0].text.format.schema).not.toEqual(text.format.schema);
-  expect(read(path).entries.map((e:any)=>e.kind)).toEqual(['count','count','dialogue']);
+  // The runtime sends the annotated turn, so fitting counts that body once.
+  expect(bodies).toHaveLength(2);const {model,input,reasoning,text}=bodies[1];expect(bodies[0]).toEqual({model,input,reasoning,text});
+  expect(bodies[1].max_output_tokens).toBe(512);
+  expect(read(path).entries.map((e:any)=>e.kind)).toEqual(['count','dialogue']);
 });
 it('annotation is not used for grounded knowledge answers',async()=>{
   const fetcher=vi.fn(),{options}=setup(fetcher),provider=new OpenAIDialogue(options);

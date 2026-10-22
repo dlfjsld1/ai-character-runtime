@@ -7,6 +7,8 @@ import type {Message,TokenCounter,Provider,DialogueContext} from '../../contract
 import {conversationSnapshotSchema,budgetConversation,dropOldestExchange} from '../../contracts/src/conversation.ts';
 export type {Message,TokenCounter,Provider} from '../../contracts/src/ai-ports.ts';
 import {buildDialogueRequest,decodeDialogueOutput,buildKnowledgeRequest,decodeKnowledgeOutput,type DialoguePromptOptions} from './dialogue-request.ts';
+import {buildAnnotatedDialogueRequest,decodeAnnotatedDialogueOutput} from './recommendation-capture.ts';
+import type {DialogueTurn} from '../../contracts/src/outcomes.ts';
 export {validateDialogue} from './dialogue-request.ts';
 export type DialogueEvaluation=DialoguePromptOptions&{model:'qwen2.5:7b'|'gemma4:12b-it-qat'|'qwen3.5:9b-q4_K_M';seed:number;think?:false};
 export class PythonTokenCounter implements TokenCounter {
@@ -65,7 +67,7 @@ export class OllamaProvider implements Provider {
       this.prepared=true;this.preparationError=null;return {status:'ready',digest:model.digest??null,inferenceVerified:true};
     }catch(e){this.preparationError=e instanceof RuntimeError?e.code:'provider_unavailable';if(e instanceof RuntimeError)throw e;throw new RuntimeError('provider_unavailable',503);}
   }
-  private async chat(messages:Message[],format:object|undefined,stream:boolean,temperature:number,kind:'appraise'|'dialogue'|'solve'|'prepare'):Promise<string> {
+  private async chat(messages:Message[],format:object|undefined,stream:boolean,temperature:number,kind:'appraise'|'dialogue'|'solve'|'prepare',numPredict=256):Promise<string> {
     let resolveCaller!:(text:string)=>void,rejectCaller!:(reason:unknown)=>void;
     const caller=new Promise<string>((resolve,reject)=>{resolveCaller=resolve;rejectCaller=reject;});
     const task=async()=>{
@@ -82,7 +84,7 @@ export class OllamaProvider implements Provider {
         // the single-call queue occupied until Ollama confirms its terminal done.
         const evaluation=this.probeOptions.evaluation;
         const think=evaluation?.think??this.probeOptions.think;
-        const response=await this.fetcher(new URL('/api/chat',this.baseUrl),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:this.model,messages,stream,...(format?{format}:{}),...(think!==undefined?{think}:{}),options:{temperature,num_predict:256,num_ctx:4096,...(evaluation?{seed:evaluation.seed}:{}),...(this.probeOptions.numGpu===0?{num_gpu:0}:{})},keep_alive:'5m'}),redirect:'error'});
+        const response=await this.fetcher(new URL('/api/chat',this.baseUrl),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:this.model,messages,stream,...(format?{format}:{}),...(think!==undefined?{think}:{}),options:{temperature,num_predict:numPredict,num_ctx:4096,...(evaluation?{seed:evaluation.seed}:{}),...(this.probeOptions.numGpu===0?{num_gpu:0}:{})},keep_alive:'5m'}),redirect:'error'});
         if(!response.ok){confirmed=true;throw new RuntimeError(response.status===404?'model_missing':'provider_unavailable',503);}
         const mime=response.headers.get('content-type')?.split(';')[0].trim();
         if(stream?!['application/x-ndjson','application/json'].includes(mime??''):mime!=='application/json')throw new RuntimeError('invalid_output',503);
@@ -118,13 +120,20 @@ export class OllamaProvider implements Provider {
     }
     const original=(context as {conversation?:unknown}).conversation;
     let conversation=original===undefined?undefined:await budgetConversation(conversationSnapshotSchema.parse(original),text=>this.counter.countText(text));
-    for(;;){const request=this.buildDialogueRequest(plan,{...context,conversation});const inputTokens=await this.counter.count(request.messages);
+    for(;;){const request=this.turnRequest(plan,{...context,conversation});const inputTokens=await this.counter.count(request.messages);
       if(inputTokens<=3328)return {conversation,inputTokens};
       if(!conversation?.turns.length)throw new RuntimeError('input_too_long',413);
       conversation=dropOldestExchange(conversation);
     }
   }
-  private buildDialogueRequest(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,this.probeOptions.evaluation??(this.probeOptions.promptVariant?{promptVariant:this.probeOptions.promptVariant}:undefined));}
+  private options(){return this.probeOptions.evaluation??(this.probeOptions.promptVariant?{promptVariant:this.probeOptions.promptVariant}:undefined);}
+  private buildDialogueRequest(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,this.options());}
+  // The runtime sends the annotated turn request; fitting counts that same request.
+  private turnRequest(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,this.options()).legacy?this.buildDialogueRequest(plan,context):buildAnnotatedDialogueRequest(plan,context as DialogueContext,this.model,this.options());}
+  async generateTurn(plan:Plan,context:DialogueContext):Promise<DialogueTurn>{
+    const request=buildAnnotatedDialogueRequest(plan,context,this.model,this.options());
+    return decodeAnnotatedDialogueOutput(request,await this.chat(request.messages,request.format,true,.2,'dialogue',384),plan.maxSentences);
+  }
   async dialogue(plan:Plan,context:object) {
     const request=this.buildDialogueRequest(plan,context);
     return decodeDialogueOutput(request,await this.chat(request.messages,request.format,true,.2,'dialogue'),plan.maxSentences);

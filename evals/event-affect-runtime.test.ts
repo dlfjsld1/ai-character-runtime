@@ -131,3 +131,74 @@ it('dialogue context carries the persona of the response config version, and non
   const selected=await turn(sessionId,'뭐 해?'),second=await store.commitAppraisal(selected,{...question,evidence_refs:[selected.event.id]},{provider:'synthetic-fixture',model:'recorded'},[]);
   expect((await store.responseContext(second.response!.id)).context).not.toHaveProperty('persona');
 });
+
+// O2 slice 2: a suggestion the character made becomes an episode only after full delivery.
+async function suggest(sessionId:string,text:string,sentences:string[],annotation:{kind:string;title:string;sentenceIndex:number;quote:string}|null){
+  const selected=await turn(sessionId,text),result=await store.commitAppraisal(selected,{...question,evidence_refs:[selected.event.id]},{provider:'synthetic-fixture',model:'recorded'},[]);
+  const clientId=randomUUID(),owner=await store.grantOwner(sessionId,randomUUID(),clientId);
+  const generated=(await store.generated(result.response!.id,sentences,{clientId,outputEpoch:owner.outputEpoch},undefined,{sentences,recommendations:annotation?[annotation]:[],annotationStatus:annotation?'candidate':'none'}))!;
+  const ack=async(index:number,type:'caption.shown'|'caption.finished'='caption.finished',requestId=randomUUID())=>{const s=generated.segments[index]!,payload={responseId:result.response!.id,segmentId:s.id,generationEpoch:generated.response.generation_epoch,outputEpoch:String(owner.outputEpoch)};if(type==='caption.finished')await store.report(sessionId,randomUUID(),'caption.shown',payload,clientId);return store.report(sessionId,requestId,type,payload,clientId);};
+  return {selected,response:result.response!,generated,ack};
+}
+const episodes=async()=>(await db.pool.query('SELECT id,status,episode FROM action_episodes ORDER BY created_at')).rows;
+const pasta={kind:'음식',title:'토마토 파스타',sentenceIndex:1,quote:'토마토 파스타 어때'};
+it('S2-01 a suggestion is a candidate until every segment finishes, then one active episode the interpreter reads',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);
+  expect((await episodes()).map(e=>e.status)).toEqual(['candidate']);
+  await s.ack(0);expect((await episodes())[0].status).toBe('candidate');
+  const requestId=randomUUID();await s.ack(1,'caption.finished',requestId);
+  const [active]=await episodes();expect(active).toMatchObject({status:'active',episode:{kind:'음식',title:'토마토 파스타',responseId:s.response.id,text:'토마토 파스타 어때?'}});
+  await s.ack(1,'caption.finished',requestId);expect(await episodes()).toEqual([active]);
+  now+=60000;const request=(await store.affectRequest(await turn(sessionId,'파스타 먹어 봤는데 별로였어.')))!;
+  expect(request.experience).toEqual({status:'found',revision:'1',truncated:false});
+  expect(request.sources.filter(x=>x.kind==='episode')).toEqual([expect.objectContaining({id:active.id,kind:'episode',text:'토마토 파스타 어때?',delivered:true,speakerId:CHARACTER_ID})]);
+});
+it('S2-02 no suggestion, an unverifiable quote, a failed or a partly delivered reply never becomes an episode',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const none=await suggest(sessionId,'안녕.',['안녕, 반가워.'],null);await none.ack(0);
+  const bad=await suggest(sessionId,'뭐 볼까?',['영화 하나 볼래?','별의 강 어때?'],{kind:'영화',title:'없는 제목',sentenceIndex:1,quote:'없는 제목 어때'});await bad.ack(0);await bad.ack(1);
+  const failed=await suggest(sessionId,'뭐 읽을까?',['요즘은 짧은 책이 좋겠다.','작은 아씨들 어때?'],{kind:'책',title:'작은 아씨들',sentenceIndex:1,quote:'작은 아씨들 어때'});await failed.ack(0);await store.failResponse(failed.response.id,'fixture');
+  expect((await episodes()).map(e=>e.status)).toEqual(['rejected','candidate']);
+  const request=(await store.affectRequest(await turn(sessionId,'그 책 별로였어.')))!;expect(request.experience.status).toBe('empty');expect(request.sources.some(x=>x.kind==='episode')).toBe(false);
+});
+it('S2-03 deleting the asking input deletes the episode, the affect record that read it and its untargeted causes',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);await s.ack(0);await s.ack(1);
+  now+=60000;const later=await turn(sessionId,'파스타 먹어 봤는데 별로였어.');
+  // The record depends on every source it read, including the episode, without quoting it.
+  const result=await commit(later,r=>{expect(r.sources.some(x=>x.kind==='episode')).toBe(true);return meaning(r,2,{congruence:-.7,agency:'self',actorId:r.scope.characterId,targetId:user});});
+  expect((await effects(later.event.id)).eventAffect).toMatchObject({status:'applied'});expect((await store.state()).body.affect.embarrassment.causes).toContainEqual({eventId:later.event.id,targetId:null});
+  await store.failResponse(result.response!.id,'fixture_no_stage');
+  await store.deleteEvent(s.selected.event.id,'1',randomUUID());
+  expect((await episodes()).map(e=>e.status)).toEqual(['deleted']);
+  expect((await records()).find(r=>r.event_id===later.event.id)?.status).toBe('deleted');
+  expect((await store.state()).body.affect.embarrassment.causes.some(c=>c.eventId===later.event.id)).toBe(false);
+});
+it('S2-04 an episode deleted after the interpreter read it makes the result stale',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);await s.ack(0);await s.ack(1);
+  now+=60000;const later=await turn(sessionId,'파스타 별로였어.'),request=(await store.affectRequest(later))!;
+  await db.pool.query("UPDATE action_episodes SET status='deleted',episode=NULL,closed_at=now()");
+  await store.commitAppraisal(later,{...question,evidence_refs:[later.event.id]},{provider:'synthetic-fixture',model:'recorded'},[],meaning(request,0,{congruence:-.5}));
+  expect((await effects(later.event.id)).eventAffect).toMatchObject({status:'stale'});
+});
+it('S2-05 more than five recent episodes is a truncated read',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  for(let i=0;i<6;i++){const s=await suggest(sessionId,`추천 ${i}`,['하나 골라 볼게.',`메뉴${i} 어때?`],{kind:'음식',title:`메뉴${i}`,sentenceIndex:1,quote:`메뉴${i} 어때`});await s.ack(0);await s.ack(1);}
+  const request=(await store.affectRequest(await turn(sessionId,'그거 별로였어.')))!;
+  expect(request.experience).toMatchObject({status:'found',truncated:true});expect(request.sources.filter(x=>x.kind==='episode').map(x=>x.text)).toEqual(['메뉴1 어때?','메뉴2 어때?','메뉴3 어때?','메뉴4 어때?','메뉴5 어때?']);
+});
+it('S2-06 Coordinator generates through generateTurn and hands its suggestion to the Store as a candidate',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const clientId=randomUUID(),owner=await store.grantOwner(sessionId,randomUUID(),clientId);
+  const sentences=['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'];
+  const provider={...fixtureProvider,generateTurn:async()=>({sentences,recommendations:[pasta],annotationStatus:'candidate' as const})};
+  const sink={owner:()=>({clientId,outputEpoch:owner.outputEpoch}),sendOwner:()=>{},inputStatus:()=>{},changed:async()=>{},failure:()=>{}};
+  const co=new Coordinator(store,provider,sink,mockJevAppraiser());
+  try{await co.chat(sessionId,randomUUID(),{identityId:user,text:'저녁 뭐 먹을까?'});
+    for(let i=0;i<200&&!(await episodes()).length;i++)await new Promise(r=>setTimeout(r,20));
+    expect((await episodes()).map(e=>e.status)).toEqual(['candidate']);
+    expect((await db.pool.query('SELECT text FROM speech_segments ORDER BY segment_index')).rows.map(r=>r.text)).toEqual(sentences);
+  }finally{await co.stop();}
+});

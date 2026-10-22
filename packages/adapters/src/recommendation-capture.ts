@@ -11,7 +11,7 @@ export function buildAnnotatedDialogueRequest(plan:Plan,context:DialogueContext,
   const format=structuredClone(base.format) as {properties:Record<string,unknown>;required:string[]};
   format.properties.recommendations=z.toJSONSchema(recommendations);format.required.push('recommendations');
   const messages=base.messages.map(m=>({...m}));
-  messages[0]!.content+='\n출력 JSON에 recommendations 배열도 포함해. 이번 대사에서 내가 실제로 권하는 영화가 있으면 최대1개, 없으면 빈 배열이야. 인용·사용자 추천·가정·부정·단순 언급은 내 추천이 아니야. kind는 movie, title은 대사에 쓴 제목 그대로, sentenceIndex는 sentences의 0부터 시작하는 위치, quote는 추천한 대사의 원문 구절이야. quote에는 제목이 포함돼야 해. 과거 추천을 새 행동으로 기록하지 마. 내부 content 초안은 근거가 아니야.';
+  messages[0]!.content+='\n출력 JSON에 recommendations 배열도 포함해. 이번 대사에서 내가 상대에게 직접 권하거나 제안한 구체적인 것이 있으면 최대1개, 없으면 빈 배열이야. 종류는 상관없어. 상대의 요청에 답하며 이름이 있는 무언가를 하나 골라 “~어때?”, “~해 봐”처럼 권했다면 그것이 내 제안이야. 인용·사용자의 제안·가정·부정·단순 언급은 내 제안이 아니야. kind는 그것의 종류를 나타내는 짧은 명사, title은 대사에 쓴 이름이나 표현 그대로, sentenceIndex는 sentences의 0부터 시작하는 위치, quote는 추천한 대사의 원문 구절이야. quote에는 title이 포함돼야 해. 과거 제안을 새 행동으로 기록하지 마. 내부 content 초안은 근거가 아니야.';
   return {base,messages,format};
 }
 export function decodeAnnotatedDialogueOutput(request:ReturnType<typeof buildAnnotatedDialogueRequest>,text:string,maxSentences:number):DialogueTurn{
