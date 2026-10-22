@@ -203,3 +203,19 @@ it('O2 runtime interpreter: a settled reply that fails the probe contract is inv
     expect(budget.availability()).toBeFalsy();
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
+it('a daily budget counts only today; unresolved entries from earlier days still block',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'deepseek-daily-'));dirs.push(dir);const path=join(dir,'budget.json');
+  let now=new Date(2026,9,21,23,0).getTime();const daily=new DeepSeekBudget(path,1,2,'test','daily',()=>now),usage={prompt_tokens:1,completion_tokens:1};
+  daily.finish(daily.reserve(100,10),usage);daily.finish(daily.reserve(100,10),usage);
+  expect(daily.availability()).toBe('deepseek_attempt_limit');
+  // The cumulative reading of the same ledger stays exhausted.
+  expect(new DeepSeekBudget(path,1,2,'test').availability()).toBe('deepseek_attempt_limit');
+  now=new Date(2026,9,22,0,1).getTime();
+  expect(daily.availability()).toBeNull();expect(daily.summary().attempts).toBe(0);
+  const pending=daily.reserve(100,10);now=new Date(2026,9,23,9,0).getTime();
+  expect(daily.availability()).toBe('deepseek_usage_unconfirmed');
+  daily.finish(pending,usage);expect(daily.availability()).toBeNull();
+  // Entries written before days were recorded count as past days.
+  const ledger=JSON.parse(readFileSync(path,'utf8'));for(const e of ledger.entries)delete e.day;writeFileSync(path,JSON.stringify(ledger));
+  expect(daily.summary().attempts).toBe(0);expect(new DeepSeekBudget(path,1,2,'test').summary().attempts).toBe(3);
+});

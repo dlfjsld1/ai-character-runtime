@@ -34,7 +34,7 @@ const registeredProviders:ProviderRegistry={
     return {dialogue:new OpenAIDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DIALOGUE_API_KEY,budget:openaiBudget(config)})};
   },deepseek:config=>{
     if(config.DIALOGUE_MODEL!=='deepseek-flash')throw new RuntimeError('unsupported_provider_configuration',400);
-    return {dialogue:new DeepSeekDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION)})};
+    return {dialogue:new DeepSeekDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION,'daily')})};
   }},
   appraisal:{jev:config=>({appraiser:new JevConversationCandidate({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.TYPESAFE_API_KEY}),evidenceVerifier:jevEvidenceVerifier}),
     'openai-decisions-v3':config=>{
@@ -53,7 +53,7 @@ const registeredProviders:ProviderRegistry={
 // O2 default: event affect runs whenever paid DeepSeek is fully authorized,
 // independently of the dialogue provider. Local-only setups never call it.
 export function deepseekConfigured(config:LocalConfig){return !config.LOCAL_ONLY&&config.ALLOW_PAID_PROVIDERS&&!!config.DEEPSEEK_API_KEY&&config.DEEPSEEK_BUDGET_USD>0&&!!config.DEEPSEEK_BUDGET_PATH&&config.DEEPSEEK_MAX_CALLS>0&&!!config.DEEPSEEK_BUDGET_AUTHORIZATION;}
-function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION),...o2Timeouts(20000)});}
+function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION,'daily'),...o2Timeouts(20000)});}
 export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv=process.env,registry:ProviderRegistry=registeredProviders):RuntimeProviders {
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
   const appraisal=registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment);

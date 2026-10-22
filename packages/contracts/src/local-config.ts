@@ -67,7 +67,7 @@ export const configSchema = z.object({
   STT_COMPUTE_TYPE: z.literal('int8'),
   STT_LANGUAGE: z.literal('ko'),
 }).strict().refine(value => !(value.LOCAL_ONLY && value.ALLOW_PAID_PROVIDERS), 'Paid providers require LOCAL_ONLY=false')
-  .refine(value => value.DIALOGUE_PROVIDER!=='deepseek'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='deepseek-flash'&&!!value.DEEPSEEK_API_KEY&&value.DEEPSEEK_BUDGET_USD>0&&!!value.DEEPSEEK_BUDGET_PATH&&value.DEEPSEEK_MAX_CALLS>0&&!!value.DEEPSEEK_BUDGET_AUTHORIZATION), 'DeepSeek requires explicit permission, deepseek-flash, separate key, budget and cumulative call authorization')
+  .refine(value => value.DIALOGUE_PROVIDER!=='deepseek'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='deepseek-flash'&&!!value.DEEPSEEK_API_KEY&&value.DEEPSEEK_BUDGET_USD>0&&!!value.DEEPSEEK_BUDGET_PATH&&value.DEEPSEEK_MAX_CALLS>0&&!!value.DEEPSEEK_BUDGET_AUTHORIZATION), 'DeepSeek requires explicit permission, deepseek-flash, separate key, daily budget and call authorization')
   .refine(value => value.DIALOGUE_PROVIDER!=='openai'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='gpt-6-sol'&&!!value.DIALOGUE_API_KEY&&value.DIALOGUE_BUDGET_USD>0&&!!value.DIALOGUE_BUDGET_PATH), 'OpenAI requires explicit paid permission, model, key and budget ledger')
   .refine(value => value.APPRAISAL_PROVIDER!=='jev'||value.APPRAISAL_MODEL==='jev-1.13.0', 'Jev requires APPRAISAL_MODEL=jev-1.13.0')
   .refine(value => value.APPRAISAL_DAILY_MAX_CALLS===0||!!value.APPRAISAL_CALL_COUNT_PATH, 'APPRAISAL_DAILY_MAX_CALLS requires APPRAISAL_CALL_COUNT_PATH')
