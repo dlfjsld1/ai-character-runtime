@@ -205,3 +205,48 @@ it('S2-06 Coordinator generates through generateTurn and hands its suggestion to
     expect((await db.pool.query('SELECT text FROM speech_segments ORDER BY segment_index')).rows.map(r=>r.text)).toEqual(sentences);
   }finally{await co.stop();}
 });
+// A synthetic answer that links the current input to one read episode.
+function linked(request:EventInterpretationRequest,title:string,result:'favorable'|'unfavorable',patch:Partial<EventAppraisal>,extra:{sourceId:string;revision:string;quote:string}[]=[]):EventAffectAttempt{
+  const episode=request.sources.find(s=>s.kind==='episode'&&s.text.includes(title))!,input=request.sources.find(s=>s.id===request.eventId)!;
+  const evidence=[{sourceId:input.id,revision:input.revision,quote:input.text},{sourceId:episode.id,revision:episode.revision,quote:episode.text},...extra];
+  const base=meaning(request,2,{episodeId:episode.id,evidence,actorId:request.scope.characterId,targetId:user,...patch});
+  if(base.result.status==='interpreted')base.result.interpretation.outcome={episodeId:episode.id,use:'used',result,evidence};
+  return base;
+}
+it('S2-07 a reported good result of my suggestion is joy linked to that episode, not only a bad one',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);await s.ack(0);await s.ack(1);
+  now+=60000;const later=await turn(sessionId,'네가 골라 준 파스타 먹었는데 정말 맛있었어.');
+  await commit(later,r=>linked(r,'토마토 파스타','favorable',{congruence:.8,agency:'self'}));
+  const effect=(await effects(later.event.id)).eventAffect;expect(effect).toMatchObject({status:'applied'});
+  expect(effect.stimuli.joy).toBeGreaterThan(0);expect(effect.stimuli.embarrassment).toBe(0);
+  const [record]=(await db.pool.query('SELECT record FROM affective_appraisals WHERE event_id=$1',[later.event.id])).rows;
+  expect(record.record.interpretation.outcome).toMatchObject({use:'used',result:'favorable'});
+});
+it('S2-08 a truncated read still links one of the newest suggestions',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  for(let i=0;i<6;i++){const s=await suggest(sessionId,`추천 ${i}`,['하나 골라 볼게.',`메뉴${i} 어때?`],{kind:'음식',title:`메뉴${i}`,sentenceIndex:1,quote:`메뉴${i} 어때`});await s.ack(0);await s.ack(1);}
+  const later=await turn(sessionId,'메뉴5 먹었는데 별로였어.');
+  await commit(later,r=>{expect(r.experience.truncated).toBe(true);return linked(r,'메뉴5','unfavorable',{congruence:-.6,agency:'self'});});
+  expect((await effects(later.event.id)).eventAffect).toMatchObject({status:'applied'});
+  expect((await store.state()).body.affect.embarrassment.causes).toContainEqual({eventId:later.event.id,targetId:null});
+});
+it('S2-09 an unresolved reference asks which one and records no affect; the answer then links once',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);await s.ack(0);await s.ack(1);
+  now+=60000;const vague=await turn(sessionId,'네가 추천한 거 먹어 봤는데 별로였어.');
+  const result=await commit(vague,request=>{const input=request.sources.find(x=>x.id===request.eventId)!;
+    return {request,promptVersion:'synthetic',latencyMs:1,result:{status:'interpreted',promptVersion:'synthetic',interpretation:{status:'uncertain',outcome:null,appraisals:[]},unresolvedReference:{sourceId:input.id,revision:input.revision,quote:'네가 추천한 거'}}};},
+    {...question,act:'criticism'});
+  expect((await effects(vague.event.id)).eventAffect).toEqual({promptVersion:'synthetic',latencyMs:1,status:'withheld',reason:'unresolved_reference'});
+  expect(result.response!.plan).toMatchObject({action:'ask',purpose:'clarify',reference:'unresolved_suggestion'});
+  expect(await records()).toEqual([]);expect((await store.state()).body.affect.embarrassment.value).toBe(0);
+  await store.failResponse(result.response!.id,'fixture_no_stage');
+  // The clarifying answer can cite the earlier report, which the request still carries.
+  now+=5000;const answer=await turn(sessionId,'토마토 파스타 말이야.');
+  await commit(answer,r=>{const earlier=r.sources.find(x=>x.id===vague.event.id);expect(earlier?.text).toBe('네가 추천한 거 먹어 봤는데 별로였어.');
+    return linked(r,'토마토 파스타','unfavorable',{congruence:-.6,agency:'self'},[{sourceId:earlier!.id,revision:earlier!.revision,quote:'별로였어'}]);});
+  expect((await effects(answer.event.id)).eventAffect).toMatchObject({status:'applied'});
+  expect((await records()).map(r=>r.event_id)).toEqual([answer.event.id]);
+  expect((await store.state()).body.affect.embarrassment.causes.filter(c=>c.targetId===null).map(c=>c.eventId)).toEqual([answer.event.id]);
+});

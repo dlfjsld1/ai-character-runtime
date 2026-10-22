@@ -341,3 +341,9 @@ it('persona comes only from the response context: present values are sent and co
   await p.fitConversation(plan,{persona});await p.generateTurn(plan,{persona});
   expect(counted[0]).toContain('바다 생물');expect(sent[0]).toBe(counted[0]);
 });
+it('an unresolved suggestion reference asks which one without naming a guess; plain clarify keeps its intent',()=>{
+  const plan={action:'ask' as const,purpose:'clarify',targetIdentityId:null,expression:'neutral' as const,maxSentences:2 as const,delivery:'normal' as const,memoryIds:[]};
+  const text=(p:typeof plan&{reference?:'unresolved_suggestion'})=>buildDialogueRequest(p,{},'synthetic',{promptVariant:'content-first'}).messages.map(m=>m.content).join('\n');
+  expect(text({...plan,reference:'unresolved_suggestion'})).toContain('어느 것을 말하는지 짧게 묻는다');
+  expect(text(plan)).toContain('사용자가 가리키는 대상이나 뜻이 무엇인지 질문한다');expect(text(plan)).not.toContain('어느 것을 말하는지');
+});

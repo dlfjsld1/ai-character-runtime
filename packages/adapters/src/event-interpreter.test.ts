@@ -53,8 +53,7 @@ it('OA02/03: outcome linkage requires a delivered, complete candidate and cited 
   const interpreter=new StructuredEventInterpreter(async()=>output);
   expect((await interpreter.interpret(request)).status).toBe('interpreted');
   for(const status of ['empty','ambiguous','stale','unavailable'] as const){request.experience.status=status;expect(await interpreter.interpret(request)).toMatchObject({status:'unavailable',reason:'invalid_output'});}
-  request.experience.status='found';request.experience.truncated=true;expect((await interpreter.interpret(request)).status).toBe('unavailable');
-  request.experience.truncated=false;output.appraisals[0]!.evidence.pop();expect((await interpreter.interpret(request)).status).toBe('unavailable');
+  request.experience.status='found';output.appraisals[0]!.evidence.pop();expect((await interpreter.interpret(request)).status).toBe('unavailable');
 });
 it('OA03: uncertainty is a valid interpretation and source unavailability is not invented history',async()=>{
   const request=affectRequest();request.eventKind='reported_outcome';request.experience.status='unavailable';

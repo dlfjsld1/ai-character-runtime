@@ -70,8 +70,8 @@ it('allows character outside actors and nullable actors but never state-only cit
     if(kind==='evidence')a.evidence[0]!.sourceId=id;if(kind==='concern')a.concern.source.sourceId=id;if(kind==='episode')bad.outcome!.episodeId=id;
     expect(()=>codec.decode(bad)).toThrow();}
 });
-it.each(['empty','ambiguous','stale','unavailable','truncated'])('%s candidates have no authority while input appraisal survives',status=>{
-  const request=scene();if(status==='truncated')request.experience.truncated=true;else request.experience.status=status as 'empty';
+it.each(['empty','ambiguous','stale','unavailable'])('%s candidates have no authority while input appraisal survives',status=>{
+  const request=scene();request.experience.status=status as 'empty';
   const codec=createEventReferenceCodec(request),reply=authoredReferenceReply(codec.wireInput);
   expect(codec.wireInput.sources.some(s=>s.kind==='episode')).toBe(false);expect(codec.decode(reply).appraisals).toHaveLength(1);
   const bad={...reply,outcome:{episodeId:codec.wireInput.eventId,use:'used',result:'pending',evidence:[]}};expect(()=>codec.decode(bad)).toThrow();

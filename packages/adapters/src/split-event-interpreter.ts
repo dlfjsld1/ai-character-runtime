@@ -1,10 +1,12 @@
 import {isDeepStrictEqual} from 'node:util';
 import {RuntimeError} from '../../contracts/src/domain.ts';
 import type {EventInterpreter} from '../../contracts/src/ai-ports.ts';
-import {validateAffectRequest,validateEventInterpretation,type EventInterpretationRequest,type EventInterpretation,type EventInterpretationResult} from '../../contracts/src/affect-appraisal.ts';
+import {validateAffectRequest,validateEventInterpretation,type EventInterpretationRequest,type EventInterpretation,type EventInterpretationResult,type AffectQuote} from '../../contracts/src/affect-appraisal.ts';
 
 export const SPLIT_EVENT_INTERPRETER_VERSION='split-event-interpretation-v1';
-type OutcomeResolver=(request:EventInterpretationRequest)=>Promise<EventInterpretation['outcome']>;
+type OutcomeReading={outcome:EventInterpretation['outcome'];unresolvedReference:AffectQuote|null};
+type OutcomeResolver=(request:EventInterpretationRequest)=>Promise<EventInterpretation['outcome']|OutcomeReading>;
+const isReading=(value:unknown):value is OutcomeReading=>!!value&&typeof value==='object'&&'unresolvedReference' in value;
 type AppraisalResolver=(request:EventInterpretationRequest,outcome:EventInterpretation['outcome'])=>Promise<EventInterpretation>;
 
 export class SplitEventInterpreter implements EventInterpreter{
@@ -17,10 +19,17 @@ export class SplitEventInterpreter implements EventInterpreter{
     const failed=(error:unknown)=>{const code=error instanceof RuntimeError?error.code:'';return unavailable(/invalid_output$/.test(code)?'invalid_output':/invalid_input$/.test(code)?'invalid_input':'transport_failed');};
     let snapshot:EventInterpretationRequest;
     try{snapshot=validateAffectRequest(input);}catch{return unavailable('invalid_input');}
-    let rawOutcome:EventInterpretation['outcome'];
-    try{rawOutcome=await this.resolveOutcome(structuredClone(snapshot));}catch(error){return failed(error);}
+    let reading:OutcomeReading;
+    try{const value=await this.resolveOutcome(structuredClone(snapshot));reading=isReading(value)?value:{outcome:value,unresolvedReference:null};}catch(error){return failed(error);}
     let fixed:EventInterpretation['outcome'];
-    try{fixed=validateEventInterpretation({status:'uncertain',outcome:rawOutcome,appraisals:[]},snapshot).outcome;}catch{return unavailable('invalid_output');}
+    try{fixed=validateEventInterpretation({status:'uncertain',outcome:reading.outcome,appraisals:[]},snapshot).outcome;}catch{return unavailable('invalid_output');}
+    const reference=reading.unresolvedReference;
+    if(reference){
+      const current=snapshot.sources.find(s=>s.id===snapshot.eventId)!;
+      if(fixed!==null||reference.sourceId!==current.id||reference.revision!==current.revision||!current.text.includes(reference.quote))return unavailable('invalid_output');
+      // Which suggestion is meant is unknown: ask first, appraise nothing yet.
+      return {status:'interpreted',interpretation:{status:'uncertain',outcome:null,appraisals:[]},promptVersion:this.promptVersion,unresolvedReference:structuredClone(reference)};
+    }
     let raw:EventInterpretation;
     try{raw=await this.resolveAppraisal(structuredClone(snapshot),structuredClone(fixed));}catch(error){return failed(error);}
     try{

@@ -223,6 +223,18 @@ describe('ER09/10 field-scoped evidence for explicit conversational acts',()=>{
   for(const [act,text] of [['other','오늘은 국수 먹고 싶어.'],['criticism','너는 쓸모없는 쓰레기야. 꺼져.']] as const){
    const a=mapped(act);expect(socialEffect(a,[],identity,0).category).toBeNull();expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(act,text))).toMatchObject({purpose:'other',participation:{mode:'speak'}});
   }
-  const a=mapped('question');expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(a.act,'저녁은 뭐 먹을까?'))).toMatchObject({purpose:'clarify'});
+  // Low confidence in strength/hostility is not a meaning gap: a question to the character is answered.
+  const a=mapped('question');expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,context(a.act,'저녁은 뭐 먹을까?'))).toMatchObject({purpose:'question'});
+  const unknown={...a,target:'unknown' as const};expect(chooseSocial(state,unknown,socialEffect(unknown,[],identity,0),identity,0,context(unknown.act,'그거 뭐였지?'))).toMatchObject({purpose:'clarify'});
  });
+});
+it('an unresolved reference to my past suggestion asks which one, without overriding listening or a certain attack',()=>{
+  const state=initialState(0),fx=(a:Appraisal)=>socialEffect(a,[],identity,0);
+  for(const act of ['criticism','question','other'] as const){const a={...neutralAppraisal,target:'character' as const,act};
+    expect(chooseSocial(state,a,fx(a),identity,0,{unresolvedReference:true})).toMatchObject({action:'ask',purpose:'clarify',reference:'unresolved_suggestion',participation:{mode:'speak'}});
+    expect(chooseSocial(state,a,fx(a),identity,0).reference).toBeUndefined();}
+  const a={...neutralAppraisal,target:'character' as const,act:'other' as const};
+  expect(chooseSocial(state,a,fx(a),identity,0,{unresolvedReference:true,conversationEvidence:listenAct}).participation).toEqual({mode:'silent',reason:'listening'});
+  const attack={...neutralAppraisal,target:'character' as const,act:'criticism' as const,hostility:3 as const,uncertain:false};
+  expect(chooseSocial(state,attack,fx(attack),identity,0,{unresolvedReference:true}).participation?.mode).toBe('silent');
 });

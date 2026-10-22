@@ -29,3 +29,13 @@ it.each(['throw','invalid'])('second-stage %s leaves an existing affect journal 
   const result=await new SplitEventInterpreter(async()=>null,async()=>{if(kind==='throw')throw Error('private');return {status:'appraised',outcome:null,appraisals:[]} as any;}).interpret(next);
   expect(result.status).toBe('unavailable');expect(history).toEqual(before);expect(projectEventAffect(history,next.now)).toEqual(at);
 });
+it('an unresolved reference skips the appraisal stage; it must quote the current input with no outcome',async()=>{
+  const input=affectRequest(),current=input.sources[0]!,quote=current.text.slice(0,4),second=vi.fn(async(r:any,o:any)=>({...affectMeaning(r),outcome:o}));
+  const reference={sourceId:current.id,revision:current.revision,quote};
+  const result=await new SplitEventInterpreter(async()=>({outcome:null,unresolvedReference:reference}),second).interpret(input);
+  expect(result).toEqual({status:'interpreted',interpretation:{status:'uncertain',outcome:null,appraisals:[]},promptVersion:'split-event-interpretation-v1',unresolvedReference:reference});
+  expect(second).not.toHaveBeenCalled();
+  for(const bad of [{...reference,quote:'입력에 없는 말'},{...reference,revision:'9'}])
+    expect(await new SplitEventInterpreter(async()=>({outcome:null,unresolvedReference:bad}),second).interpret(input)).toMatchObject({status:'unavailable',reason:'invalid_output'});
+  expect(second).not.toHaveBeenCalled();
+});

@@ -360,6 +360,8 @@ Core는 수용한 평가와 이전 상태·시간으로 관성·감쇠·포화�
 
 후기 후보는 동일 owner/character의 최근30일 전달 완료 사건 최대5개다. 최근순·제목 일치만으로 하나를 확정하지 않는다. 검색 불완전·기록 없음은 ‘그런 일이 없었다’의 증거가 아니다. **가치관 평가에는 과거 추천 후보가 필요하지 않다.**
 
+**2026-10-22 변경(아래 truncated=false 조건을 대체):** 5개를 넘는 읽기(truncated)도 최근 5개는 연결 후보로 남긴다. 현재 입력이 내 과거 제안을 가리키지만 제공된 후보 중 하나로 정할 수 없으면(맞는 후보 없음·둘 이상) 사실 단계가 현재 입력의 원문 인용으로 `unresolvedReference`를 보고하고, 캐릭터는 어느 것인지 되묻는다(clarify). 그 턴의 사건 감정은 보류하고(감정 단계 호출 없음), 답을 들은 다음 턴에 연결한다.
+
 **v3-dev2 후보 권한:** 공통 계약의 eligibleAffectEpisodes가 검증된 request에서 found·truncated=false·실제 전달·현재 input 시각 이하를 만족하는 episode ID를 계산한다. 어댑터는 부적격 episode를 모델용 sources에서 제외하고, 허용 ID가 있으면 outcome.episodeId를 그 enum으로, appraisal.episodeId를 같은 enum 또는 null로 제한한 schema를 파생한다. 허용 ID가 없으면 outcome과 모든 appraisal.episodeId는 null만 허용한다. 문항·성향 전용 schema가 아니라 동일한 계약 규칙과 host snapshot으로 만드는 요청별 권한이다. DeepSeek JSON mode는 이 schema를 강제하지 않으므로 원래 request에 대한 사후 validator를 계속 적용한다. 후보가 허용됐다는 사실만으로 현재 보고가 그 행동을 사용했다거나 의미 해석이 정확하다고 확정하지 않는다.
 
 **v3 결과·감정 경계:** outcome.evidence는 현재 input과 식별한 실제 전달 episode의 정확한 인용을 모두 요구한다. 자기 행동이 미사용이면 not_used/pending처럼 사실만 기록하고 감정이 없을 수 있다. episodeId가 있는 appraisal은 동일 outcome의 used 및 favorable/unfavorable/mixed 관측 결과에만 연결하며 현재 input·해당 episode를 모두 인용한다. null인 appraisal은 현재 대화의 공감·가치관·기대·우려를 평가하며 episode 원문을 감정 원인으로 인용하지 않는다. 미사용·가정·pending/unknown 또는 검색 실패는 자기 결과 연결을 제한하지만 독립적인 입력 감정을 강제로 지우지 않는다. 타인 추천 실패에 공감하더라도 자기 추천 실패로 기록하면 실패다.

@@ -56,9 +56,9 @@ it('recorded D02 stays invalid; an explicitly authored scoped contrast preserves
   expect(result.snapshot.contributions.every(c=>c.episodeId===null)).toBe(true);
   expect(result.records[0]!.interpretation.outcome).toMatchObject({use:'not_used',result:'pending'});
 });
-it.each(['empty','ambiguous','stale','unavailable','truncated'] as const)('input affect survives %s retrieval while outcome association is blocked',status=>{
+it.each(['empty','ambiguous','stale','unavailable'] as const)('input affect survives %s retrieval while outcome association is blocked',status=>{
   const {request,meaning}=scene();
-  if(status==='truncated')request.experience.truncated=true;else request.experience.status=status;
+  request.experience.status=status;
   expect(()=>validateEventInterpretation(meaning,request)).toThrow('affect_episode_not_available');
   meaning.outcome=null;
   expect(appendEventAffect([],request,meaning,affectId(8)).snapshot.contributions[0]).toMatchObject({episodeId:null});

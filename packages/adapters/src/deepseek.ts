@@ -8,7 +8,7 @@ import type {EventWireFormat} from './event-reference-codec.ts';
 import {buildDialogueRequest,buildKnowledgeRequest,decodeDialogueOutput,decodeKnowledgeOutput} from './dialogue-request.ts';
 import {buildAnnotatedDialogueRequest,decodeAnnotatedDialogueOutput} from './recommendation-capture.ts';
 import {DeepSeekBudget,deepseekCandidate,deepseekInputBound} from './deepseek-budget.ts';
-import {prepareOutcomeProbe,type OutcomeProbeResult} from './outcome-probe.ts';
+import {prepareOutcomeProbe,prepareOutcomeReferenceProbe,type OutcomeProbeResult,type OutcomeReading} from './outcome-probe.ts';
 import {prepareAppraisalProbe} from './appraisal-probe.ts';
 
 type StructuredRequest={messages:Message[];format?:object;schema?:object};
@@ -106,6 +106,17 @@ export class DeepSeekOutcomeProbe extends DeepSeekChat {
   }
 }
 
+// Runtime first stage: the outcome, or a reference no single episode matches.
+export class DeepSeekOutcomeReferenceProbe extends DeepSeekChat {
+  async probe(input:EventInterpretationRequest):Promise<OutcomeReading>{
+    let prepared:ReturnType<typeof prepareOutcomeReferenceProbe>;
+    try{prepared=prepareOutcomeReferenceProbe(input);}catch{throw new RuntimeError('outcome_probe_invalid_input',400);}
+    return this.decode(prepared.request,2048,text=>{
+      try{return prepared.decode(text);}catch{throw new RuntimeError('outcome_probe_invalid_output',503);}
+    });
+  }
+}
+
 // Evaluation-only second stage; registration in the runtime is a separate task.
 export class DeepSeekAppraisalProbe extends DeepSeekChat {
   async probe(input:EventInterpretationRequest,outcome:EventInterpretation['outcome']):Promise<EventInterpretation>{
@@ -121,10 +132,11 @@ export class DeepSeekAppraisalProbe extends DeepSeekChat {
 export function o2Timeouts(physicalTimeoutMs:number){return {physicalTimeoutMs,deadlineMs:physicalTimeoutMs+5000};}
 // Runtime composition of the evaluated split interpreter. With no eligible
 // episode the fixed outcome is null by contract, so only the appraisal stage is
-// billed. A fresh probe per stage keeps one failed call from stopping later
+// billed; an unresolved reference ends the turn's interpretation after the
+// first stage. A fresh probe per stage keeps one failed call from stopping later
 // turns; the shared ledger still gates every reservation.
 export function createDeepSeekEventInterpreter(options:DeepSeekOptions):EventInterpreter{
   return new SplitEventInterpreter(
-    async request=>eligibleAffectEpisodes(request).length?(await new DeepSeekOutcomeProbe(options).probe(request)).outcome:null,
+    async request=>eligibleAffectEpisodes(request).length?new DeepSeekOutcomeReferenceProbe(options).probe(request):null,
     (request,outcome)=>new DeepSeekAppraisalProbe(options).probe(request,outcome));
 }

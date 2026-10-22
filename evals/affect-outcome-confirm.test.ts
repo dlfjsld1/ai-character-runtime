@@ -39,7 +39,9 @@ it('fixes the 8/4/4 specification, host provenance, contrast context and mandato
     }
     for(const claim of request.sources.filter(s=>s.kind==='claim'))expect(claim).toMatchObject({speakerId:request.scope.ownerId,truth:'unresolved',delivered:false});
   }
-  expect(rows.slice(8,12).map(r=>eligibleAffectEpisodes(r.request).length)).toEqual([0,0,0,0]);
+  // Row 11 (truncated) had no authority under the 10-17 policy its frozen null
+  // expectation was written for; since 10-22 its newest episode stays eligible.
+  expect(rows.slice(8,12).map(r=>eligibleAffectEpisodes(r.request).length)).toEqual([0,0,0,1]);
   expect(rows[9]!.request.sources.filter(s=>s.kind==='episode')).toHaveLength(0);
   expect(rows[11]!.request.experience).toMatchObject({status:'found',truncated:true});
   expect(rows[12]!.request.actors.at(-1)?.label).toBe('지수');

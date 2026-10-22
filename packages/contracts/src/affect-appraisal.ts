@@ -54,7 +54,9 @@ export const eventInterpretationRequestSchema=z.object({
 }).strict();
 export type EventInterpretationRequest=z.infer<typeof eventInterpretationRequestSchema>;
 export type EventInterpretationResult=
-  | {status:'interpreted';interpretation:EventInterpretation;promptVersion:string}
+  // unresolvedReference: the current input refers to one of my past suggestions
+  // that no single provided episode matches; the character asks which one.
+  | {status:'interpreted';interpretation:EventInterpretation;promptVersion:string;unresolvedReference?:AffectQuote}
   | {status:'unavailable';reason:'invalid_input'|'invalid_output'|'transport_failed';promptVersion:string};
 
 export function sameAffectScope(a:z.infer<typeof affectScopeSchema>,b:z.infer<typeof affectScopeSchema>){return a.ownerId===b.ownerId&&a.characterId===b.characterId;}
@@ -78,10 +80,12 @@ export function validateAffectRequest(input:unknown):EventInterpretationRequest{
 }
 
 // Called with a validated request. Retrieval candidates are not authority to
-// confirm an episode when the snapshot is ambiguous or incomplete.
+// confirm an episode when the snapshot is ambiguous. A truncated read keeps the
+// newest candidates; a reference to an older one is reported as unresolved and
+// asked about rather than linked (2026-10-22).
 export function eligibleAffectEpisodes(request:EventInterpretationRequest):AffectSource[]{
   const current=request.sources.find(source=>source.id===request.eventId);
-  if(!current||request.experience.status!=='found'||request.experience.truncated)return [];
+  if(!current||request.experience.status!=='found')return [];
   return request.sources.filter(source=>source.kind==='episode'&&source.delivered&&source.at<=current.at);
 }
 

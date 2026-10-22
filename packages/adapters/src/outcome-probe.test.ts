@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {prepareOutcomeProbe,OUTCOME_PROBE_TASK,OUTCOME_PROBE_VERSION} from './outcome-probe.ts';
+import {prepareOutcomeProbe,prepareOutcomeReferenceProbe,OUTCOME_PROBE_TASK,OUTCOME_PROBE_VERSION,OUTCOME_REFERENCE_PROBE_VERSION} from './outcome-probe.ts';
 import {createEventReferenceCodec} from './event-reference-codec.ts';
 import {buildEventInterpretationRequest} from './event-interpreter.ts';
 import {eventInterpretationSchema} from '../../contracts/src/affect-appraisal.ts';
@@ -54,9 +54,9 @@ it.each(['not_used','hypothetical','unknown'] as const)('unobserved %s cannot ac
   const probe=prepareOutcomeProbe(scene()),reply=answer(probe);reply.outcome!.use=use;reply.outcome!.result='favorable';
   expect(()=>probe.decode(reply)).toThrow('outcome_probe_invalid_output');reply.outcome!.result='pending';expect(probe.decode(reply).outcome?.use).toBe(use);
 });
-it.each(['empty','ambiguous','stale','unavailable','truncated','future'] as const)('%s episode has no model or output authority, but original is retained',status=>{
-  const input=scene();if(status==='truncated')input.experience.truncated=true;
-  else if(status==='future'){input.now+=100;input.sources.find(s=>s.kind==='episode')!.at=input.sources[0]!.at+1;}
+it.each(['empty','ambiguous','stale','unavailable','future'] as const)('%s episode has no model or output authority, but original is retained',status=>{
+  const input=scene();
+  if(status==='future'){input.now+=100;input.sources.find(s=>s.kind==='episode')!.at=input.sources[0]!.at+1;}
   else input.experience.status=status;
   const probe=prepareOutcomeProbe(input);expect(view(probe).sources.some((s:any)=>s.kind==='episode')).toBe(false);
   expect(probe.originalInput.sources.some(s=>s.kind==='episode')).toBe(true);expect(probe.decode({outcome:null}).outcome).toBe(null);
@@ -83,4 +83,25 @@ it('does not claim natural-language truth verification for a consistent wrong us
 });
 it('invalid input fails before preparing a request',()=>{
   const input=scene();input.sources[0]!.speakerId=null;expect(()=>prepareOutcomeProbe(input)).toThrow();
+});
+it('a truncated read keeps the newest episodes visible; older ones are left for an unresolved reference',()=>{
+  const input=scene();input.experience.truncated=true;
+  const probe=prepareOutcomeReferenceProbe(input),wire=JSON.parse(probe.request.messages[1]!.content);
+  expect(wire.experience.truncated).toBe(true);expect(wire.sources.some((s:any)=>s.kind==='episode')).toBe(true);
+  expect(probe.request.messages[0]!.content).toContain('experience.truncated=true');
+  expect(probe.decode({...authoredProbeOutcome(wire,expected),unresolvedReference:null}).outcome?.result).toBe('unfavorable');
+});
+it('the runtime reference variant reports only a verbatim, unmatched reference in the current input',()=>{
+  const input=scene(),current=input.sources.find(s=>s.id===input.eventId)!,probe=prepareOutcomeReferenceProbe(input);
+  expect(probe.request.promptVersion).toBe(OUTCOME_REFERENCE_PROBE_VERSION);expect(probe.request.schema.required).toEqual(['outcome','unresolvedReference']);
+  expect(probe.decode({outcome:null,unresolvedReference:null})).toEqual({outcome:null,unresolvedReference:null});
+  const quote=current.text.slice(0,6);
+  expect(probe.decode({outcome:null,unresolvedReference:{quote}})).toEqual({outcome:null,unresolvedReference:{sourceId:current.id,revision:current.revision,quote}});
+  // Not in the current input, together with an identified outcome, or missing the field.
+  expect(()=>probe.decode({outcome:null,unresolvedReference:{quote:'입력에 없는 말'}})).toThrow('outcome_probe_invalid_output');
+  const reply=authoredProbeOutcome(JSON.parse(probe.request.messages[1]!.content),expected);
+  expect(()=>probe.decode({...reply,unresolvedReference:{quote}})).toThrow('outcome_probe_invalid_output');
+  expect(()=>probe.decode({outcome:null})).toThrow('outcome_probe_invalid_output');
+  // The evaluation variant keeps its recorded request shape.
+  expect(prepareOutcomeProbe(input).request.schema.required).toEqual(['outcome']);expect(prepareOutcomeProbe(input).request.promptVersion).toBe(OUTCOME_PROBE_VERSION);
 });

@@ -10,9 +10,9 @@ function scene(){
   meaning.outcome={episodeId:affectId(7),use:'used',result:'favorable',evidence:[quote(0),quote(3)]};
   return {request,meaning};
 }
-it.each(['empty','ambiguous','stale','unavailable','truncated'] as const)('%s retrieval grants no episode authority, keeps input affect, and still rejects a guessed outcome',async status=>{
+it.each(['empty','ambiguous','stale','unavailable'] as const)('%s retrieval grants no episode authority, keeps input affect, and still rejects a guessed outcome',async status=>{
   const {request,meaning}=scene();
-  if(status==='truncated')request.experience.truncated=true;else request.experience.status=status;
+  request.experience.status=status;
   const before=JSON.stringify(request),built=buildEventInterpretationRequest(request),visible=JSON.parse(built.messages[1]!.content),schema:any=built.schema;
   expect(visible.sources).toEqual(request.sources.filter(source=>source.kind!=='episode'));
   expect(visible.experience).toEqual(request.experience);expect(visible.currentAffect).toEqual(request.currentAffect);

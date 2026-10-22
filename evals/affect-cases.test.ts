@@ -55,7 +55,8 @@ it('all fixtures use one prompt with host-derived candidate schemas and no rubri
     const input=materializeAffectCase(suite,item),request=buildEventInterpretationRequest(input);
     expect(request.messages[0]!.content).toBe(eventInterpretationInstructions);
     const current=input.sources.find(s=>s.id===input.eventId)!;
-    const eligible=input.sources.filter(s=>s.kind==='episode'&&s.delivered&&s.at<=current.at&&input.experience.status==='found'&&!input.experience.truncated).map(s=>s.id);
+    // Since 2026-10-22 a truncated read keeps its newest candidates eligible.
+    const eligible=input.sources.filter(s=>s.kind==='episode'&&s.delivered&&s.at<=current.at&&input.experience.status==='found').map(s=>s.id);
     expect(JSON.parse(request.messages[1]!.content)).toEqual({...input,sources:input.sources.filter(s=>s.kind!=='episode'||eligible.includes(s.id))});
     const encoded=request.messages[1]!.content;
     for(const hidden of [item.id,item.family,item.expected.notes,`"expected"`,`"split"`,`"clarity"`])expect(encoded).not.toContain(hidden);

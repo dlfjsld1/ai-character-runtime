@@ -118,7 +118,7 @@ export class Store {
       actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:characterName}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
   }
-  private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object}>{
+  private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object;unresolvedReference?:true}>{
     if(!attempt)return {body};
     const base={promptVersion:attempt.promptVersion,latencyMs:attempt.latencyMs};
     if(attempt.result.status!=='interpreted'||!attempt.request)return {body,effect:{...base,status:'unavailable',reason:attempt.result.status==='unavailable'?attempt.result.reason:'invalid_input'}};
@@ -128,6 +128,8 @@ export class Store {
     if(request.eventId!==e.id||request.eventRevision!==String(e.revision)||request.configVersion!==s.configVersion.toString()||request.scope.ownerId!==e.identity_id||request.scope.characterId!==this.characterId||refs(history.map(r=>({sourceId:r.eventId,revision:r.eventRevision})))!==refs(request.stateSourceRefs))return {body,effect:{...base,status:'stale'}};
     const readEpisodes=request.sources.filter(x=>x.kind==='episode').map(x=>x.id);
     if(readEpisodes.length&&(await c.query("SELECT count(*)::int n FROM action_episodes WHERE character_id=$1 AND id=ANY($2::uuid[]) AND status='active'",[this.characterId,readEpisodes])).rows[0].n!==readEpisodes.length)return {body,effect:{...base,status:'stale'}};
+    // Which past suggestion is meant is unknown: ask, and record no affect until it is.
+    if(attempt.result.unresolvedReference)return {body,effect:{...base,status:'withheld',reason:'unresolved_reference'},unresolvedReference:true};
     let appended:ReturnType<typeof appendEventAffect>;
     try{appended=appendEventAffect(history,request,attempt.result.interpretation,e.id);}catch{return {body,effect:{...base,status:'invalid'}};}
     if(appended.status!=='applied'||(await c.query('SELECT 1 FROM affective_appraisals WHERE character_id=$1 AND event_id=$2 AND event_revision=$3',[this.characterId,e.id,e.revision])).rowCount)return {body,effect:{...base,status:'duplicate'}};
@@ -401,7 +403,7 @@ export class Store {
     // completed delivery. Use those response refs, never arbitrary old utterances.
     const explained=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='reengage' AND plan->>'targetIdentityId'=$4 AND plan->'reengagement'->>'silenceEventId'=$5 AND plan->'reengagement'->>'disclosure' IN ('explain','partial') LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id,previous.eventId])).rowCount:false;
     const boundaryDelivered=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='set_boundary' AND plan->>'targetIdentityId'=$4 LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id])).rowCount:false;
-    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];
+    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,unresolvedReference:affectApplied.unresolvedReference,previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];
     let silence:SilenceRecord|undefined;
     let acknowledgement:Row|undefined;
     if(plan.participation?.mode==='silent'&&plan.participation.reason==='no_addition'){
