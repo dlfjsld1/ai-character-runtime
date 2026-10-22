@@ -238,3 +238,10 @@ it('an unresolved reference to my past suggestion asks which one, without overri
   const attack={...neutralAppraisal,target:'character' as const,act:'criticism' as const,hostility:3 as const,uncertain:false};
   expect(chooseSocial(state,attack,fx(attack),identity,0,{unresolvedReference:true}).participation?.mode).toBe('silent');
 });
+it('the suggestion question is asked once, and still asked when the social appraisal failed',()=>{
+  const state=initialState(0),a={...neutralAppraisal,target:'character' as const,act:'other' as const},fx=socialEffect(a,[],identity,0);
+  expect(chooseSocial(state,a,fx,identity,0,{unresolvedReference:true,referenceAsked:true})).toMatchObject({purpose:'other',participation:{mode:'speak'}});
+  expect(chooseSocial(state,a,fx,identity,0,{unresolvedReference:true,referenceAsked:true}).reference).toBeUndefined();
+  expect(chooseSocial(state,a,fx,identity,0,{unresolvedReference:true,appraisalFailed:true})).toMatchObject({purpose:'clarify',reference:'unresolved_suggestion'});
+  expect(chooseSocial(state,a,fx,identity,0,{unresolvedReference:true,appraisalFailed:true,referenceAsked:true}).purpose).toBe('other');
+});

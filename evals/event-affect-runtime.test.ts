@@ -250,3 +250,33 @@ it('S2-09 an unresolved reference asks which one and records no affect; the answ
   expect((await records()).map(r=>r.event_id)).toEqual([answer.event.id]);
   expect((await store.state()).body.affect.embarrassment.causes.filter(c=>c.targetId===null).map(c=>c.eventId)).toEqual([answer.event.id]);
 });
+const unresolved=(quote:string)=>(request:EventInterpretationRequest):EventAffectAttempt=>{const input=request.sources.find(x=>x.id===request.eventId)!;
+  return {request,promptVersion:'synthetic',latencyMs:1,result:{status:'interpreted',promptVersion:'synthetic',interpretation:{status:'uncertain',outcome:null,appraisals:[]},unresolvedReference:{sourceId:input.id,revision:input.revision,quote}}};};
+async function deliver(sessionId:string,responseId:string,sentences:string[]){
+  const clientId=randomUUID(),owner=await store.grantOwner(sessionId,randomUUID(),clientId);
+  const generated=(await store.generated(responseId,sentences,{clientId,outputEpoch:owner.outputEpoch}))!;
+  for(const s of generated.segments){const payload={responseId,segmentId:s.id,generationEpoch:generated.response.generation_epoch,outputEpoch:String(owner.outputEpoch)};
+    await store.report(sessionId,randomUUID(),'caption.shown',payload,clientId);await store.report(sessionId,randomUUID(),'caption.finished',payload,clientId);}
+}
+it('S2-10 after asking, the answer reads older suggestions beyond the newest five; a second unresolved turn is not asked again',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  for(let i=0;i<7;i++){const s=await suggest(sessionId,`추천 ${i}`,['하나 골라 볼게.',`메뉴${i} 어때?`],{kind:'음식',title:`메뉴${i}`,sentenceIndex:1,quote:`메뉴${i} 어때`});await s.ack(0);await s.ack(1);}
+  const vague=await turn(sessionId,'예전에 네가 추천한 거 별로였어.');
+  const asked=await commit(vague,r=>{expect(r.sources.filter(x=>x.kind==='episode')).toHaveLength(5);return unresolved('네가 추천한 거')(r);},{...question,act:'criticism'});
+  expect(asked.response!.plan).toMatchObject({purpose:'clarify',reference:'unresolved_suggestion'});
+  await deliver(sessionId,asked.response!.id,['어떤 거 말하는 거야?']);
+  const answer=await turn(sessionId,'메뉴0 말이야.');
+  const linkedTurn=await commit(answer,r=>{expect(r.sources.filter(x=>x.kind==='episode').map(x=>x.text)).toContain('메뉴0 어때?');expect(r.experience.truncated).toBe(false);
+    return linked(r,'메뉴0','unfavorable',{congruence:-.6,agency:'self'});});
+  expect((await effects(answer.event.id)).eventAffect).toMatchObject({status:'applied'});
+  await deliver(sessionId,linkedTurn.response!.id,['그랬구나, 아쉽다.']);
+  // A reply that asked was delivered just before: still unresolved means answer normally, not ask again.
+  const again=await turn(sessionId,'예전에 네가 추천한 거 또 별로였어.');
+  const asked2=await commit(again,unresolved('네가 추천한 거'),{...question,act:'criticism'});
+  expect(asked2.response!.plan.reference).toBe('unresolved_suggestion');
+  await deliver(sessionId,asked2.response!.id,['어떤 거 말하는 거야?']);
+  const third=await turn(sessionId,'음 기억이 안 나.');
+  const plain=await commit(third,unresolved('기억이 안 나'),{...question,act:'other'});
+  expect(plain.response!.plan.purpose).not.toBe('clarify');expect(plain.response!.plan.reference).toBeUndefined();
+  expect((await effects(third.event.id)).eventAffect).toMatchObject({status:'withheld'});
+});

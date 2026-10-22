@@ -80,6 +80,8 @@
 
 - **되묻기 규칙:** Jev `uncertain`은 강도·적대도·목표 확신까지 포함해 의미 불확실이 아니다. 질문은 대상이 unknown일 때만 clarify, 그 외에는 답한다(legacy 경로). 기록된 실제 대화에서 "저녁 뭐 먹을지 하나만 골라 줘"(uncertain, target=character)가 clarify로 가던 사례. v2(OpenAI interaction) 경로의 unknown→clarify는 그대로 둔다.
 - **DeepSeek 원장 하루 단위:** 런타임은 `DEEPSEEK_BUDGET_USD`·`DEEPSEEK_MAX_CALLS`를 현지 날짜(DailyCallCap과 같은 날짜) 기준으로 적용한다. 날짜 없는 기존 항목은 지난 날로 본다. 미확정 항목은 날짜와 무관하게 막는다. 평가 스크립트는 누적 원장을 그대로 쓴다.
-- **어느 제안인지 모르면 되묻기:** truncated여도 최근 5개는 연결 후보. 사실 단계(런타임 변형 `outcome-probe-v2`)가 `unresolvedReference`(현재 입력의 원문 인용, outcome=null일 때만)를 보고하면 감정 단계 호출 없이 감정 보류(`withheld`/`unresolved_reference`), 계획은 clarify + `reference:'unresolved_suggestion'`. 침묵·재접근·사과 수용·확실한 공격 보류보다 우선하지 않는다. 평가용 `outcome-probe-v1` 요청은 바뀌지 않는다.
+- **어느 제안인지 모르면 되묻기:** truncated여도 최근 5개는 연결 후보. 사실 단계(런타임 변형 `outcome-probe-v2`)가 `unresolvedReference`(현재 입력의 원문 인용, outcome=null일 때만)를 보고하면 감정 단계 호출 없이 감정 보류(`withheld`/`unresolved_reference`), 계획은 clarify + `reference:'unresolved_suggestion'`. 침묵·재접근·사과 수용·확실한 공격 보류보다 우선하지 않는다. 되물은 대사가 전달된 다음 턴은 제안을 최대 20개 읽고, 그래도 못 정하면 다시 묻지 않는다. 기록된 제안이 없으면 사실 단계를 부르지 않아 되묻지 않는다.
+- **평가 자료 영향:** truncated가 아닌 입력의 평가용 `outcome-probe-v1` 요청은 바이트 단위로 같다. truncated 고정 문항(`affect-outcome-confirm-v1` F12, `affect-confirm-v2` C10, `affect-confirm-v3`의 truncated 문항)은 이제 요청에 episode가 들어간다. 이 문항들의 null 기대는 10-17 정책 기준이라 다시 실행하려면 기대와 승인 요청 해시를 새로 정해야 한다. 기록된 결과의 재생 검사는 통과한다.
+- **원장 전환일:** 날짜 없는 기존 항목은 지난 날로 보므로 전환 당일(10-22)은 그 전 사용액(약 USD0.034)이 오늘 한도에서 빠진다.
 
 각 단계는 영향 테스트 후 커밋, 마지막에 전체 테스트. 기존 통합 실패 3건(CR03×2, S2-D)은 관련 여부를 확인해 기록한다.

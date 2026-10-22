@@ -106,7 +106,7 @@ export function stageExpression(plan:Plan):Plan['expression'] {
   if(plan.speechStyle.discomfortTone!=='masked'&&(plan.speechStyle.register==='formal'||plan.speechStyle.discomfortTone))return 'uncomfortable';
   return plan.speechStyle.positiveTone==='warm'||plan.speechStyle.positiveTone==='bright'?'happy':'neutral';
 }
-export type SocialContext={text?:string;previousSilence?:SilenceRecord|null;explainedSilenceEventId?:string;recentWithholdingEventId?:string;recentBoundaryDelivered?:boolean;appraisalFailed?:boolean;unresolvedReference?:boolean;previousOutputFailed?:boolean;participationEvidence?:{target:'character';act:Appraisal['act'];acknowledgePraise?:true};conversationEvidence?:import('../../contracts/src/conversation.ts').ConversationEvidence};
+export type SocialContext={text?:string;previousSilence?:SilenceRecord|null;explainedSilenceEventId?:string;recentWithholdingEventId?:string;recentBoundaryDelivered?:boolean;appraisalFailed?:boolean;unresolvedReference?:boolean;referenceAsked?:boolean;previousOutputFailed?:boolean;participationEvidence?:{target:'character';act:Appraisal['act'];acknowledgePraise?:true};conversationEvidence?:import('../../contracts/src/conversation.ts').ConversationEvidence};
 export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof socialEffect>,identityId:string,now:number,context:SocialContext={}):Plan {
   const speak=(purpose:string):Plan=>({...dialoguePlan(state,purpose,identityId),participation:{mode:'speak'}});
   const repeated=(category:string):Plan|undefined=>{
@@ -115,7 +115,10 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
   };
   // No social meaning is known: reply without any social act or affect
   // (2026-10-22 user decision; failure no longer means silence).
-  if(context.appraisalFailed) return speak('other');
+  // Which past suggestion is meant is unknown: ask once. If the last reply
+  // already asked, answer normally instead of asking again.
+  const askReference=():Plan=>({...speak('clarify'),action:'ask',reference:'unresolved_suggestion'});
+  if(context.appraisalFailed) return context.unresolvedReference&&!context.referenceAsked?askReference():speak('other');
   const semantic=context.conversationEvidence,v2=isInteractionEvidence(semantic)?semantic:undefined;
   // v2 authority is already source-verified; uncertain affect never suppresses
   // an independently known action. Do not route it through legacy regex gates.
@@ -158,9 +161,8 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
   }
   if(hasConversationAct(semantic,'listen_request')) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'listening'}};
   if(effect.category!=='direct_insult'&&canAttemptRepair(semantic))return speak('acknowledge_repair');
-  // The input refers to one of my past suggestions but not to a single known
-  // one: ask which. Silence, re-engagement and repair above keep precedence.
-  if(context.unresolvedReference&&effect.category!=='direct_insult'&&!(!a.uncertain&&a.target==='character'&&a.act==='criticism'&&a.hostility===3))return {...speak('clarify'),action:'ask',reference:'unresolved_suggestion'};
+  // Silence, re-engagement and repair above keep precedence over asking.
+  if(context.unresolvedReference&&!context.referenceAsked&&effect.category!=='direct_insult'&&!(!a.uncertain&&a.target==='character'&&a.act==='criticism'&&a.hostility===3))return askReference();
   if(v2){
     // Uncertain sentence form alone is not missing conversational information.
     // Only ordinary input with all participation-sensitive acts ruled out may

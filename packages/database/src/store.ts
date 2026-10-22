@@ -26,8 +26,9 @@ export type EventAffectAttempt={request:EventInterpretationRequest|null;result:E
 // Contributions halve every 20 minutes; older records cannot move the snapshot.
 const affectWindowMs=6*3600000;
 // Delivered suggestions the interpreter may link to a later report: the newest
-// five within thirty days. More than five marks the read truncated.
-const episodeWindowMs=30*86400000,episodeLimit=5;
+// five within thirty days. More than five marks the read truncated. Right after
+// the character asked which suggestion was meant, the answer reads up to twenty.
+const episodeWindowMs=30*86400000,episodeLimit=5,askedEpisodeLimit=20;
 export class Store {
   constructor(public db:Database,public characterId=CHARACTER_ID,public clock=()=>Date.now(),private evidenceVerifier?:AppraisalEvidenceVerifier){}
   async state():Promise<VersionedState>{const rows=await this.db.orm.select().from(characterState).where(eq(characterState.characterId,this.characterId));const r=rows[0];if(!r)throw new RuntimeError('character_not_found',404);return {...r,body:stateSchema.parse(r.body)};}
@@ -106,8 +107,9 @@ export class Store {
     const source=(id:string,revision:string,kind:AffectSource['kind'],text:string,at:number,speakerId:string|null):AffectSource=>({id,revision,kind,scope,text:text.slice(0,8000),at,speakerId,delivered:kind==='response',truth:'unresolved'});
     const sources:AffectSource[]=[source(e.id,String(e.revision),'input',e.payload.text,current,e.identity_id),...persona.map(v=>source(v.id,configVersion,v.kind,v.text,Math.min(v.created_at.getTime(),current),null))];
     const turns=selected.conversation.turns,eventIds=turns.filter(t=>t.source.kind==='event').map(t=>t.source.id),responseIds=turns.filter(t=>t.source.kind==='response').map(t=>t.source.id);
-    const episodeRows=(await pool.query("SELECT episode FROM action_episodes WHERE character_id=$1 AND owner_id=$2 AND status='active' AND delivered_at>$3 AND delivered_at<=$4 ORDER BY delivered_at DESC,id DESC LIMIT $5",[this.characterId,e.identity_id,new Date(current-episodeWindowMs),new Date(current),episodeLimit+1])).rows;
-    const episodes=episodeRows.slice(0,episodeLimit).map(r=>actionEpisodeSchema.parse(r.episode)).reverse(),truncated=episodeRows.length>episodeLimit;
+    const limit=await this.askedReference(pool,turns)?askedEpisodeLimit:episodeLimit;
+    const episodeRows=(await pool.query("SELECT episode FROM action_episodes WHERE character_id=$1 AND owner_id=$2 AND status='active' AND delivered_at>$3 AND delivered_at<=$4 ORDER BY delivered_at DESC,id DESC LIMIT $5",[this.characterId,e.identity_id,new Date(current-episodeWindowMs),new Date(current),limit+1])).rows;
+    const episodes=episodeRows.slice(0,limit).map(r=>actionEpisodeSchema.parse(r.episode)).reverse(),truncated=episodeRows.length>limit;
     sources.push(...episodes.map(episodeAffectSource));
     const timed=[...(await pool.query('SELECT id,received_at AS at FROM events WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,eventIds])).rows,...(await pool.query('SELECT id,COALESCE(finished_at,created_at) AS at FROM response_runs WHERE character_id=$1 AND id=ANY($2::uuid[])',[this.characterId,responseIds])).rows];
     const times=new Map<string,number>(timed.map(r=>[r.id,Math.min(r.at.getTime(),current)]));
@@ -117,6 +119,11 @@ export class Store {
     return {scope,eventId:e.id,eventRevision:String(e.revision),configVersion,eventKind:'input',now,sources:sources.slice(0,40),speakerId:e.identity_id,
       actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:characterName}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
+  }
+  // Whether the character's latest delivered reply asked which past suggestion was meant.
+  private async askedReference(c:Pick<Client,'query'>,turns:ConversationSnapshot['turns']){
+    const last=[...turns].reverse().find(t=>t.source.kind==='response');
+    return !!last&&!!(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND id=$2 AND plan->>'reference'='unresolved_suggestion'",[this.characterId,last.source.id])).rowCount;
   }
   private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object;unresolvedReference?:true}>{
     if(!attempt)return {body};
@@ -403,7 +410,7 @@ export class Store {
     // completed delivery. Use those response refs, never arbitrary old utterances.
     const explained=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='reengage' AND plan->>'targetIdentityId'=$4 AND plan->'reengagement'->>'silenceEventId'=$5 AND plan->'reengagement'->>'disclosure' IN ('explain','partial') LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id,previous.eventId])).rowCount:false;
     const boundaryDelivered=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='set_boundary' AND plan->>'targetIdentityId'=$4 LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id])).rowCount:false;
-    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,unresolvedReference:affectApplied.unresolvedReference,previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];
+    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,unresolvedReference:affectApplied.unresolvedReference,referenceAsked:await this.askedReference(c,conversation.data.turns),previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];
     let silence:SilenceRecord|undefined;
     let acknowledgement:Row|undefined;
     if(plan.participation?.mode==='silent'&&plan.participation.reason==='no_addition'){
