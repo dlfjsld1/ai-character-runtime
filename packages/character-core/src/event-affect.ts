@@ -90,17 +90,24 @@ export function appendEventAffect(history:readonly EventAffectRecord[],request:E
 
 // Maps one applied event's contribution onto the legacy State channels. This
 // path never names the speaker as a target: interpersonal distance stays with
-// the verified social act. A self-attributed conflict is embarrassment, not blame.
+// the verified social act. Agency (who contributed to the outcome) decides the
+// channel: a self-contributed negative is embarrassment; one with an unknown
+// contributor is embarrassment only when the judged act was the character's
+// own; other and external contributors are untargeted frustration, even for
+// the character's own act. Mixed events split the negative amount by the
+// strongest negative weight on each side (policy event-affect-channels-v1).
 export function eventAffectStimuli(record:EventAffectRecord,snapshot:EventAffectSnapshot){
   const levels=zero();
   for(const c of snapshot.contributions)if(c.eventId===record.eventId)for(const channel of channels)levels[channel]+=c.levels[channel];
-  const strongest=record.interpretation.appraisals.filter(a=>a.congruence<0)
-    .sort((a,b)=>b.relevance*b.importance*b.certainty*-b.congruence-a.relevance*a.importance*a.certainty*-a.congruence)[0];
-  // A correction of the character's own earlier explanation reads as
-  // embarrassment even when the host cannot confirm it (2026-10-22 user
-  // decision; a future persona setting may change this).
-  const self=strongest?.agency==='self'||strongest?.agency==='unknown'&&strongest.stance==='corrects'&&strongest.actorId===record.scope.characterId;
-  return {joy:levels.positive,frustration:self?0:levels.negative,embarrassment:self?levels.negative:0};
+  let selfWeight=0,otherWeight=0;
+  for(const a of record.interpretation.appraisals){
+    if(a.congruence>=0)continue;
+    const weight=a.relevance*a.importance*a.certainty*-a.congruence;
+    const self=a.agency==='self'||a.agency==='unknown'&&a.actorId===record.scope.characterId;
+    if(self)selfWeight=Math.max(selfWeight,weight);else otherWeight=Math.max(otherWeight,weight);
+  }
+  const share=selfWeight+otherWeight>0?selfWeight/(selfWeight+otherWeight):0;
+  return {joy:levels.positive,frustration:levels.negative*(1-share),embarrassment:levels.negative*share};
 }
 
 export function removeEventAffectSources(records:readonly EventAffectRecord[],sourceIds:ReadonlySet<string>):EventAffectRecord[]{

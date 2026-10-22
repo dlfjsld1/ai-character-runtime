@@ -127,12 +127,23 @@ it('OA15: public Core entry points contain no provider, database or network impo
     expect(code).not.toMatch(/\b(?:fetch|Date\.now|Math\.random)\s*\(/);
   }
 });
-it('O2 stimuli: positive is joy, self-attributed conflict or a correction of a claim by the character is embarrassment, other negative is untargeted discomfort',()=>{
+it('O2 stimuli: agency decides the channel; an unknown contributor uses the judged act; mixed events split',()=>{
   const map=(patch:Parameters<typeof affectMeaning>[1])=>{const r=appendEventAffect([],affectRequest(),affectMeaning(affectRequest(),patch),affectId(10));return eventAffectStimuli(r.records[0]!,r.snapshot);};
+  const character=affectId(2),user=affectId(1);
   const positive=map({congruence:1});expect(positive.joy).toBeGreaterThan(0);expect(positive.frustration+positive.embarrassment).toBe(0);
-  const self=map({congruence:-.8,agency:'self',actorId:affectId(2),targetId:affectId(1)});expect(self).toMatchObject({joy:0,frustration:0});expect(self.embarrassment).toBeGreaterThan(0);
-  for(const agency of ['other','external','unknown'] as const){const other=map({congruence:-.8,agency});expect(other).toMatchObject({joy:0,embarrassment:0});expect(other.frustration).toBeGreaterThan(0);}
-  const corrected=map({congruence:-.8,agency:'unknown',stance:'corrects',actorId:affectId(2),targetId:affectId(1)});expect(corrected).toMatchObject({joy:0,frustration:0});expect(corrected.embarrassment).toBeGreaterThan(0);
-  for(const patch of [{stance:'reports' as const,actorId:affectId(2)},{stance:'corrects' as const,actorId:affectId(1)},{stance:'corrects' as const,actorId:null}]){const kept=map({congruence:-.8,agency:'unknown',...patch});expect(kept.embarrassment).toBe(0);expect(kept.frustration).toBeGreaterThan(0);}
+  const embarrassed=[{agency:'self' as const,actorId:character},{agency:'self' as const,actorId:user},{agency:'unknown' as const,actorId:character}];
+  const discomfort=[{agency:'external' as const,actorId:character},{agency:'other' as const,actorId:character},{agency:'other' as const,actorId:user},{agency:'unknown' as const,actorId:user},{agency:'unknown' as const,actorId:null}];
+  for(const patch of embarrassed){const r=map({congruence:-.8,...patch});expect(r,JSON.stringify(patch)).toMatchObject({joy:0,frustration:0});expect(r.embarrassment).toBeGreaterThan(0);}
+  for(const patch of discomfort){const r=map({congruence:-.8,...patch});expect(r,JSON.stringify(patch)).toMatchObject({joy:0,embarrassment:0});expect(r.frustration).toBeGreaterThan(0);}
+  // Stance is not a channel rule: a reported or corrected own act behaves the same.
+  for(const stance of ['reports','corrects'] as const)expect(map({congruence:-.8,agency:'unknown',actorId:character,stance}).frustration).toBe(0);
   const none=appendEventAffect([],affectRequest(),{status:'irrelevant',outcome:null,appraisals:[]},affectId(10));expect(eventAffectStimuli(none.records[0]!,none.snapshot)).toEqual({joy:0,frustration:0,embarrassment:0});
+});
+it('O2 stimuli: a mixed self and other event splits the negative amount by the strongest weight on each side',()=>{
+  const request=affectRequest(),base=affectMeaning(request).appraisals[0]!,goal=request.sources.find(s=>s.kind==='goal')!;
+  const self={...base,congruence:-.9,agency:'self' as const,actorId:affectId(2)};
+  const other={...base,concern:{source:{sourceId:goal.id,revision:goal.revision,quote:goal.text}},congruence:-.3,agency:'other' as const,actorId:affectId(1)};
+  const r=appendEventAffect([],request,{status:'appraised',outcome:null,appraisals:[self,other]},affectId(10)),stimuli=eventAffectStimuli(r.records[0]!,r.snapshot);
+  const total=stimuli.frustration+stimuli.embarrassment,selfWeight=.8*.9,otherWeight=.8*.3;
+  expect(total).toBeGreaterThan(0);expect(stimuli.embarrassment/total).toBeCloseTo(selfWeight/(selfWeight+otherWeight),10);
 });
