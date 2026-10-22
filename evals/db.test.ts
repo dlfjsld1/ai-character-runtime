@@ -10,6 +10,7 @@ import { neutralAppraisal,type Plan } from '../packages/contracts/src/domain.ts'
 import { mapJevResponse } from '../packages/adapters/src/jev.ts';
 import { recordedJevResponse } from './jev-fixture.ts';
 import { OllamaProvider } from '../packages/adapters/src/ollama.ts';
+import {semanticEvaluation,type ConversationAct} from './semantic-jev-fixture.ts';
 import {dialogueContext,sharedExperience,assertStagePreparationReady} from './dialogue-context.ts';
 let db:Awaited<ReturnType<typeof testDatabase>>,store:Store,now:number;
 beforeAll(async()=>{db=await testDatabase();});
@@ -101,9 +102,11 @@ async function mixedStyleFixture(frustrationIdentityId=IDENTITY_IDS[0],joyIdenti
  await store.stopSession(sourceSession,randomUUID());const id=await session();
  return {id,frustration:causes[0]!,joy:causes[1]!};
 }
-async function styleQuestion(id:string,identityId=IDENTITY_IDS[0],text='모임은 오후 3시야. 시간을 확인해 줘.'){
+// A conversational act, when needed, is stated by the test as verified Jev evidence.
+async function styleQuestion(id:string,identityId=IDENTITY_IDS[0],text='모임은 오후 3시야. 시간을 확인해 줘.',act?:ConversationAct){
  const input=await store.acceptChat(id,randomUUID(),{identityId,text}),selected=(await store.select(input.eventId))!;
- const result=await store.commitAppraisal(selected,{...neutralAppraisal,target:'character',act:'question',uncertain:false,evidence_refs:[input.eventId]},{provider:'synthetic-fixture',model:'recorded'});
+ const semantic=act?await semanticEvaluation(selected,act):undefined;
+ const result=semantic?await store.commitAppraisal(selected,semantic.appraisal,semantic.metadata):await store.commitAppraisal(selected,{...neutralAppraisal,target:'character',act:'question',uncertain:false,evidence_refs:[input.eventId]},{provider:'synthetic-fixture',model:'recorded'});
  expect(result.response).not.toBeNull();return {input,response:result.response!,selected};
 }
 async function deliverStyle(id:string,response:NonNullable<Awaited<ReturnType<Store['commitAppraisal']>>['response']>){
@@ -183,7 +186,7 @@ it('CX-DB03 another recipient does not inherit casual sharpness or its source',a
 it('RC05 delivered formal speech survives hiding, a Store restart and a new topic',async()=>{
  const setup=await mixedStyleFixture(),first=await styleQuestion(setup.id);await deliverStyle(setup.id,first.response);
  store=new Store(db,CHARACTER_ID,()=>now,jevEvidenceVerifier);
- const hidden=await styleQuestion(setup.id,IDENTITY_IDS[0],'왜 대답 안 해?');
+ const hidden=await styleQuestion(setup.id,IDENTITY_IDS[0],'왜 대답 안 해?','ask_silence_reason');
  expect(hidden.response.plan.speechStyle).toEqual({register:'formal',positiveTone:'neutral',concealAffect:true});await deliverStyle(setup.id,hidden.response);
  const body=(await store.state()).body;body.affect.frustration.value=.08;await db.pool.query('UPDATE character_state SET body=$2 WHERE character_id=$1',[CHARACTER_ID,body]);
  const topic=await styleQuestion(setup.id);expect(topic.response.plan.speechStyle?.register).toBe('formal');await deliverStyle(setup.id,topic.response);

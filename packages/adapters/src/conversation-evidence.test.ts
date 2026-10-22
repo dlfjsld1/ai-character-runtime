@@ -17,8 +17,15 @@ const binding={eventId:id,identityId,eventRevision:'1',conversationContext:conte
 it('conversation confidence is independent of old appraisal uncertainty and repair confidence',()=>{
  const raw=conversationFixture('ask_silence_reason');raw.answers.strength.confidence=.2;raw.answers.repair_target.confidence=.2;const value=evaluated(raw);expect(value.appraisal.uncertain).toBe(true);expect(jevEvidenceVerifier.verifyConversation!(value.appraisal,value.metadata,binding)).toEqual({act:'ask_silence_reason',repairTarget:'unknown'});
 });
-it.each(['target','conversation_act'])('low %s confidence grants no semantic authority',key=>{
- const raw=conversationFixture();(raw.answers as any)[key].confidence=.79;const value=evaluated(raw);expect(jevEvidenceVerifier.verifyConversation!(value.appraisal,value.metadata,binding)).toBeUndefined();
+it('low conversation_act confidence grants no semantic authority',()=>{
+ const raw=conversationFixture();raw.answers.conversation_act.confidence=.79;const value=evaluated(raw);expect(jevEvidenceVerifier.verifyConversation!(value.appraisal,value.metadata,binding)).toBeUndefined();
+});
+// The evaluated target is not the addressee: a target clarification evaluates
+// someone else while speaking to this character (Goal2 A07).
+it.each(['other','quoted','unknown'])('the evaluated target (%s) or its confidence does not gate the act',target=>{
+ const raw=conversationFixture('clarify_target');raw.answers.target={...raw.answers.target,choice:target,confidence:.4,probabilities:Object.fromEntries(Object.keys(raw.answers.target.probabilities).map(k=>[k,k===target?.6:.1]))} as any;
+ const value=evaluated(raw);
+ expect(jevEvidenceVerifier.verifyConversation!(value.appraisal,value.metadata,binding)).toEqual({act:'clarify_target',repairTarget:'unknown'});
 });
 it('ties, wrong choice, missing keys, and context/identity/revision tampering are rejected',()=>{
  const raw=conversationFixture();raw.answers.conversation_act.probabilities={ordinary:.5,ask_silence_reason:0,listen_request:.5,apology:0,clarify_target:0,unknown:0};const tied=evaluated(raw);expect(jevEvidenceVerifier.verifyConversation!(tied.appraisal,tied.metadata,binding)).toBeUndefined();

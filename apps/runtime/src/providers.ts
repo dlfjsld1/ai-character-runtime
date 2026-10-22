@@ -2,7 +2,7 @@ import {RuntimeError} from '../../../packages/contracts/src/domain.ts';
 import type {LocalConfig} from '../../../packages/contracts/src/local-config.ts';
 import type {DialogueGenerator,ActivitySolver,AppraisalProvider,AppraisalEvidenceVerifier,EventInterpreter} from '../../../packages/contracts/src/ai-ports.ts';
 import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/ollama.ts';
-import {JevAppraisalProvider} from '../../../packages/adapters/src/jev.ts';
+import {JevConversationCandidate} from '../../../packages/adapters/src/jev.ts';
 import {DailyCallCap} from '../../../packages/adapters/src/daily-call-cap.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
@@ -36,7 +36,7 @@ const registeredProviders:ProviderRegistry={
     if(config.DIALOGUE_MODEL!=='deepseek-flash')throw new RuntimeError('unsupported_provider_configuration',400);
     return {dialogue:new DeepSeekDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION)})};
   }},
-  appraisal:{jev:config=>({appraiser:new JevAppraisalProvider({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.TYPESAFE_API_KEY}),evidenceVerifier:jevEvidenceVerifier}),
+  appraisal:{jev:config=>({appraiser:new JevConversationCandidate({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.TYPESAFE_API_KEY}),evidenceVerifier:jevEvidenceVerifier}),
     'openai-decisions-v3':config=>{
       if(config.APPRAISAL_MODEL!=='gpt-6-luna')throw new RuntimeError('unsupported_provider_configuration',400);
       return {appraiser:new OpenAIInteractionV3Candidate({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DIALOGUE_API_KEY,budget:openaiBudget(config)}),evidenceVerifier:interactionV3EvidenceVerifier};

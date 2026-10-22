@@ -6,7 +6,8 @@ import {Store} from '../packages/database/src/store.ts';
 import {Coordinator} from '../apps/runtime/src/coordinator/index.ts';
 import {createProviders,type ProviderRegistry} from '../apps/runtime/src/providers.ts';
 import {parseConfig} from '../packages/contracts/src/local-config.ts';
-import {JevAppraisalProvider,mapJevResponse,JEV_VERSION} from '../packages/adapters/src/jev.ts';
+import {mapJevResponse,JEV_VERSION,JEV_CONVERSATION_VERSION} from '../packages/adapters/src/jev.ts';
+import {semanticEvaluation,scriptedJev} from './semantic-jev-fixture.ts';
 import {jevEvidenceVerifier,readJevEvidence} from '../packages/adapters/src/appraisal-evidence.ts';
 import {recordedJevResponse} from './jev-fixture.ts';
 import type {DialogueGenerator,AppraisalProvider} from '../packages/contracts/src/ai-ports.ts';
@@ -56,13 +57,17 @@ it('HB03: strict legacy/enveloped evidence validates provenance and rejects forg
 
 it('HB04: mixed legacy/new records survive recovery unchanged and source deletion cancels dependent output',async()=>{
  const store=new Store(db,undefined,()=>now,jevEvidenceVerifier),session=randomUUID();await store.startSession(session,randomUUID());
- const saved:{eventId:string;raw:Record<string,unknown>}[]=[];
+ const saved:{eventId:string;raw:Record<string,unknown>|undefined;listening:boolean}[]=[];
  for(const [i,identityId] of IDENTITY_IDS.entries()){
   const accepted=await store.acceptChat(session,randomUUID(),{identityId,text:'지금은 대답하지 말고 그냥 들어줘.'});const selected=(await store.select(accepted.eventId))!;
+  // Legacy v4 and v6 records are preserved but carry no conversational act;
+  // only the conversation-v1 record authorizes the listening silence.
+  if(i===2){const semantic=await semanticEvaluation(selected,'listen_request',recordedJevResponse('other'));await store.commitAppraisal(selected,semantic.appraisal,semantic.metadata);saved.push({eventId:accepted.eventId,raw:semantic.metadata.providerResult,listening:true});continue;}
   const evaluation=mapJevResponse(recordedJevResponse('other'),accepted.eventId);
   if(i===0){evaluation.metadata.promptVersion='jev-appraisal-v4';evaluation.metadata.providerResult.mappingVersion='jev-appraisal-v4';}
   const raw=i===0?evaluation.metadata.providerResult:{version:2,eventRevision:String(selected.revision),provider:'jev',mappingVersion:JEV_VERSION,eventId:accepted.eventId,identityId,payload:evaluation.metadata.providerResult};
-  await store.commitAppraisal(selected,evaluation.appraisal,{...evaluation.metadata,providerResult:raw});saved.push({eventId:accepted.eventId,raw});
+  const result=await store.commitAppraisal(selected,evaluation.appraisal,{...evaluation.metadata,providerResult:raw});saved.push({eventId:accepted.eventId,raw,listening:false});
+  expect(result.response?.plan.participation).toEqual({mode:'speak'});await store.failResponse(result.response!.id,'fixture_no_stage');
  }
  const before=(await store.state()).body;now+=1000;await store.recover();
  expect((await store.state()).body.affect).toEqual(decay(before,now).affect);
@@ -70,22 +75,23 @@ it('HB04: mixed legacy/new records survive recovery unchanged and source deletio
  const nextSession=randomUUID();await store.startSession(nextSession,randomUUID());
  for(const [i,item] of saved.entries()){
   const accepted=await store.acceptChat(nextSession,randomUUID(),{identityId:IDENTITY_IDS[i],text:'왜 말 안 해?'}),selected=(await store.select(accepted.eventId))!;
-  const evaluated=mapJevResponse(recordedJevResponse(),accepted.eventId),result=await store.commitAppraisal(selected,evaluated.appraisal,evaluated.metadata);
-  expect(result.response?.plan.reengagement?.silenceEventId).toBe(item.eventId);
+  const evaluated=await semanticEvaluation(selected,'ask_silence_reason'),result=await store.commitAppraisal(selected,evaluated.appraisal,evaluated.metadata);
+  expect(result.response?.plan.reengagement?.silenceEventId).toBe(item.listening?item.eventId:null);
   await store.deleteEvent(item.eventId,'1',randomUUID());
-  expect((await db.pool.query('SELECT status FROM response_runs WHERE id=$1',[result.response!.id])).rows[0].status).toBe('cancelled');
+  if(item.listening)expect((await db.pool.query('SELECT status FROM response_runs WHERE id=$1',[result.response!.id])).rows[0].status).toBe('cancelled');
   expect((await db.pool.query('SELECT provider_result FROM appraisals WHERE event_id=$1',[item.eventId])).rows[0].provider_result).toBeNull();
   expect(await store.generated(result.response!.id,['늦은 합성 답'],null)).toBeNull();
  }
 });
 
 it.each([['one','one'],['one','two'],['two','one'],['two','two']])('HB06: appraisal %s / dialogue %s swaps preserve silence, reengagement and ACK lifecycle',async(appraisalName,dialogueName)=>{
- const parser=new JevAppraisalProvider({localOnly:false,allowPaidProviders:true,apiKey:'synthetic'},async(_url,init)=>Response.json(recordedJevResponse(JSON.parse(String(init?.body)).state.utterance.includes('들어')?'other':'question')));
+ const parser=scriptedJev({'지금은 대답하지 말고 그냥 들어줘.':{act:'listen_request',base:recordedJevResponse('other')},'왜 말 안 해?':'ask_silence_reason'});
  const second:AppraisalProvider={name:'alternative',model:'synthetic',promptVersion:'fixture-v1',readiness:()=>({status:'ready',inferenceVerified:false,errorCode:null}),evaluate:async event=>{
-  const act=event.text.includes('들어')?'other':'question';
-  return {appraisal:{...neutralAppraisal,target:'character',act,goal_relation:'unrelated',uncertain:false,evidence_refs:[event.id]},metadata:{provider:'alternative',model:'synthetic',promptVersion:'fixture-v1',providerResult:{fixtureEvent:event.id,fixtureIdentity:event.identityId,act}}};
+  const conversationAct=({'지금은 대답하지 말고 그냥 들어줘.':'listen_request','왜 말 안 해?':'ask_silence_reason'} as Record<string,string>)[event.text]??'ordinary',act=conversationAct==='listen_request'?'other':'question';
+  return {appraisal:{...neutralAppraisal,target:'character',act,goal_relation:'unrelated',uncertain:false,evidence_refs:[event.id]},metadata:{provider:'alternative',model:'synthetic',promptVersion:'fixture-v1',providerResult:{fixtureEvent:event.id,fixtureIdentity:event.identityId,act,conversationAct}}};
  }};
- const secondVerifier:AppraisalEvidenceVerifier={verify:(appraisal,metadata,event)=>metadata.provider==='alternative'&&metadata.promptVersion==='fixture-v1'&&metadata.providerResult?.fixtureEvent===event.eventId&&metadata.providerResult?.fixtureIdentity===event.identityId&&metadata.providerResult?.act===appraisal.act&&appraisal.target==='character'?{target:'character',act:appraisal.act}:undefined};
+ const secondVerifier:AppraisalEvidenceVerifier={verify:(appraisal,metadata,event)=>metadata.provider==='alternative'&&metadata.promptVersion==='fixture-v1'&&metadata.providerResult?.fixtureEvent===event.eventId&&metadata.providerResult?.fixtureIdentity===event.identityId&&metadata.providerResult?.act===appraisal.act&&appraisal.target==='character'?{target:'character',act:appraisal.act}:undefined,
+  verifyConversation:(_appraisal,metadata,event)=>metadata.provider==='alternative'&&metadata.providerResult?.fixtureEvent===event.eventId?{act:metadata.providerResult.conversationAct as 'ordinary',repairTarget:'unknown'}:undefined};
  const dialogue=(name:string):DialogueGenerator=>({name,model:'synthetic',counter:{count:async()=>50,countText:async()=>10},fitConversation:async(_plan,context)=>({conversation:context.conversation,inputTokens:50}),dialogue:name==='one'?async plan=>[plan.purpose==='reengage'?'들어 달라고 해서 조용히 듣고 있었어.':'모임은 오후 3시에 시작해.']:async(_plan,context)=>[context.silence?'조용히 듣고 있었어.':'오후 3시야.']});
  const registry:ProviderRegistry={dialogue:Object.fromEntries(['one','two'].map(name=>[name,()=>({dialogue:dialogue(name)})])),appraisal:{one:()=>({appraiser:parser,evidenceVerifier:jevEvidenceVerifier}),two:()=>({appraiser:second,evidenceVerifier:secondVerifier})}};
  const providers=createProviders(parseConfig({APPRAISAL_PROVIDER:appraisalName,APPRAISAL_MODEL:'synthetic',DIALOGUE_PROVIDER:dialogueName}),{},registry);
@@ -97,7 +103,7 @@ it.each([['one','one'],['one','two'],['two','one'],['two','two']])('HB06: apprai
   const silent=await submit('지금은 대답하지 말고 그냥 들어줘.');expect(send).not.toHaveBeenCalled();expect(await store.busy()).toBe(false);
   const before=(await store.state()).body;expect(before.turn.recentSilences[0]).toMatchObject({reason:'listening',eventId:silent.eventId});
   const raw=(await db.pool.query('SELECT provider_result FROM appraisals WHERE event_id=$1',[silent.eventId])).rows[0].provider_result;
-  expect(raw).toMatchObject(appraisalName==='one'?{version:2,eventRevision:'1',eventId:silent.eventId,identityId:IDENTITY_IDS[0],mappingVersion:JEV_VERSION}:{fixtureEvent:silent.eventId,fixtureIdentity:IDENTITY_IDS[0],act:'other'});
+  expect(raw).toMatchObject(appraisalName==='one'?{version:4,eventRevision:'1',eventId:silent.eventId,identityId:IDENTITY_IDS[0],mappingVersion:JEV_CONVERSATION_VERSION}:{fixtureEvent:silent.eventId,fixtureIdentity:IDENTITY_IDS[0],act:'other',conversationAct:'listen_request'});
   for(const text of ['왜 말 안 해?','합성 모임은 오후 3시에 시작해. 몇 시지?']){
    now+=1000;await submit(text);await vi.waitFor(async()=>expect((await db.pool.query("SELECT count(*) FROM response_runs WHERE status='delivering'")).rows[0].count).toBe('1'));
    const rows=(await db.pool.query("SELECT ss.*,r.generation_epoch,r.plan FROM speech_segments ss JOIN response_runs r ON r.id=ss.response_id WHERE r.status='delivering'")).rows;

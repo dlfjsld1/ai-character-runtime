@@ -83,7 +83,7 @@ it.each([.2,.65])('MX-A01 reason privacy and complete composure remain distinct 
  const now=1000,identityId=randomUUID(),eventId=randomUUID(),state=apply(initialState(now),{eventId,targetId:identityId,now,stimuli:{embarrassment:.8}});
  state.affect.frustration.value=frustration;state.affect.frustration.causes=[{eventId,targetId:identityId}];
  const record={eventId,eventRevision:'1',stateVersion:'1',identityId,at:now,reason:'withholding' as const,sourceRefs:[{kind:'event' as const,id:eventId,version:'1'}],affect:{joy:0,frustration,surprise:0,embarrassment:.8,pleasantness:.5}};
- const plan=chooseSocial(state,{...neutralAppraisal,target:'character',act:'question',uncertain:false},{category:null,stimulus:0,n:0,habituation:1},identityId,now,{text:'왜 조용했어?',previousSilence:record,explainedSilenceEventId:eventId});
+ const plan=chooseSocial(state,{...neutralAppraisal,target:'character',act:'question',uncertain:false},{category:null,stimulus:0,n:0,habituation:1},identityId,now,{text:'왜 조용했어?',previousSilence:record,explainedSilenceEventId:eventId,conversationEvidence:{act:'ask_silence_reason',repairTarget:'unknown'}});
  expect(plan.reengagement?.disclosure).toBe('deflect');
  const request=buildDialogueRequest(plan,{silence:record,currentInput:{payload:{text:'왜 조용했어?'}}},'openai-model',{promptVariant:'conversation-history-v1'}),text=JSON.stringify(request.messages);
  expect(text).toContain('말하고 싶지 않다');expect(text).not.toContain('discomfortThen');

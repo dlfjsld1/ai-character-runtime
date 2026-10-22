@@ -44,7 +44,11 @@ export const jevEvidenceVerifier:AppraisalEvidenceVerifier={
     try{
       const mapped=mapJevConversationResponse({model:metadata.model,answers:{...stored.data.answers,...stored.data.conversation},usage:metadata.usage},event.eventId);
       if(JSON.stringify(appraisalSchema.parse(appraisal))!==JSON.stringify(mapped.appraisal)||JSON.stringify(stored.data.gateReasons)!==JSON.stringify(mapped.metadata.providerResult.gateReasons))return;
-      if(!appraisal.evidence_refs.includes(event.eventId)||appraisal.target!=='character'||!confident(stored.data.answers.target))return;
+      // The request fixes addressee=character, so the utterance is addressed to
+      // this character by construction. appraisal.target is what the utterance
+      // evaluates; it differs from the addressee in a target clarification and
+      // does not gate the conversational act. The act's own confidence does.
+      if(!appraisal.evidence_refs.includes(event.eventId))return;
       const {conversation_act,repair_target}=stored.data.conversation;
       if(!confident(conversation_act))return;
       const act=conversation_act.choice as import('../../contracts/src/conversation.ts').LegacyConversationEvidence['act'];

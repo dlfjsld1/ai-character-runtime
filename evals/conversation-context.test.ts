@@ -6,19 +6,23 @@ import {testDatabase,reset,IDENTITY_IDS,testDatabaseName,fixtureProvider} from '
 import {Coordinator} from '../apps/runtime/src/coordinator/index.ts';
 import {Store} from '../packages/database/src/store.ts';
 import {neutralAppraisal} from '../packages/contracts/src/domain.ts';
+import {semanticEvaluation} from './semantic-jev-fixture.ts';
+import {jevEvidenceVerifier} from '../packages/adapters/src/appraisal-evidence.ts';
 import {dropOldestExchange} from '../packages/contracts/src/conversation.ts';
 let db:Awaited<ReturnType<typeof testDatabase>>,store:Store,sessionId:string,now:number;
 beforeAll(async()=>{db=await testDatabase();});
-beforeEach(async()=>{now=Date.now();await reset(db,now);store=new Store(db,undefined,()=>now);sessionId=randomUUID();await store.startSession(sessionId,randomUUID());});
+beforeEach(async()=>{now=Date.now();await reset(db,now);store=new Store(db,undefined,()=>now,jevEvidenceVerifier);sessionId=randomUUID();await store.startSession(sessionId,randomUUID());});
 afterAll(async()=>{await db?.close();});
 async function input(text:string,identityId=IDENTITY_IDS[0],memoryIds:string[]=[]){const accepted=await store.acceptChat(sessionId,randomUUID(),{identityId,text});const selected=(await store.select(accepted.eventId))!;const result=await store.commitAppraisal(selected,{...neutralAppraisal,target:'character',act:'question',uncertain:false,evidence_refs:[accepted.eventId]},{provider:'synthetic-fixture',model:'recorded-v1',providerResult:{copiedPriorReply:selected.conversation.turns.map(t=>t.text).join(' ')}},memoryIds);return {accepted,selected,...result};}
+// The reason question is stated as verified Jev conversation evidence; wording alone grants nothing.
+async function reasonQuestion(identityId=IDENTITY_IDS[0],memoryIds:string[]=[]){const accepted=await store.acceptChat(sessionId,randomUUID(),{identityId,text:'왜 말 안 해?'});const selected=(await store.select(accepted.eventId))!;const e=await semanticEvaluation(selected,'ask_silence_reason');const result=await store.commitAppraisal(selected,e.appraisal,e.metadata,memoryIds);return {accepted,selected,...result};}
 async function complete(id:string,texts=['잔치국수 어때?']){const clientId=randomUUID(),owner=await store.grantOwner(sessionId,randomUUID(),clientId);const generated=(await store.generated(id,texts,{clientId,outputEpoch:owner.outputEpoch}))!;for(const segment of generated.segments){const payload={responseId:id,segmentId:segment.id,generationEpoch:generated.response.generation_epoch,outputEpoch:String(owner.outputEpoch)};await store.report(sessionId,randomUUID(),'caption.shown',payload,clientId);await store.report(sessionId,randomUUID(),'caption.finished',payload,clientId);}return generated;}
 async function silent(text='그 말을 나한테 왜 해?',identityId=IDENTITY_IDS[0]){const accepted=await store.acceptChat(sessionId,randomUUID(),{identityId,text});const selected=(await store.select(accepted.eventId))!;const result=await store.commitAppraisal(selected,{...neutralAppraisal,target:'character',act:'criticism',hostility:3,strength:3,uncertain:false,evidence_refs:[accepted.eventId]},{provider:'synthetic-fixture',model:'recorded-v1'});expect(result.response).toBeNull();return {accepted,selected};}
 async function memory(){const id=randomUUID();await db.pool.query("INSERT INTO memories(id,character_id,session_id,memory_key,kind,status,content_version,fact_kind,visibility,content,facts,occurred_at,updated_at) VALUES($1::uuid,$2,$3,$1::text,'activity_result','active',1,'observed','test_public','합성 기억이야.','{}',$4,$4)",[id,store.characterId,sessionId,new Date(now)]);return id;}
 it.each(['delete','correct','event-delete'] as const)('A01-1/2: %s propagates through silent judgement, explained reason and later silence',async mode=>{
  const m=await memory(),a=await input('기억을 말해줘.',IDENTITY_IDS[0],[m]);await complete(a.response!.id);
  const b=await silent();expect(b.selected.conversation.turns.some(t=>t.source.id===a.response!.id)).toBe(true);
- const why=await input('왜 말 안 해?');expect((await store.responseContext(why.response!.id)).context.silence?.eventId).toBe(b.accepted.eventId);await complete(why.response!.id,['네 말이 불편해서 조용히 있었어.']);
+ const why=await reasonQuestion();expect((await store.responseContext(why.response!.id)).context.silence?.eventId).toBe(b.accepted.eventId);await complete(why.response!.id,['네 말이 불편해서 조용히 있었어.']);
  const d=await silent('그 설명도 마음에 안 들어.');const before=(await store.state()).body;
  const requestId=randomUUID();const invalidate=()=>mode==='event-delete'?store.deleteEvent(a.accepted.eventId,'1',requestId):store.editMemory(m,'1',requestId,mode==='correct'?'정정한 기억이야.':undefined);const result=await invalidate();
  const after=await store.state();expect(after.body.turn.recentSilences).toEqual([]);expect(after.body.affect).toEqual(before.affect);expect(after.body.mood).toEqual(before.mood);
@@ -27,13 +31,13 @@ it.each(['delete','correct','event-delete'] as const)('A01-1/2: %s propagates th
  expect(result.cancelled).toContain(why.response!.id);expect((await db.pool.query('SELECT text FROM speech_segments WHERE response_id=$1',[why.response!.id])).rows.every(r=>r.text===null)).toBe(true);
  expect((await db.pool.query('SELECT data_status FROM events WHERE id=ANY($1::uuid[])',[[b.accepted.eventId,d.accepted.eventId]])).rows.every(r=>r.data_status==='active')).toBe(true);
  const epoch=after.generationEpoch;await invalidate();expect((await store.state()).generationEpoch).toBe(epoch);
- const next=await input('왜 말 안 해?');const context=await store.responseContext(next.response!.id);expect(context.response.plan.reengagement.disclosure).toBe('unknown');expect(context.context.silence).toBeNull();
+ const next=await reasonQuestion();const context=await store.responseContext(next.response!.id);expect(context.response.plan.reengagement.disclosure).toBe('unknown');expect(context.context.silence).toBeNull();
 });
 it('A01-4: an old stale appraisal cannot authorize its leftover silence; valid legacy sources still can',async()=>{
  const b=await silent();await db.pool.query("UPDATE appraisals SET status='stale',result=NULL,context_refs='[]' WHERE event_id=$1",[b.accepted.eventId]);
- const why=await input('왜 말 안 해?');expect((await store.responseContext(why.response!.id)).context.silence).toBeNull();expect(why.response!.plan.reengagement?.disclosure).toBe('unknown');await complete(why.response!.id);
+ const why=await reasonQuestion();expect((await store.responseContext(why.response!.id)).context.silence).toBeNull();expect(why.response!.plan.reengagement?.disclosure).toBe('unknown');await complete(why.response!.id);
  const legacy=await silent('너 정말 별로야.');await db.pool.query('UPDATE transitions SET appraisal_id=NULL WHERE source_event_id IN (SELECT id FROM events WHERE parent_event_id=$1)',[legacy.accepted.eventId]);
- const q=await input('왜 말 안 해?');expect((await store.responseContext(q.response!.id)).context.silence?.eventId).toBe(legacy.accepted.eventId);
+ const q=await reasonQuestion();expect((await store.responseContext(q.response!.id)).context.silence?.eventId).toBe(legacy.accepted.eventId);
 });
 it('A02-1: delivered history is not also supplied as factual sources',async()=>{const a=await input('직전 사용자 발언이야.');await complete(a.response!.id);const b=await input('이어서 물을게.');const ctx=(await store.responseContext(b.response!.id)).context;expect(ctx.sources?.some(s=>s.id===a.accepted.eventId)).toBe(false);expect(ctx.conversation?.turns[0].text).toBe('직전 사용자 발언이야.');expect((await db.pool.query('SELECT 1 FROM response_sources WHERE response_id=$1 AND event_id=$2',[b.response!.id,a.accepted.eventId])).rowCount).toBe(1);});
 it('A02-1/4: shortened generation refs do not reintroduce sources or lose appraisal dependencies',async()=>{
@@ -54,11 +58,11 @@ it.each(['memory','event'] as const)('A01-3: %s invalidation preserves independe
  await silent('다른 상대의 독립 발언이야.',IDENTITY_IDS[1]);const m=await memory(),a=await input('합성 기억을 말해줘.',IDENTITY_IDS[0],[m]);await complete(a.response!.id);await silent();
  await db.pool.query("UPDATE character_state SET body=jsonb_set(body,'{affect,frustration,value}','0.65') WHERE character_id=$1",[store.characterId]);const before=(await store.state()).body;
  if(mode==='event')await store.deleteEvent(a.accepted.eventId,'1',randomUUID());else await store.editMemory(m,'1',randomUUID());const after=(await store.state()).body;expect(after.affect).toEqual(before.affect);expect(after.mood).toEqual(before.mood);expect(after.turn.recentSilences.map(r=>r.identityId)).toEqual([IDENTITY_IDS[1]]);
- const why=await input('왜 말 안 해?',IDENTITY_IDS[1]);const ctx=await store.responseContext(why.response!.id);expect(ctx.response.plan.reengagement.disclosure).toBe('deflect');expect(ctx.context.silence?.reason).toBe('withholding');
+ const why=await reasonQuestion(IDENTITY_IDS[1]);const ctx=await store.responseContext(why.response!.id);expect(ctx.response.plan.reengagement.disclosure).toBe('deflect');expect(ctx.context.silence?.reason).toBe('withholding');
 });
 it('A01-4: deleted legacy reason remains unavailable after recovery',async()=>{
  const legacy=await silent();await db.pool.query('UPDATE transitions SET appraisal_id=NULL WHERE source_event_id IN (SELECT id FROM events WHERE parent_event_id=$1)',[legacy.accepted.eventId]);await store.deleteEvent(legacy.accepted.eventId,'1',randomUUID());
- await store.recover();sessionId=randomUUID();await store.startSession(sessionId,randomUUID());const why=await input('왜 말 안 해?');const ctx=await store.responseContext(why.response!.id);expect(ctx.context.silence).toBeNull();expect(ctx.response.plan.reengagement.disclosure).toBe('unknown');
+ await store.recover();sessionId=randomUUID();await store.startSession(sessionId,randomUUID());const why=await reasonQuestion();const ctx=await store.responseContext(why.response!.id);expect(ctx.context.silence).toBeNull();expect(ctx.response.plan.reengagement.disclosure).toBe('unknown');
 });
 it('CR01: next question receives the actually delivered preceding user and assistant text',async()=>{const first=await input('따뜻한 음식 하나 추천해줘.');await complete(first.response!.id);const second=await input('그건 왜 골랐어?');const {context}=await store.responseContext(second.response!.id);expect((context as any).conversation?.turns.map((t:any)=>[t.role,t.text])).toEqual([['user','따뜻한 음식 하나 추천해줘.'],['assistant','잔치국수 어때?']]);});
 it('CR01/02: equal timestamps preserve observed order, four exchanges and both delivered segments',async()=>{const events=[];for(let i=0;i<5;i++){const r=await input(`합성 질문${i}야.`);events.push(r.accepted.eventId);await complete(r.response!.id,[`첫 대사${i}야.`,`둘째 대사${i}야.`]);}const next=await input('다음 질문이야.');const snapshot=next.selected.conversation;expect(snapshot.turns).toHaveLength(8);expect(snapshot.truncated).toBe(true);expect(snapshot.turns.filter(t=>t.role==='user').map(t=>t.source.id)).toEqual(events.slice(1));expect(snapshot.turns.at(-1)?.text).toBe('첫 대사4야. 둘째 대사4야.');});

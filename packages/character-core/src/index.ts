@@ -116,7 +116,6 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
   // No social meaning is known: reply without any social act or affect
   // (2026-10-22 user decision; failure no longer means silence).
   if(context.appraisalFailed) return speak('other');
-  const text=(context.text??'').trim();
   const semantic=context.conversationEvidence,v2=isInteractionEvidence(semantic)?semantic:undefined;
   // v2 authority is already source-verified; uncertain affect never suppresses
   // an independently known action. Do not route it through legacy regex gates.
@@ -132,9 +131,8 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
   }
   // Validated target/act evidence authorizes only the explicit acts below, never affect changes.
   const explicitTarget=a.target==='character'&&a.act!=='unknown'&&(!a.uncertain||(context.participationEvidence?.target===a.target&&context.participationEvidence.act===a.act));
-  // Recognize explicit conversational acts only; these patterns do not infer concern, pressure, or reconciliation.
-  const asksAboutSilence=/^(?:너\s*|아까\s*|그때\s*|방금\s*)*(?:왜\s*(?:말(?:을)?|대답(?:을)?|답변(?:을)?)\s*(?:안\s*(?:해|했어|하니)|없어)|왜\s*조용(?:해|했어))\s*[?.!？]*$/.test(text);
-  if(hasConversationAct(semantic,'ask_silence_reason')||!v2&&explicitTarget&&asksAboutSilence) {
+  // Conversational acts come only from verified semantic evidence, never from wording patterns.
+  if(hasConversationAct(semantic,'ask_silence_reason')) {
     const previous=context.previousSilence;
     const record=!context.previousOutputFailed&&previous?.identityId===identityId&&previous.at<=now?previous:null;
     // Only a delivered explanation plan in the validated recent conversation
@@ -158,8 +156,7 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
     if(disclosure==='deflect'&&state.affect.frustration.value>=.6)plan.speechStyle=speechStyle(state,identityId,{joy:'mask',discomfort:'mask',embarrassment:'mask'});
     return plan;
   }
-  const requestsListening=/(?:대답|답변)(?:은|을)?\s*하지\s*말(?:고\s*(?:내\s*(?:말|얘기)(?:만|를)?\s*)?들어\s*줘|아\s*줘)\s*[.!?]*$|(?:그냥|일단|지금은|말없이)\s*(?:내\s*(?:말|얘기)(?:만|를)?\s*)?들어\s*줘\s*[.!?]*$/.test(text);
-  if(hasConversationAct(semantic,'listen_request')||!v2&&explicitTarget&&requestsListening) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'listening'}};
+  if(hasConversationAct(semantic,'listen_request')) return {...dialoguePlan(state,'intentional_silence',identityId),action:'listen',participation:{mode:'silent',reason:'listening'}};
   if(effect.category!=='direct_insult'&&canAttemptRepair(semantic))return speak('acknowledge_repair');
   if(v2){
     // Uncertain sentence form alone is not missing conversational information.

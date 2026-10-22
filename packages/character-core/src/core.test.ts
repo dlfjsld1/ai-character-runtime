@@ -5,6 +5,17 @@ import { neutralAppraisal,type Appraisal,type EvidenceInput } from '../../contra
 import * as Core from './index.ts';
 const identity=randomUUID();
 
+// Verified semantic evidence for the two special conversational acts. Wording alone grants neither.
+const askAct={act:'ask_silence_reason' as const,repairTarget:'unknown' as const},listenAct={act:'listen_request' as const,repairTarget:'unknown' as const};
+it('wording alone never triggers a reason disclosure or listening silence; verified evidence does for any phrasing',()=>{
+  const identity=randomUUID(),state=initialState(0),a={...neutralAppraisal,target:'character' as const,act:'question' as const,uncertain:false,evidence_refs:[]};
+  for(const text of ['왜 말 안 해?','아까 왜 조용했어?','지금은 대답하지 말고 그냥 들어줘.','조언은 나중에 하고 내 얘기만 들어줄래?']){
+    const plan=chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text});
+    expect(plan.purpose,text).not.toBe('reengage');expect(plan.participation,text).toEqual({mode:'speak'});
+  }
+  for(const text of ['아까 조용히 있었던 이유가 뭐야?','대답 없던 거 무슨 일 있었어?'])expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text,conversationEvidence:askAct}).purpose,text).toBe('reengage');
+  for(const text of ['조언은 나중에 하고 내 얘기만 들어줄래?','잠깐 아무 말 말고 들어만 줘.'])expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text,conversationEvidence:listenAct}).participation,text).toEqual({mode:'silent',reason:'listening'});
+});
 describe('SP01/02 Stage publishes the selected performance, not internal affect',()=>{
  it.each([
   [{register:'casual',positiveTone:'neutral'},'neutral'],
@@ -117,7 +128,7 @@ describe('ER09–ER12 participation and persistent affect',()=>{
  const silence=(reason:'listening'|'no_addition'|'withholding'='listening')=>({eventId:randomUUID(),eventRevision:'1',stateVersion:'4',identityId:identity,at:1000,reason,sourceRefs:[{kind:'event' as const,id:randomUUID(),version:'1'}],affect:{joy:0,frustration:.2,surprise:0,embarrassment:0,pleasantness:.58}});
  it('ER09 honors an explicit listening request even when a question is present',()=>{
   const state=initialState(0),a={...appraisal,act:'question' as const};
-  const plan=chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text:'왜 이런 걸까? 지금은 대답하지 말고 들어줘.'});
+  const plan=chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text:'왜 이런 걸까? 지금은 대답하지 말고 들어줘.',conversationEvidence:listenAct});
   expect(plan).toMatchObject({action:'listen',participation:{mode:'silent',reason:'listening'}});
   expect(chooseSocial(state,a,socialEffect(a,[],identity,0),identity,0,{text:'왜 이런 걸까? 네 생각은 어때?'})).toMatchObject({action:'answer',participation:{mode:'speak'}});
  });
@@ -147,14 +158,14 @@ describe('ER09–ER12 participation and persistent affect',()=>{
   const state=initialState(1000);state.affect.frustration.value=frustration;
   state.turn.acknowledgements[`${identity}:direct_insult`]=1000;
   const before=structuredClone(state),record=silence('withholding'),oldRecord=structuredClone(record),a={...appraisal,act:'question' as const};
-  const plan=chooseSocial(state,a,socialEffect(a,[],identity,1001),identity,1001,{text:'왜 말 안 해?',previousSilence:record});
+  const plan=chooseSocial(state,a,socialEffect(a,[],identity,1001),identity,1001,{text:'왜 말 안 해?',previousSilence:record,conversationEvidence:askAct});
   expect(plan).toMatchObject({action:'answer',purpose:'reengage',participation:{mode:'speak'},reengagement:{silenceEventId:record.eventId,disclosure}});
   expect(state).toEqual(before);expect(record).toEqual(oldRecord);
  });
  it('ER10 missing, another identity, or subsequent output failure cannot explain silence with an old reason',()=>{
   const state=initialState(2000),a={...appraisal,act:'question' as const},record=silence();
   for(const context of [{},{previousSilence:{...record,identityId:randomUUID()}},{previousSilence:record,previousOutputFailed:true}]){
-   expect(chooseSocial(state,a,socialEffect(a,[],identity,2000),identity,2000,{text:'아까 왜 조용했어?',...context})).toMatchObject({reengagement:{silenceEventId:null,disclosure:'unknown'}});
+   expect(chooseSocial(state,a,socialEffect(a,[],identity,2000),identity,2000,{text:'아까 왜 조용했어?',conversationEvidence:askAct,...context})).toMatchObject({reengagement:{silenceEventId:null,disclosure:'unknown'}});
   }
  });
  it('ER10 unrelated wording does not expose an old reason or infer another person’s intent',()=>{
@@ -186,7 +197,7 @@ describe('ER09/10 field-scoped evidence for explicit conversational acts',()=>{
  it('live J05 can request listening without treating uncertain affect as certain',()=>{
   const state=initialState(1000);state.affect.frustration.value=.3;state.affect.joy.value=.2;
   const before=structuredClone(state),a=mapped('other'),effect=socialEffect(a,[],identity,1000);
-  const plan=chooseSocial(state,a,effect,identity,1000,context(a.act,'지금은 대답하지 말고 그냥 들어줘.'));
+  const plan=chooseSocial(state,a,effect,identity,1000,{...context(a.act,'지금은 대답하지 말고 그냥 들어줘.'),conversationEvidence:listenAct});
   expect(plan).toMatchObject({action:'listen',participation:{mode:'silent',reason:'listening'}});
   expect(effect).toMatchObject({category:null,stimulus:0});expect(a).toMatchObject({uncertain:true,strength:0,hostility:0});expect(state).toEqual(before);
  });
@@ -194,7 +205,7 @@ describe('ER09/10 field-scoped evidence for explicit conversational acts',()=>{
   const state=initialState(2000);state.affect.frustration.value=.3;
   const before=structuredClone(state),a=mapped('question'),effect=socialEffect(a,[],identity,2000);
   const record={eventId:randomUUID(),eventRevision:'1',stateVersion:'4',identityId:identity,at:1000,reason:'withholding' as const,sourceRefs:[{kind:'event' as const,id:randomUUID(),version:'1'}],affect:{joy:0,frustration:.3,surprise:0,embarrassment:0,pleasantness:.57}};
-  const base=context(a.act,'왜 말 안 해?');
+  const base={...context(a.act,'왜 말 안 해?'),conversationEvidence:askAct};
   expect(chooseSocial(state,a,effect,identity,2000,{...base,previousSilence:record})).toMatchObject({action:'answer',purpose:'reengage',reengagement:{silenceEventId:record.eventId,disclosure:'partial'}});
   for(const prior of [{},{previousSilence:{...record,identityId:randomUUID()}},{previousSilence:record,previousOutputFailed:true}]){
    expect(chooseSocial(state,a,effect,identity,2000,{...base,...prior})).toMatchObject({purpose:'reengage',reengagement:{silenceEventId:null,disclosure:'unknown'}});

@@ -8,8 +8,8 @@ async function evaluate(scene:Parameters<typeof control>[0],act:string,confidenc
  const p=new JevConversationCandidate({localOnly:false,allowPaidProviders:true,apiKey:'fixture'},async()=>Response.json(raw));
  return assessConversation(scene,await p.evaluate(c.event,{conversation:c.context.history,conversationContext:c.context}),c);
 }
-it('old regex success cannot disguise failed semantic authority',async()=>{
- const r=await evaluate({id:'test',text:'왜 말 안 해?',context:'W',allowedActs:['ask_silence_reason'],policy:'reason'},'ask_silence_reason',.79);expect(r.plan.purpose).toBe('reengage');expect(r.functionalPass).toBe(false);
+it('a low-confidence act grants no reason disclosure whatever the wording',async()=>{
+ const r=await evaluate({id:'test',text:'왜 말 안 해?',context:'W',allowedActs:['ask_silence_reason'],policy:'reason'},'ask_silence_reason',.79);expect(r.plan.purpose).not.toBe('reengage');expect(r.functionalPass).toBe(false);
 });
 it('apology interpreted as a fresh attack cannot pass repair gate',async()=>{
  const r=await evaluate({id:'test',text:'아까 심하게 말해서 미안해.',context:'W',allowedActs:['apology'],policy:'repair'},'apology',.95,recordedJevResponse('criticism','character',3,3),'candidate');expect(r.effect.stimulus).toBeGreaterThan(0);expect(r.functionalPass).toBe(false);
