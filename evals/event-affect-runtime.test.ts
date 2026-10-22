@@ -290,3 +290,12 @@ it('S2-11 an undelivered reply between the question and a new report ends the as
   const result=await commit(again,r=>{expect(r.sources.filter(x=>x.kind==='episode')).toHaveLength(1);return unresolved('네가 골라 준 그거')(r);},{...question,act:'criticism'});
   expect(result.response!.plan.reference).toBe('unresolved_suggestion');
 });
+it('S2-12 a delivered direction is an episode a later report links to; its unchecked title never reaches the interpreter',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const said='먼저 겉면의 잠금장치를 오른쪽으로 돌려.';
+  const s=await suggest(sessionId,'퍼즐 상자 여는 순서 알려 줘.',['순서대로 해 보자.',said],{kind:'방법',title:'모델이 붙인 요약 제목',sentenceIndex:1,quote:said});await s.ack(0);await s.ack(1);
+  expect((await episodes())[0]).toMatchObject({status:'active',episode:{kind:'방법',text:said}});
+  now+=60000;const later=await turn(sessionId,'네가 알려준 대로 돌렸더니 상자가 열렸어!');
+  await commit(later,r=>{expect(JSON.stringify(r)).not.toContain('모델이 붙인 요약 제목');return linked(r,'잠금장치','favorable',{congruence:.8,agency:'self'});});
+  const effect=(await effects(later.event.id)).eventAffect;expect(effect).toMatchObject({status:'applied'});expect(effect.stimuli.joy).toBeGreaterThan(0);
+});

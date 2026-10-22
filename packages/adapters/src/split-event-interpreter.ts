@@ -27,7 +27,7 @@ export class SplitEventInterpreter implements EventInterpreter{
     if(reference){
       const current=snapshot.sources.find(s=>s.id===snapshot.eventId)!;
       if(fixed!==null||reference.sourceId!==current.id||reference.revision!==current.revision||!current.text.includes(reference.quote))return unavailable('invalid_output');
-      // Which suggestion is meant is unknown: ask first, appraise nothing yet.
+      // Which past action is meant is unknown: ask first, appraise nothing yet.
       return {status:'interpreted',interpretation:{status:'uncertain',outcome:null,appraisals:[]},promptVersion:this.promptVersion,unresolvedReference:structuredClone(reference)};
     }
     let raw:EventInterpretation;

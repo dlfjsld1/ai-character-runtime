@@ -34,16 +34,16 @@ it('OA01: confirmation waits for every shown/finished segment and records exact 
 it.each(['cancelled','failed','delivering'] as const)('OA01: %s cannot create an action episode even if stale ACKs exist',status=>{
   expect(confirmDeliveredRecommendation({...delivered(),status})).toBeNull();
 });
-it('OA01: rejects missing/duplicate segments, invalid clocks and altered speech; a summarized title stays a label',()=>{
+it('OA01: rejects missing/duplicate segments, invalid clocks and altered speech; an unchecked title is stored but never read',()=>{
   const input=delivered();
   for(const segments of [[input.segments[0]!],[input.segments[0]!,input.segments[0]!],[input.segments[0]!,{...input.segments[1]!,shownAt:null}],[input.segments[0]!,{...input.segments[1]!,finishedAt:0}],[{...input.segments[0]!,text:'다른 문장'},input.segments[1]!]])expect(confirmDeliveredRecommendation({...input,segments})).toBeNull();
-  // The title may summarize; only the verbatim quote proves delivery, and the
+  // The title is not checked; only the verbatim quote proves delivery, and the
   // interpreter reads the delivered text, never the title.
   const labelled=confirmDeliveredRecommendation({...input,annotation:{...annotation,title:'요약한 이름'}})!;
   expect(labelled.title).toBe('요약한 이름');expect(JSON.stringify(episodeAffectSource(labelled))).not.toContain('요약한 이름');
   expect(confirmDeliveredRecommendation({...input,annotation:{...annotation,quote:'대사에 없는 구절'}})).toBeNull();
 });
-it('a direction with a summarized title is captured when its quote is verbatim; the capture prompt names more than suggestions',()=>{
+it('a direction with a non-verbatim title is captured when its quote is verbatim; the capture prompt names more than suggestions',()=>{
   const request=buildAnnotatedDialogueRequest(plan,{},'synthetic',{promptVariant:'conversation-history-v1'}),said='먼저 겉면의 잠금장치를 오른쪽으로 돌려.';
   const direction={kind:'방법',title:'잠금장치 돌리기',sentenceIndex:0,quote:said};
   expect(decodeAnnotatedDialogueOutput(request,JSON.stringify({content:'여는 순서를 알려 준다.',sentences:[said],recommendations:[direction]}),2)).toEqual({sentences:[said],recommendations:[direction],annotationStatus:'candidate'});

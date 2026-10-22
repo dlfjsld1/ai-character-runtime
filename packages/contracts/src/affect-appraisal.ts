@@ -54,7 +54,7 @@ export const eventInterpretationRequestSchema=z.object({
 }).strict();
 export type EventInterpretationRequest=z.infer<typeof eventInterpretationRequestSchema>;
 export type EventInterpretationResult=
-  // unresolvedReference: the current input refers to one of my past suggestions
+  // unresolvedReference: the current input refers to one of my past actions
   // that no single provided episode matches; the character asks which one.
   | {status:'interpreted';interpretation:EventInterpretation;promptVersion:string;unresolvedReference?:AffectQuote}
   | {status:'unavailable';reason:'invalid_input'|'invalid_output'|'transport_failed';promptVersion:string};

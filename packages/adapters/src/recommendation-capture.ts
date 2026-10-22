@@ -24,8 +24,8 @@ export function decodeAnnotatedDialogueOutput(request:ReturnType<typeof buildAnn
   if(!parsed.success)return {sentences,recommendations:[],annotationStatus:'invalid'};
   for(const a of parsed.data){
     const sentence=sentences[a.sentenceIndex];
-    // The verbatim quote is the delivery evidence; the title is a display label
-    // the interpreter never reads, so a summarized label is allowed.
+    // The verbatim quote is the delivery evidence. The prompt asks for a verbatim
+    // title but it is not enforced: the title is stored and never read.
     if(!sentence||!sentence.includes(a.quote)||sentence.indexOf(a.quote)!==sentence.lastIndexOf(a.quote))return {sentences,recommendations:[],annotationStatus:'invalid'};
   }
   return {sentences,recommendations:parsed.data,annotationStatus:parsed.data.length?'candidate':'none'};

@@ -2,7 +2,9 @@ import {z} from 'zod';
 import {affectScopeSchema,affectReferenceSchema,type AffectSource} from './affect-appraisal.ts';
 
 export const recommendationAnnotationSchema=z.object({
-  // A short noun the model writes for what was suggested; not a fixed topic list.
+  // A short noun the model writes for what it did or offered; not a fixed topic list.
+  // title: the prompt asks for a verbatim phrase but it is not enforced. It is
+  // stored only; nothing reads it, so it must not be trusted as delivered text.
   kind:z.string().trim().min(1).max(40),title:z.string().trim().min(1).max(120),
   sentenceIndex:z.number().int().min(0).max(1),quote:z.string().min(1).max(120),
 }).strict();
@@ -36,7 +38,7 @@ export function confirmDeliveredRecommendation(input:DeliveredRecommendation):Ac
   const segments=[...input.segments].sort((a,b)=>a.index-b.index);
   if(new Set(segments.map(s=>s.id)).size!==segments.length||segments.some((s,i)=>s.index!==i||s.shownAt===null||s.finishedAt===null||!Number.isFinite(s.shownAt)||s.shownAt<0||!Number.isFinite(s.finishedAt)||s.finishedAt<s.shownAt))return null;
   const a=annotation.data,segment=segments[a.sentenceIndex];
-  // Only the verbatim quote proves delivery; the title is a label (2026-10-22).
+  // Only the verbatim quote proves delivery; the title is not checked (2026-10-22).
   if(!segment)return null;
   const start=segment.text.indexOf(a.quote);
   if(start<0||start!==segment.text.lastIndexOf(a.quote))return null;
