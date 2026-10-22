@@ -280,3 +280,13 @@ it('S2-10 after asking, the answer reads older suggestions beyond the newest fiv
   expect(plain.response!.plan.purpose).not.toBe('clarify');expect(plain.response!.plan.reference).toBeUndefined();
   expect((await effects(third.event.id)).eventAffect).toMatchObject({status:'withheld'});
 });
+it('S2-11 an undelivered reply between the question and a new report ends the asked state',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const s=await suggest(sessionId,'저녁 뭐 먹을까?',['저녁이라면 따뜻한 게 좋겠다.','토마토 파스타 어때?'],pasta);await s.ack(0);await s.ack(1);
+  const vague=await turn(sessionId,'네가 추천한 거 별로였어.');
+  const asked=await commit(vague,unresolved('네가 추천한 거'),{...question,act:'criticism'});await deliver(sessionId,asked.response!.id,['어떤 거 말하는 거야?']);
+  const aside=await turn(sessionId,'잠깐만.');const between=await commit(aside,()=>undefined,{...question,act:'other'});await store.failResponse(between.response!.id,'fixture_no_stage');
+  const again=await turn(sessionId,'네가 골라 준 그거 또 별로였어.');
+  const result=await commit(again,r=>{expect(r.sources.filter(x=>x.kind==='episode')).toHaveLength(1);return unresolved('네가 골라 준 그거')(r);},{...question,act:'criticism'});
+  expect(result.response!.plan.reference).toBe('unresolved_suggestion');
+});
