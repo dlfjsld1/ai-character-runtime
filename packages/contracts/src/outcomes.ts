@@ -36,7 +36,8 @@ export function confirmDeliveredRecommendation(input:DeliveredRecommendation):Ac
   const segments=[...input.segments].sort((a,b)=>a.index-b.index);
   if(new Set(segments.map(s=>s.id)).size!==segments.length||segments.some((s,i)=>s.index!==i||s.shownAt===null||s.finishedAt===null||!Number.isFinite(s.shownAt)||s.shownAt<0||!Number.isFinite(s.finishedAt)||s.finishedAt<s.shownAt))return null;
   const a=annotation.data,segment=segments[a.sentenceIndex];
-  if(!segment||!a.quote.includes(a.title))return null;
+  // Only the verbatim quote proves delivery; the title is a label (2026-10-22).
+  if(!segment)return null;
   const start=segment.text.indexOf(a.quote);
   if(start<0||start!==segment.text.lastIndexOf(a.quote))return null;
   const parsed=actionEpisodeSchema.safeParse({id:input.id,revision:'1',scope:input.scope,responseId:input.responseId,responseRevision:input.responseRevision,segmentId:segment.id,kind:a.kind,title:a.title,text:segment.text,span:{start,end:start+a.quote.length},deliveredAt:Math.max(...segments.map(s=>s.finishedAt!)),sourceRefs:input.sourceRefs});

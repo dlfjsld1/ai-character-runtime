@@ -115,7 +115,7 @@ export function chooseSocial(state:State,a:Appraisal,effect:ReturnType<typeof so
   };
   // No social meaning is known: reply without any social act or affect
   // (2026-10-22 user decision; failure no longer means silence).
-  // Which past suggestion is meant is unknown: ask once. If the last reply
+  // Which past action of mine is meant is unknown: ask once. If the last reply
   // already asked, answer normally instead of asking again.
   const askReference=():Plan=>({...speak('clarify'),action:'ask',reference:'unresolved_suggestion'});
   if(context.appraisalFailed) return context.unresolvedReference&&!context.referenceAsked?askReference():speak('other');

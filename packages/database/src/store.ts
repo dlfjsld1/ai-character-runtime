@@ -25,9 +25,10 @@ const activeResponses="('planned','generating','synthesizing','delivering')";
 export type EventAffectAttempt={request:EventInterpretationRequest|null;result:EventInterpretationResult;promptVersion:string;latencyMs:number};
 // Contributions halve every 20 minutes; older records cannot move the snapshot.
 const affectWindowMs=6*3600000;
-// Delivered suggestions the interpreter may link to a later report: the newest
+// Delivered actions (suggestions, directions, requested explanations) the
+// interpreter may link to a later report: the newest
 // five within thirty days. More than five marks the read truncated. Right after
-// the character asked which suggestion was meant, the answer reads up to twenty.
+// the character asked which one was meant, the answer reads up to twenty.
 const episodeWindowMs=30*86400000,episodeLimit=5,askedEpisodeLimit=20;
 export class Store {
   constructor(public db:Database,public characterId=CHARACTER_ID,public clock=()=>Date.now(),private evidenceVerifier?:AppraisalEvidenceVerifier){}
@@ -122,7 +123,7 @@ export class Store {
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
   }
   // Whether the turn right before this input is a delivered reply that asked
-  // which past suggestion was meant (a silent or failed reply in between ends it).
+  // which past action was meant (a silent or failed reply in between ends it).
   private async askedReference(c:Pick<Client,'query'>,turns:ConversationSnapshot['turns'],currentId:string){
     const last=turns.filter(t=>t.source.id!==currentId).at(-1);
     return last?.source.kind==='response'&&!!(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND id=$2 AND plan->>'reference'='unresolved_suggestion'",[this.characterId,last.source.id])).rowCount;
@@ -137,7 +138,7 @@ export class Store {
     if(request.eventId!==e.id||request.eventRevision!==String(e.revision)||request.configVersion!==s.configVersion.toString()||request.scope.ownerId!==e.identity_id||request.scope.characterId!==this.characterId||refs(history.map(r=>({sourceId:r.eventId,revision:r.eventRevision})))!==refs(request.stateSourceRefs))return {body,effect:{...base,status:'stale'}};
     const readEpisodes=request.sources.filter(x=>x.kind==='episode').map(x=>x.id);
     if(readEpisodes.length&&(await c.query("SELECT count(*)::int n FROM action_episodes WHERE character_id=$1 AND id=ANY($2::uuid[]) AND status='active'",[this.characterId,readEpisodes])).rows[0].n!==readEpisodes.length)return {body,effect:{...base,status:'stale'}};
-    // Which past suggestion is meant is unknown: ask, and record no affect until it is.
+    // Which past action is meant is unknown: ask, and record no affect until it is.
     if(attempt.result.unresolvedReference)return {body,effect:{...base,status:'withheld',reason:'unresolved_reference'},unresolvedReference:true};
     let appended:ReturnType<typeof appendEventAffect>;
     try{appended=appendEventAffect(history,request,attempt.result.interpretation,e.id);}catch{return {body,effect:{...base,status:'invalid'}};}
@@ -578,7 +579,7 @@ export class Store {
     }else if(answer)throw new RuntimeError('invalid_knowledge_answer',503);
     await c.query("UPDATE response_runs SET status='delivering',segment_count=$2 WHERE id=$1",[id,sentences.length]);const segments=[];
     if(turn&&JSON.stringify(turn.sentences)!==JSON.stringify(sentences))throw new RuntimeError('invalid_output',503);
-    // A suggestion annotation stays a candidate until every segment is delivered.
+    // An action annotation stays a candidate until every segment is delivered.
     if(turn?.annotationStatus==='candidate'&&turn.recommendations[0]&&!r.knowledge_context&&r.plan?.targetIdentityId)await c.query("INSERT INTO action_episodes(id,character_id,owner_id,response_id,status,annotation) VALUES($1,$2,$3,$4,'candidate',$5)",[randomUUID(),this.characterId,r.plan.targetIdentityId,id,turn.recommendations[0]]);
     for(let i=0;i<sentences.length;i++){const segmentId=randomUUID();await c.query("INSERT INTO speech_segments(id,character_id,response_id,segment_index,text,synthesis_status,delivery_status,output_epoch,playback_client_id) VALUES($1,$2,$3,$4,$5,'ready','sent',$6,$7)",[segmentId,this.characterId,id,i,sentences[i],owner.outputEpoch.toString(),owner.clientId]);segments.push({id:segmentId,text:sentences[i],index:i});}
     return {response:r,segments,outputEpoch:owner.outputEpoch,...(knowledge?{knowledge}:{})};
