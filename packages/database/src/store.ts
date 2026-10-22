@@ -543,7 +543,9 @@ export class Store {
     const currentInput=sources.find(source=>source.id===inputId)??null;
     const identities=await this.dialogueIdentities([r.plan?.targetIdentityId,...sources.map(e=>e.payload?.identityId),...memories.flatMap(m=>[...(m.participants??[]),m.facts?.identityId])]);
     const conversation=r.conversation_refs?await this.readConversation(c,r.conversation_refs):undefined;if(r.conversation_refs&&!conversation)throw new RuntimeError('stale_source');
-    return {response:r,context:{...(r.knowledge_context?{knowledge:r.knowledge_context}:{}),...(r.personal_context?{personalFacts:r.personal_context}:{}),currentInput,sources,memories,identities,silence,conversation:conversation??undefined,emotion:this.emotion(decay(s.body,this.now(s)))} satisfies DialogueContext};
+    // Persona values are bound to the response's config version and never edited in place.
+    const persona=(await c.query('SELECT kind,text FROM character_persona_values WHERE character_id=$1 AND config_version=$2 ORDER BY ordinal',[this.characterId,r.config_version])).rows.map(v=>({kind:v.kind,text:v.text}));
+    return {response:r,context:{...(persona.length?{persona}:{}),...(r.knowledge_context?{knowledge:r.knowledge_context}:{}),...(r.personal_context?{personalFacts:r.personal_context}:{}),currentInput,sources,memories,identities,silence,conversation:conversation??undefined,emotion:this.emotion(decay(s.body,this.now(s)))} satisfies DialogueContext};
   }
   async generated(id:string,sentences:string[],owner:{clientId:string;outputEpoch:bigint}|null,answer?:KnowledgeAnswer){return this.locked(async(c,s)=>{const r=await this.validResponse(c,id,s);if(!r)return null;if(!owner){await c.query("UPDATE response_runs SET status='failed',cancel_reason='stage_unavailable',finished_at=$2 WHERE id=$1",[id,new Date(this.clock())]);await this.resolveAttempt(c,id,'not_delivered');return null;}
     const session=await this.session(c,r.session_id);if(BigInt(session.output_epoch)!==owner.outputEpoch)return null;

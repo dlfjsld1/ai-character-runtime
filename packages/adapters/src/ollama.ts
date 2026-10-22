@@ -35,7 +35,7 @@ export class OllamaProvider implements Provider {
   private prepareAttempted=false;
   private preparationError:string|null=null;
   readiness(){return {status:this.physicalUnknown?'unavailable':this.inFlight?'busy':this.prepared?'ready':this.prepareAttempted?'unavailable':'not_verified',inferenceVerified:this.prepared,preparationError:this.preparationError};}
-  constructor(readonly model:string,public counter:TokenCounter,private baseUrl='http://127.0.0.1:11434',private fetcher:typeof fetch=fetch,private probeOptions:{numGpu?:0;onCall?:(metadata:Record<string,unknown>)=>void;onContent?:(text:string)=>void;evaluation?:DialogueEvaluation;deadlinesMs?:{appraise:number;dialogue:number;solve:number}}={}) {
+  constructor(readonly model:string,public counter:TokenCounter,private baseUrl='http://127.0.0.1:11434',private fetcher:typeof fetch=fetch,private probeOptions:{promptVariant?:DialoguePromptOptions['promptVariant'];think?:false;numGpu?:0;onCall?:(metadata:Record<string,unknown>)=>void;onContent?:(text:string)=>void;evaluation?:DialogueEvaluation;deadlinesMs?:{appraise:number;dialogue:number;solve:number}}={}) {
     const evaluation=probeOptions.evaluation;
     const allowed=evaluation?evaluation.model===model&&['qwen2.5:7b','gemma4:12b-it-qat','qwen3.5:9b-q4_K_M'].includes(model)&&Number.isSafeInteger(evaluation.seed)&&(evaluation.think===undefined||evaluation.think===false)&&(evaluation.evidenceBound===undefined||evaluation.evidenceBound===true)&&(evaluation.promptVariant===undefined||['grounded-v2','emotion-v1','emotion-v2','emotion-v3','content-first','content-first-v2','conversation-history-v1','conversation-direct-v1'].includes(evaluation.promptVariant))&&!(evaluation.evidenceBound&&evaluation.promptVariant):['qwen2.5:7b','gemma4:12b-it-qat'].includes(model);
     const url=new URL(baseUrl);if(url.protocol!=='http:'||url.hostname!=='127.0.0.1'||url.pathname!=='/'||url.username||url.password||url.search||url.hash||!allowed)throw new RuntimeError('local_provider_required',400);
@@ -81,7 +81,7 @@ export class OllamaProvider implements Provider {
         // Expiring the logical deadline never aborts the physical request. Keep
         // the single-call queue occupied until Ollama confirms its terminal done.
         const evaluation=this.probeOptions.evaluation;
-        const think=evaluation?.think??(this.model==='gemma4:12b-it-qat'?false:undefined);
+        const think=evaluation?.think??this.probeOptions.think;
         const response=await this.fetcher(new URL('/api/chat',this.baseUrl),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:this.model,messages,stream,...(format?{format}:{}),...(think!==undefined?{think}:{}),options:{temperature,num_predict:256,num_ctx:4096,...(evaluation?{seed:evaluation.seed}:{}),...(this.probeOptions.numGpu===0?{num_gpu:0}:{})},keep_alive:'5m'}),redirect:'error'});
         if(!response.ok){confirmed=true;throw new RuntimeError(response.status===404?'model_missing':'provider_unavailable',503);}
         const mime=response.headers.get('content-type')?.split(';')[0].trim();
@@ -124,7 +124,7 @@ export class OllamaProvider implements Provider {
       conversation=dropOldestExchange(conversation);
     }
   }
-  private buildDialogueRequest(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,this.probeOptions.evaluation);}
+  private buildDialogueRequest(plan:Plan,context:object){return buildDialogueRequest(plan,context,this.model,this.probeOptions.evaluation??(this.probeOptions.promptVariant?{promptVariant:this.probeOptions.promptVariant}:undefined));}
   async dialogue(plan:Plan,context:object) {
     const request=this.buildDialogueRequest(plan,context);
     return decodeDialogueOutput(request,await this.chat(request.messages,request.format,true,.2,'dialogue'),plan.maxSentences);

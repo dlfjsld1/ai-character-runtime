@@ -14,7 +14,7 @@ it('CX authored fixture keeps eight flows, sixteen contrasts and three-turn mock
  expect(result.rows.every(row=>row.quality==='NOT_VERIFIED'&&row.stageAck==='NOT_EXECUTED')).toBe(true);
  for(const row of result.rows.filter(row=>row.request)){
   expect(row.request.messages[0].content).toContain('답변 전체');
-  expect(row.request.messages[0].content).toContain('자기 추천의 실패');
+  expect(row.request.messages[0].content).toContain('정당한 피드백이나 정정');
  }
 });
 

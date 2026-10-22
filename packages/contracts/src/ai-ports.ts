@@ -13,6 +13,8 @@ export type DialogueMemory={readonly id?:string;readonly content?:string|null;re
 export type DialogueKnowledge={readonly query:string;readonly chunks:readonly KnowledgeChunk[];readonly revision:string;readonly libraryRevision?:string};
 export type KnowledgeAnswer={sentences:string[];status:'answered'|'not_found'|'conflict';citationIds:string[]};
 export type DialogueContext={
+  // The persona values of the response's config version, in configured order.
+  readonly persona?:readonly {readonly kind:'persona'|'goal';readonly text:string}[];
   readonly personalFacts?:PersonalFactSnapshot;
   readonly knowledge?:DialogueKnowledge;
   readonly conversation?:ConversationSnapshot;

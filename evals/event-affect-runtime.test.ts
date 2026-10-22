@@ -122,3 +122,12 @@ it('O2-07 Coordinator runs the interpreter beside appraisal and commits its resu
     expect((await effects(accepted.eventId)).eventAffect).toMatchObject({status:'applied',promptVersion:'synthetic-coordinator'});
   }finally{await co.stop();}
 });
+it('dialogue context carries the persona of the response config version, and none when that version has none',async()=>{
+  const sessionId=randomUUID();await store.startSession(sessionId,randomUUID());
+  const first=await commit(await turn(sessionId,'안녕.'),()=>undefined);
+  expect((await store.responseContext(first.response!.id)).context.persona).toEqual(PERSONA_V1.map(text=>({kind:'persona',text})));
+  await store.failResponse(first.response!.id,'fixture_no_stage');
+  await db.pool.query('DELETE FROM character_persona_values WHERE character_id=$1',[CHARACTER_ID]);
+  const selected=await turn(sessionId,'뭐 해?'),second=await store.commitAppraisal(selected,{...question,evidence_refs:[selected.event.id]},{provider:'synthetic-fixture',model:'recorded'},[]);
+  expect((await store.responseContext(second.response!.id)).context).not.toHaveProperty('persona');
+});

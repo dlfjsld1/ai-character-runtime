@@ -22,7 +22,8 @@ export function createOllamaDialogue(config:Pick<LocalConfig,'DIALOGUE_MODEL'|'O
   if(!['qwen2.5:7b','gemma4:12b-it-qat'].includes(config.DIALOGUE_MODEL))throw new RuntimeError('unsupported_provider_configuration',400);
   const gemma=config.DIALOGUE_MODEL==='gemma4:12b-it-qat';
   const tokenizer=environment.DIALOGUE_TOKENIZER_PATH?.trim()||(gemma?'':environment.QWEN_TOKENIZER_PATH??'');
-  return new OllamaProvider(config.DIALOGUE_MODEL,new PythonTokenCounter(environment.TOKENIZER_PYTHON??config.OMNIVOICE_PYTHON,tokenizer,gemma?{enable_thinking:false}:{}),config.OLLAMA_BASE_URL,fetch,probeOptions);
+  // Model capabilities are named here, at configuration, not inside the adapter or prompt builder.
+  return new OllamaProvider(config.DIALOGUE_MODEL,new PythonTokenCounter(environment.TOKENIZER_PYTHON??config.OMNIVOICE_PYTHON,tokenizer,gemma?{enable_thinking:false}:{}),config.OLLAMA_BASE_URL,fetch,{...(gemma?{promptVariant:'content-first' as const,think:false as const}:{}),...probeOptions});
 }
 const registeredProviders:ProviderRegistry={
   dialogue:{ollama:(config,environment)=>{
