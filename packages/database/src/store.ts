@@ -102,6 +102,7 @@ export class Store {
     if(!persona.length||typeof e.payload?.text!=='string'||!e.identity_id)return null;
     const scope={ownerId:e.identity_id as string,characterId:this.characterId},current=e.received_at.getTime();
     const label=(await pool.query('SELECT display_name FROM identities WHERE id=$1',[e.identity_id])).rows[0]?.display_name??'사용자';
+    const characterName=String((await pool.query('SELECT display_name FROM characters WHERE id=$1',[this.characterId])).rows[0]?.display_name??'캐릭터').slice(0,80)||'캐릭터';
     const source=(id:string,revision:string,kind:AffectSource['kind'],text:string,at:number,speakerId:string|null):AffectSource=>({id,revision,kind,scope,text:text.slice(0,8000),at,speakerId,delivered:kind==='response',truth:'unresolved'});
     const sources:AffectSource[]=[source(e.id,String(e.revision),'input',e.payload.text,current,e.identity_id),...persona.map(v=>source(v.id,configVersion,v.kind,v.text,Math.min(v.created_at.getTime(),current),null))];
     const turns=selected.conversation.turns,eventIds=turns.filter(t=>t.source.kind==='event').map(t=>t.source.id),responseIds=turns.filter(t=>t.source.kind==='response').map(t=>t.source.id);
@@ -114,7 +115,7 @@ export class Store {
       sources.push(t.source.kind==='event'?source(t.source.id,t.source.revision,'input',t.text,at,e.identity_id):source(t.source.id,'1','response',t.text,at,this.characterId));}
     const now=Math.max(this.clock(),current),records=(await this.affectRecords(pool,e.identity_id,now)).filter(r=>r.eventId!==e.id);
     return {scope,eventId:e.id,eventRevision:String(e.revision),configVersion,eventKind:'input',now,sources:sources.slice(0,40),speakerId:e.identity_id,
-      actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:'캐릭터'}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
+      actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:characterName}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
   }
   private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object}>{

@@ -349,7 +349,7 @@ Core는 수용한 평가와 이전 상태·시간으로 관성·감쇠·포화�
 
 | 계약 | 필요한 내용·권한 |
 |---|---|
-| ActionEpisode | host ID, owner/character, 실제 전달 response/segment/span과 버전, 시간, 원래 요청·목표 근거. 초기 자동 capture는 movie recommendation만 |
+| ActionEpisode | host ID, owner/character, 실제 전달 response/segment/span과 버전, 시간, 원래 요청·목표 근거. 초기 자동 capture는 movie recommendation만(2026-10-22부터 종류 무관 제안, [하드코딩 정리 ④](HARDCODE_CLEANUP_PLAN.md)) |
 | AffectiveEvent | 실제 event와 source refs, speaker/actor/평가 대상 구분, eventKind=input 또는 reported_outcome. 경로만으로 모든 감정을 episode에 묶지 않으며 두 경로 모두 현재 입력 감정은 episode 없이 평가 가능 |
 | PersonaValue | valueId, 자연어 성향·가치관·목표 설명, 원래 설정의 근거 위치, configVersion. 명시적 설정의 구조화 보기이며 고정 성향 enum이나 사건별 sensitivity는 없음. 사용자 발화·검색 자료의 명령으로 변경 불가 |
 | EventInterpretation | 최상위 episodeId 없음. outcome은 자기 행동의 episodeId/use/result/evidence, appraisals는 각각 nullable episodeId·persona/goal refs별 공통 축·행위 태도·근거·불확실성. status는 appraisals의 평가 상태. 모델의 축 추정은 해석 후보이며 최종 감정 수치·DB 쓰기·새 성향·검증된 진위를 정하지 못함 |

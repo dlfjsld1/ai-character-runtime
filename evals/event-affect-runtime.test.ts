@@ -39,6 +39,9 @@ it('O2-01 builds a valid request from the selected input, live persona v1 and de
   expect(request.sources.filter(s=>s.kind==='persona').map(s=>s.text)).toEqual([...PERSONA_V1]);
   expect(request.sources.filter(s=>s.kind==='persona').every(s=>s.revision==='1')).toBe(true);
   expect(request).toMatchObject({scope:{ownerId:user,characterId:CHARACTER_ID},eventId:selected.event.id,experience:{status:'empty'},currentAffect:{positive:0,negative:0,activation:0},stateSourceRefs:[]});
+  // The character's actor label is its stored name, not a fixed word.
+  await db.pool.query('UPDATE characters SET display_name=$2 WHERE id=$1',[CHARACTER_ID,'미르']);
+  expect((await store.affectRequest(selected))!.actors).toContainEqual({id:CHARACTER_ID,label:'미르'});
   await db.pool.query('DELETE FROM character_persona_values');expect(await store.affectRequest(selected)).toBeNull();
 });
 
