@@ -78,7 +78,7 @@ export class OllamaProvider implements Provider {
         if(this.physicalUnknown)throw new RuntimeError('physical_call_unconfirmed',503);
         inputTokens=await this.counter.count(messages);if(inputTokens>3328)throw new RuntimeError('input_too_long',413);
         this.inFlight=true;
-        const deadline=kind==='prepare'?120000:this.probeOptions.deadlinesMs?.[kind]??(kind==='appraise'?15000:20000);
+        const deadline=kind==='prepare'?120000:this.probeOptions.deadlinesMs?.[kind]??(kind==='appraise'?15000:kind==='dialogue'?60000:20000);
         timer=setTimeout(()=>{timedOut=true;rejectCaller(new RuntimeError('provider_timeout',503));},deadline);
         // Expiring the logical deadline never aborts the physical request. Keep
         // the single-call queue occupied until Ollama confirms its terminal done.

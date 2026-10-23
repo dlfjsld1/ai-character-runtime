@@ -1,4 +1,4 @@
-import {it,expect} from 'vitest';
+import {it,expect,vi} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import {OllamaProvider,validateDialogue,type TokenCounter} from './ollama.ts';
 import {initialState,dialoguePlan,apply,chooseSocial} from '../../character-core/src/index.ts';
@@ -325,6 +325,39 @@ it('AI01 malformed structured JSON and uncertain semantic judgement without sour
 it('AI03 nonstring stream content rejected',async()=>{const provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async()=>new Response('{"message":{"content":{"text":"가짜"}},"done":true}\n'));await expect(provider.dialogue({action:'answer',purpose:'question',targetIdentityId:null,expression:'neutral',maxSentences:2,delivery:'normal',memoryIds:[]},{})).rejects.toMatchObject({code:'invalid_output'});});
 
 it('AI12 deadline rejects logically but serialized physical request remains occupied until done',async()=>{let calls=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});const provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async(_url,options)=>{calls++;if(calls===1)await gate;const body=JSON.parse(options!.body as string),id=JSON.parse(body.messages[1].content).event.id;return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({target:'character',act:'greeting',strength:0,hostility:0,goal_relation:'unrelated',uncertain:false,evidence_refs:[id]})}}),{headers:{'content-type':'application/json'}});},{deadlinesMs:{appraise:10,dialogue:10,solve:10}});const first=provider.appraise({id:randomUUID(),identityId:randomUUID(),text:'합성'},{ });await expect(first).rejects.toMatchObject({code:'provider_timeout'});const second=provider.appraise({id:randomUUID(),identityId:randomUUID(),text:'합성'},{});await new Promise(resolve=>setTimeout(resolve,5));expect(calls).toBe(1);await expect(provider.unloadOwnedModel()).rejects.toMatchObject({code:'physical_call_unconfirmed'});release();expect((await second).act).toBe('greeting');expect(calls).toBe(2);});
+it.each(['dialogue','generateTurn'] as const)('AI12 %s accepts a completed local reply after the old 20-second deadline',async method=>{
+  vi.useFakeTimers();
+  try{
+    const provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async()=>{
+      await new Promise(resolve=>setTimeout(resolve,20080));
+      const output={sentences:['응, 그렇구나.'],...(method==='generateTurn'?{recommendations:[]}: {})};
+      return new Response(JSON.stringify({done:true,message:{content:JSON.stringify(output)}})+'\n',{headers:{'content-type':'application/x-ndjson'}});
+    });
+    let settled=false;
+    const result=provider[method](oldStylePlan,{}).finally(()=>{settled=true;});
+    await vi.advanceTimersByTimeAsync(20000);expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(80);
+    const reply=await result;
+    expect(Array.isArray(reply)?reply:reply.sentences).toEqual(['응, 그렇구나.']);
+  }finally{vi.useRealTimers();}
+});
+it('AI12 a local turn still times out at 60 seconds and waits for physical completion',async()=>{
+  vi.useFakeTimers();
+  try{
+    const calls:Record<string,unknown>[]=[],provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async()=>{
+      await new Promise(resolve=>setTimeout(resolve,61000));
+      return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({sentences:['응, 그렇구나.'],recommendations:[]})}})+'\n',{headers:{'content-type':'application/x-ndjson'}});
+    },{onCall:call=>calls.push(call)});
+    let error:unknown;
+    const result=provider.generateTurn(oldStylePlan,{}).catch(e=>{error=e;});
+    await vi.advanceTimersByTimeAsync(59999);expect(error).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);await result;
+    expect(error).toMatchObject({code:'provider_timeout'});expect(provider.readiness().status).toBe('busy');expect(calls).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(calls).toHaveLength(1);expect(calls[0]).toMatchObject({physicalCompleted:true,deadlineExceeded:true});
+    expect(provider.readiness().status).not.toBe('busy');
+  }finally{vi.useRealTimers();}
+});
 it('AI12 unconfirmed transport failure fences later model calls rather than release GPU ownership',async()=>{let calls=0;const provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async()=>{calls++;throw new Error('synthetic transport lost');});await expect(provider.appraise({id:randomUUID(),identityId:randomUUID(),text:'합성'},{})).rejects.toMatchObject({code:'provider_unavailable'});await expect(provider.appraise({id:randomUUID(),identityId:randomUUID(),text:'합성'},{})).rejects.toMatchObject({code:'physical_call_unconfirmed'});expect(calls).toBe(1);});
 
 it('AI01 appraisal-v2 supplies conversation roles without coercing quoted target',async()=>{const id=randomUUID(),identityId=randomUUID();let body:any;const provider=new OllamaProvider('qwen2.5:7b',counter,undefined,async(_url,options)=>{body=JSON.parse(options!.body as string);return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({target:'quoted',act:'praise',strength:3,hostility:0,goal_relation:'unrelated',uncertain:false,evidence_refs:[id]})}}),{headers:{'content-type':'application/json'}});});const result=await provider.appraise({id,identityId,text:'그 사람은 "네 풀이가 정말 좋았어"라고 말했어.'},{});expect(result.target).toBe('quoted');expect(provider.appraisalPromptVersion).toBe('appraisal-v2');expect(JSON.parse(body.messages[1].content).conversation).toEqual({speaker:'user',speakerIdentityId:identityId,addressee:'character'});expect(body.messages[0].content).toContain('quoted=인용된 말');});
