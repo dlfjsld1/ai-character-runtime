@@ -35,11 +35,13 @@ it('sends the explicit key, no sampling or thinking fields, explicit effort and 
   expect(sent).toMatchObject({model:'claude-sonnet-5-5',max_tokens:4096,output_config:{effort:'low',format:{type:'json_schema'}}});
   expect(sent.messages[0].role).toBe('user');expect(typeof sent.system).toBe('string');
   expect(JSON.stringify(sent.output_config.format.schema)).not.toMatch(/"(minLength|maxLength|minItems|maxItems|minimum|maximum|\$schema)"/);
+  // The one-sentence-per-item pattern reaches the model.
+  expect(sent.output_config.format.schema.properties.sentences.items.pattern).toEqual(expect.any(String));
   expect(ledger(path).entries).toEqual([expect.objectContaining({status:'completed',model:'claude-sonnet-5-5',usd:claudeUsageUsd('claude-sonnet-5-5',usage)})]);
 });
 it('the wire schema keeps structure, forces closed objects and rejects open maps',()=>{
-  const schema=claudeOutputSchema({$schema:'x',type:'object',properties:{a:{type:'string',minLength:1,format:'uuid'},b:{type:'array',items:{type:'object',properties:{c:{type:'integer',minimum:0}}},maxItems:2}},required:['a','b']});
-  expect(schema).toEqual({type:'object',properties:{a:{type:'string',format:'uuid'},b:{type:'array',items:{type:'object',properties:{c:{type:'integer'}},additionalProperties:false}}},required:['a','b'],additionalProperties:false});
+  const schema=claudeOutputSchema({$schema:'x',type:'object',properties:{a:{type:'string',minLength:1,format:'uuid',pattern:'^가'},b:{type:'array',items:{type:'object',properties:{c:{type:'integer',minimum:0}}},maxItems:2}},required:['a','b']});
+  expect(schema).toEqual({type:'object',properties:{a:{type:'string',format:'uuid',pattern:'^가'},b:{type:'array',items:{type:'object',properties:{c:{type:'integer'}},additionalProperties:false}}},required:['a','b'],additionalProperties:false});
   expect(()=>claudeOutputSchema({type:'object',additionalProperties:{type:'string'}})).toThrow();
 });
 it.each([

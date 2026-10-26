@@ -17,8 +17,10 @@ export type ClaudeOptions={localOnly:boolean;allowPaidProviders:boolean;apiKey:s
 
 // Structured outputs accept a JSON Schema subset. Drop the unsupported
 // constraints from the wire copy only; the existing host validators still
-// check every one of them after decoding.
-const unsupported=new Set(['$schema','minimum','maximum','exclusiveMinimum','exclusiveMaximum','multipleOf','minLength','maxLength','pattern','minItems','maxItems','uniqueItems','default','title']);
+// check every one of them after decoding. `pattern` is kept: the API accepted
+// the dialogue one-sentence pattern (checked live 2026-10-26), and without it
+// the model merged two sentences into one item.
+const unsupported=new Set(['$schema','minimum','maximum','exclusiveMinimum','exclusiveMaximum','multipleOf','minLength','maxLength','minItems','maxItems','uniqueItems','default','title']);
 const formats=new Set(['date-time','time','date','duration','email','hostname','uri','ipv4','ipv6','uuid']);
 export function claudeOutputSchema(schema:unknown):Record<string,unknown>{
   const walk=(node:unknown):unknown=>{
