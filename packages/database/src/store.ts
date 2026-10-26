@@ -122,6 +122,15 @@ export class Store {
       actors:[{id:e.identity_id,label:String(label).slice(0,80)||'사용자'},{id:this.characterId,label:characterName}],experience:{status:episodes.length?'found':'empty',revision:'1',truncated},
       currentAffect:projectEventAffect(records,now).levels,stateSourceRefs:records.map(r=>({sourceId:r.eventId,revision:r.eventRevision}))};
   }
+  // Thinking cues of a config version (body.thinkingCues); none means no cue.
+  async thinkingCues(configVersion:bigint|string):Promise<string[]>{
+    const cues=(await this.db.pool.query("SELECT body->'thinkingCues' AS cues FROM character_configs WHERE character_id=$1 AND version=$2",[this.characterId,String(configVersion)])).rows[0]?.cues;
+    return Array.isArray(cues)?cues.filter((c:unknown):c is string=>typeof c==='string'&&!!c.trim()&&[...c].length<=20):[];
+  }
+  // A withholding silence toward this person within the ten-minute incident window.
+  async recentlyWithheld(identityId:string,now:number){
+    return (await this.state()).body.turn.recentSilences.some(r=>r.identityId===identityId&&r.reason==='withholding'&&now-r.at<=600000);
+  }
   // Whether the turn right before this input is a delivered reply that asked
   // which past action was meant (a silent or failed reply in between ends it).
   private async askedReference(c:Pick<Client,'query'>,turns:ConversationSnapshot['turns'],currentId:string){
@@ -130,7 +139,7 @@ export class Store {
   }
   private async applyEventAffect(c:Client,s:VersionedState,e:Row,body:State,now:number,attempt:EventAffectAttempt|undefined,socialCategory:string|null):Promise<{body:State;effect?:object;unresolvedReference?:true}>{
     if(!attempt)return {body};
-    const base={promptVersion:attempt.promptVersion,latencyMs:attempt.latencyMs};
+    const base={promptVersion:attempt.promptVersion,latencyMs:attempt.latencyMs,...(attempt.result.status==='interpreted'&&attempt.result.outcomeSource?{outcomeSource:attempt.result.outcomeSource}:{})};
     if(attempt.result.status!=='interpreted'||!attempt.request)return {body,effect:{...base,status:'unavailable',reason:attempt.result.status==='unavailable'?attempt.result.reason:'invalid_input'}};
     const request=attempt.request;
     const refs=(list:{sourceId:string;revision:string}[])=>JSON.stringify(list.map(r=>r.sourceId+':'+r.revision).sort());

@@ -57,11 +57,14 @@ function Studio({onError,error}:{onError:(s:string)=>void;error:string}) {
 function Stage({onError,error}:{onError:(s:string)=>void;error:string}) {
   const[caption,setCaption]=useState(''),[status,setStatus]=useState('연결 중'),[expression,setExpression]=useState('neutral'),[citations,setCitations]=useState<KnowledgeCitation[]>([]);
   const wire=useRef<Wire|null>(null),epoch=useRef('0'),generation=useRef('0'),owner=useRef(false),cancelled=useRef(new Set<string>()),queue=useRef<any[]>([]),running=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null),playbackVersion=useRef(0),activeSegment=useRef<any>(null);
+  // A thinking cue is display only: no ACK, never queued, cleared by any real output.
+  const cue=useRef<{eventId:string;timer:ReturnType<typeof setTimeout>}|null>(null);
+  function clearCue(eventId?:string){if(!cue.current||(eventId&&cue.current.eventId!==eventId))return;clearTimeout(cue.current.timer);cue.current=null;if(!running.current)setCaption('');}
   const performances=useRef(new Map<string,{expression:string;generationEpoch:string;outputEpoch:string;finished:number;segmentCount?:number;citations:KnowledgeCitation[]}>());
   const currentOutput=(p:any)=>owner.current&&p.outputEpoch===epoch.current&&p.generationEpoch===generation.current&&!cancelled.current.has(p.responseId);
   function forgetFinished(responseId:string){const performance=performances.current.get(responseId);if(performance?.segmentCount!==undefined&&performance.finished>=performance.segmentCount){performances.current.delete(responseId);cancelled.current.add(responseId);}}
   function stopPlayback(){playbackVersion.current++;if(timer.current)clearTimeout(timer.current);timer.current=null;running.current=false;activeSegment.current=null;setCaption('');setExpression('neutral');setCitations([]);}
-  function clear(){owner.current=false;queue.current=[];performances.current.clear();cancelled.current.clear();stopPlayback();}
+  function clear(){clearCue();owner.current=false;queue.current=[];performances.current.clear();cancelled.current.clear();stopPlayback();}
   function syncGeneration(value:string){if(BigInt(value)<=BigInt(generation.current))return;generation.current=value;queue.current=queue.current.filter(s=>BigInt(s.generationEpoch)>=BigInt(value));for(const [id,p] of performances.current)if(BigInt(p.generationEpoch)<BigInt(value)){performances.current.delete(id);cancelled.current.add(id);}if(activeSegment.current&&BigInt(activeSegment.current.generationEpoch)<BigInt(value))stopPlayback();void renderNext();}
   async function renderNext(){if(running.current||!owner.current)return;const segment=queue.current.shift();if(!segment)return;if(cancelled.current.has(segment.responseId)||segment.outputEpoch!==epoch.current||segment.generationEpoch!==generation.current)return void renderNext();running.current=true;setCaption(segment.text);
     const performance=performances.current.get(segment.responseId);setCitations(performance&&performance.generationEpoch===segment.generationEpoch&&performance.outputEpoch===segment.outputEpoch?performance.citations:[]);setExpression(performance&&performance.generationEpoch===segment.generationEpoch&&performance.outputEpoch===segment.outputEpoch?performance.expression:'neutral');
@@ -76,6 +79,9 @@ function Stage({onError,error}:{onError:(s:string)=>void;error:string}) {
     if(packet.type==='output.granted'){clear();owner.current=true;epoch.current=p.outputEpoch;generation.current=p.generationEpoch;setStatus('자막 출력 중');}
     if(packet.type==='response.start'&&currentOutput(p)&&!performances.current.has(p.responseId))performances.current.set(p.responseId,{expression:['neutral','listening','happy','embarrassed','uncomfortable'].includes(p.expression)?p.expression:'neutral',generationEpoch:p.generationEpoch,outputEpoch:p.outputEpoch,finished:0,citations:p.knowledge?.citations??[]});
     if(packet.type==='response.sealed'&&currentOutput(p)){const performance=performances.current.get(p.responseId);if(performance){performance.segmentCount=p.segmentCount;forgetFinished(p.responseId);}}
+    if(['response.start','speech.segment','response.cancel'].includes(packet.type))clearCue();
+    if(packet.type==='character.thinking.end')clearCue(p.eventId);
+    if(packet.type==='character.thinking'&&owner.current&&p.outputEpoch===epoch.current&&!running.current&&!queue.current.length){clearCue();setCaption(p.text);cue.current={eventId:p.eventId,timer:setTimeout(()=>clearCue(p.eventId),15000)};}
     if(packet.type==='speech.segment'&&owner.current&&!cancelled.current.has(p.responseId)){queue.current.push(p);void renderNext();}
     if(packet.type==='response.cancel'){cancelled.current.add(p.responseId);performances.current.delete(p.responseId);queue.current=queue.current.filter(s=>s.responseId!==p.responseId);if(activeSegment.current?.responseId===p.responseId)stopPlayback();if(p.newGenerationEpoch)syncGeneration(p.newGenerationEpoch);void renderNext();}
     if(packet.type==='output.revoke'){clear();channel.send('output.released',{outputEpoch:p.outputEpoch,stopRequestId:p.stopRequestId},crypto.randomUUID());setStatus('출력 해제됨');}

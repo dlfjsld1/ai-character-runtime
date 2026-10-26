@@ -3,7 +3,8 @@ import type {LocalConfig} from '../../../packages/contracts/src/local-config.ts'
 import type {DialogueGenerator,ActivitySolver,AppraisalProvider,AppraisalEvidenceVerifier,EventInterpreter} from '../../../packages/contracts/src/ai-ports.ts';
 import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/ollama.ts';
 import {JevConversationCandidate} from '../../../packages/adapters/src/jev.ts';
-import {DailyCallCap} from '../../../packages/adapters/src/daily-call-cap.ts';
+import {DailyCallCap,countDailyCall} from '../../../packages/adapters/src/daily-call-cap.ts';
+import {JevOutcomeProbe} from '../../../packages/adapters/src/jev-outcome.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
 import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
@@ -83,7 +84,9 @@ function interpreter(config:LocalConfig):EventInterpreter|undefined{
   return chosen&&config.EVENT_INTERPRETER_CAPTURE_PATH?capturingInterpreter(chosen,config.EVENT_INTERPRETER_CAPTURE_PATH):chosen;
 }
 function selectInterpreter(config:LocalConfig):EventInterpreter|undefined{
-  if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT,config.CLAUDE_INTERPRETER_THINKING));
+  // Jev-first calls share the daily appraisal allowance with the social appraisal.
+  const jevFirst=config.EVENT_OUTCOME_FIRST==='jev'?new JevOutcomeProbe(config.TYPESAFE_API_KEY,()=>{if(config.APPRAISAL_DAILY_MAX_CALLS>0)countDailyCall(config.APPRAISAL_CALL_COUNT_PATH,config.APPRAISAL_DAILY_MAX_CALLS);}):undefined;
+  if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT,config.CLAUDE_INTERPRETER_THINKING),jevFirst);
   if(config.EVENT_INTERPRETER==='deepseek'&&!deepseekConfigured(config))throw new RuntimeError('unsupported_provider_configuration',400);
   return config.EVENT_INTERPRETER!=='none'&&deepseekConfigured(config)?deepseekInterpreter(config):undefined;
 }

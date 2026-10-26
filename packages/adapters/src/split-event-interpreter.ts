@@ -4,7 +4,7 @@ import type {EventInterpreter} from '../../contracts/src/ai-ports.ts';
 import {validateAffectRequest,validateEventInterpretation,type EventInterpretationRequest,type EventInterpretation,type EventInterpretationResult,type AffectQuote} from '../../contracts/src/affect-appraisal.ts';
 
 export const SPLIT_EVENT_INTERPRETER_VERSION='split-event-interpretation-v1';
-type OutcomeReading={outcome:EventInterpretation['outcome'];unresolvedReference:AffectQuote|null};
+type OutcomeReading={outcome:EventInterpretation['outcome'];unresolvedReference:AffectQuote|null;source?:string};
 type OutcomeResolver=(request:EventInterpretationRequest)=>Promise<EventInterpretation['outcome']|OutcomeReading>;
 const isReading=(value:unknown):value is OutcomeReading=>!!value&&typeof value==='object'&&'unresolvedReference' in value;
 type AppraisalResolver=(request:EventInterpretationRequest,outcome:EventInterpretation['outcome'])=>Promise<EventInterpretation>;
@@ -28,14 +28,14 @@ export class SplitEventInterpreter implements EventInterpreter{
       const current=snapshot.sources.find(s=>s.id===snapshot.eventId)!;
       if(fixed!==null||reference.sourceId!==current.id||reference.revision!==current.revision||!current.text.includes(reference.quote))return unavailable('invalid_output');
       // Which past action is meant is unknown: ask first, appraise nothing yet.
-      return {status:'interpreted',interpretation:{status:'uncertain',outcome:null,appraisals:[]},promptVersion:this.promptVersion,unresolvedReference:structuredClone(reference)};
+      return {status:'interpreted',interpretation:{status:'uncertain',outcome:null,appraisals:[]},promptVersion:this.promptVersion,unresolvedReference:structuredClone(reference),...(reading.source?{outcomeSource:reading.source}:{})};
     }
     let raw:EventInterpretation;
     try{raw=await this.resolveAppraisal(structuredClone(snapshot),structuredClone(fixed));}catch(error){return failed(error);}
     try{
       const interpretation=validateEventInterpretation(raw,snapshot);
       if(!isDeepStrictEqual(interpretation.outcome,fixed))return unavailable('invalid_output');
-      return {status:'interpreted',interpretation,promptVersion:this.promptVersion};
+      return {status:'interpreted',interpretation,promptVersion:this.promptVersion,...(reading.source?{outcomeSource:reading.source}:{})};
     }catch{return unavailable('invalid_output');}
   }
 }

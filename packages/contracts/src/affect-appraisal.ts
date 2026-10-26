@@ -56,7 +56,8 @@ export type EventInterpretationRequest=z.infer<typeof eventInterpretationRequest
 export type EventInterpretationResult=
   // unresolvedReference: the current input refers to one of my past actions
   // that no single provided episode matches; the character asks which one.
-  | {status:'interpreted';interpretation:EventInterpretation;promptVersion:string;unresolvedReference?:AffectQuote}
+  // outcomeSource: which provider decided the first (outcome) stage, when recorded.
+  | {status:'interpreted';interpretation:EventInterpretation;promptVersion:string;unresolvedReference?:AffectQuote;outcomeSource?:string}
   | {status:'unavailable';reason:'invalid_input'|'invalid_output'|'transport_failed';promptVersion:string};
 
 export function sameAffectScope(a:z.infer<typeof affectScopeSchema>,b:z.infer<typeof affectScopeSchema>){return a.ownerId===b.ownerId&&a.characterId===b.characterId;}

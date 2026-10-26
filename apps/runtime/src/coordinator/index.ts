@@ -7,6 +7,7 @@ import type {DialogueGenerator,ActivitySolver,AppraisalProvider,EventInterpreter
 import type {EventAffectAttempt} from '../../../../packages/database/src/store.ts';
 import { appraisalEvaluationSchema,type AppraisalMetadata } from '../../../../packages/contracts/src/appraisal.ts';
 import {budgetAppraisalConversation} from '../../../../packages/contracts/src/conversation.ts';
+import {THINKING_CUE_DELAY_MS,thinkingCueAllowed,pickThinkingCue} from './thinking-cue.ts';
 import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
 export type OutputOwner={clientId:string;outputEpoch:bigint};
 export interface Sink {
@@ -27,9 +28,11 @@ export class Coordinator {
   private timer:ReturnType<typeof setInterval>|null=null;
   private dispatching=0;
   private ticking=0;
+  private cues=new Map<string,{timer:ReturnType<typeof setTimeout>;shown:boolean}>();
+  private lastCue:string|null=null;
   constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever,public interpreter?:EventInterpreter){}
   start(){this.timer=setInterval(()=>{void this.tick().catch(()=>this.sink.failure('db_unavailable'));},1000);}
-  async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
+  async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);for(const cue of this.cues.values())clearTimeout(cue.timer);this.cues.clear();while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
   control<T>(fn:()=>Promise<T>):Promise<T>{const result=this.queue.then(fn,fn);this.queue=result.catch(()=>{});return result;}
   async tick(){if(this.stopped||!this.store.db.healthy)return;
     this.ticking++;try{
@@ -67,12 +70,13 @@ export class Coordinator {
       let metadata:AppraisalMetadata={provider:this.appraiser.name,model:this.appraiser.model,promptVersion:this.appraiser.promptVersion};
       try{const readiness=this.appraiser.readiness();if(readiness.status==='blocked'||readiness.status==='unavailable')throw new RuntimeError(readiness.errorCode??'appraisal_unavailable',503);request.conversation=budgetAppraisalConversation(request.conversation);request.conversationContext.history=request.conversation;const activity=await this.store.activity();const result=appraisalEvaluationSchema.parse(await this.appraiser.evaluate({id:request.event.id,text:request.event.payload.text,identityId:request.event.identity_id,revision:String(request.revision)},{activity:activity?{prompt:activity.public_prompt,status:activity.status}:null,recentPraise:request.praiseSnapshot.context,conversation:request.conversation,conversationContext:request.conversationContext}));appraisal=result.appraisal;metadata=result.metadata;}
       catch(e){failureCode=e instanceof RuntimeError?e.code:'invalid_output';this.sink.failure(failureCode);}
+      await this.armThinkingCue(request,appraisal,metadata,!!failureCode).catch(()=>{});
       const activity=await this.store.activity();const dialogueReady=this.provider.readiness?.();
       const memories=dialogueReady?.status==='blocked'||dialogueReady?.status==='unavailable'?[]:await this.memoryBudget(request.event.identity_id,activity?.id);
       if(this.stopped)break;
       const affect=await eventAffect;if(this.stopped)break;
       const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id),affect));
-      this.sink.inputStatus(selected.id,result.status==='stale'?'expired':'observed');await this.sink.changed();if(result.response){void this.dispatch(result.response.id);break;}
+      this.sink.inputStatus(selected.id,result.status==='stale'?'expired':'observed');await this.sink.changed();if(result.response){void this.dispatch(result.response.id,selected.id);break;}this.endThinkingCue(selected.id);
     }}finally{this.draining=false;}
   }
   private async interpretAffect(request:NonNullable<Awaited<ReturnType<Store['select']>>>):Promise<EventAffectAttempt|undefined>{
@@ -84,12 +88,28 @@ export class Coordinator {
       return {request:built,result,promptVersion,latencyMs:Math.round(performance.now()-started)};
     }catch{return {request:null,result:{status:'unavailable',reason:'transport_failed',promptVersion},promptVersion,latencyMs:0};}
   }
+  // Show a thinking cue if the reply has not started 4 s after the input arrived.
+  private async armThinkingCue(request:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:typeof neutralAppraisal,metadata:AppraisalMetadata,failed:boolean){
+    const e=request.event,now=this.store.clock();
+    if(this.cues.has(e.id)||!thinkingCueAllowed(appraisal,metadata,failed,await this.store.recentlyWithheld(e.identity_id,now)))return;
+    const cues=await this.store.thinkingCues(request.configVersion);if(!cues.length)return;
+    const delay=Math.max(0,new Date(e.received_at).getTime()+THINKING_CUE_DELAY_MS-now);
+    const timer=setTimeout(()=>{const entry=this.cues.get(e.id),owner=this.sink.owner();if(!entry||!owner||this.stopped)return;
+      const text=pickThinkingCue(cues,this.lastCue);if(!text)return;this.lastCue=text;entry.shown=true;
+      this.sink.sendOwner('character.thinking',{eventId:e.id,text,outputEpoch:owner.outputEpoch.toString()});},delay);
+    this.cues.set(e.id,{timer,shown:false});
+  }
+  private endThinkingCue(eventId:string|undefined,notify=true){
+    if(!eventId)return;const entry=this.cues.get(eventId);if(!entry)return;
+    clearTimeout(entry.timer);this.cues.delete(eventId);
+    if(entry.shown&&notify)this.sink.sendOwner('character.thinking.end',{eventId});
+  }
   async memoryBudget(identityId?:string,activityId?:string){const rows=await this.store.memories(identityId,activityId);const result:any[]=[];const seen=new Set<string>();let tokens=0;
     const labels=await this.store.dialogueIdentities(rows.flatMap(m=>[...(m.participants??[]),m.facts?.identityId]));
     for(const memory of rows){if(memory.activity_run_id&&seen.has(memory.activity_run_id))continue;let count:number;try{const ids=[...(memory.participants??[]),memory.facts?.identityId];count=await this.provider.counter.countText(JSON.stringify({id:memory.id,content:memory.content,facts:memory.facts,participants:memory.participants,identities:labels.filter(label=>ids.includes(label.id))}));}catch{break;}if(tokens+count>600)continue;tokens+=count;result.push(memory);if(memory.activity_run_id)seen.add(memory.activity_run_id);if(result.length===5)break;}return result;
   }
-  async dispatch(id:string){if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
-    this.dispatching++;
+  async dispatch(id:string,cueEventId?:string){if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return this.endThinkingCue(cueEventId);
+    this.dispatching++;let started=false;
     try{const initial=await this.store.responseContext(id);if(initial.response.status!=='planned'||!initial.response.plan)return;
       const fit=await this.provider.fitConversation(initial.response.plan as Plan,initial.context);if(this.stopped||this.blockedOutputs.has(id)||!this.store.db.healthy)return;
       const prepared=await this.control(()=>this.store.fitResponseConversation(id,fit.conversation));if(!prepared)return;
@@ -103,10 +123,12 @@ export class Coordinator {
       const common={responseId:id,generationEpoch:generated.response.generation_epoch,outputEpoch:generated.outputEpoch.toString()};
       // The transaction above committed every segment before the first send.
       if(this.blockedOutputs.has(id)||this.stopped)return;
+      // The real reply replaces the cue on Stage.
+      this.endThinkingCue(cueEventId,false);started=true;
       this.sink.sendOwner('response.start',{...common,expression:stageExpression(response.plan),intensity:1,...(generated.knowledge?{knowledge:generated.knowledge}:{})});
       for(const segment of generated.segments)this.sink.sendOwner('speech.segment',{...common,segmentId:segment.id,segmentIndex:segment.index,text:segment.text,modality:'text'});
       this.sink.sendOwner('response.sealed',{...common,segmentCount:generated.segments.length});await this.sink.changed();
-    }catch(e){const code=e instanceof RuntimeError?e.code:'invalid_output';await this.store.failResponse(id,code).catch(()=>{});this.sink.failure(code);await this.sink.changed();}finally{this.dispatching--;}
+    }catch(e){const code=e instanceof RuntimeError?e.code:'invalid_output';await this.store.failResponse(id,code).catch(()=>{});this.sink.failure(code);await this.sink.changed();}finally{this.dispatching--;if(!started)this.endThinkingCue(cueEventId);}
   }
   // This process-wide output barrier is raised before awaiting any DB operation.
   barrier(responseId:string,reason:string,generationEpoch=0n,advanceEpoch=true){this.blockedOutputs.add(responseId);this.sink.sendOwner('response.cancel',{responseId,reason,invalidatedGenerationEpoch:generationEpoch.toString(),newGenerationEpoch:(generationEpoch+(advanceEpoch?1n:0n)).toString(),outputEpoch:(this.sink.owner()?.outputEpoch??0n).toString()});}

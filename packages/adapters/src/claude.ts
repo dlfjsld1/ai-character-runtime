@@ -9,6 +9,7 @@ import {buildAnnotatedDialogueRequest,decodeAnnotatedDialogueOutput} from './rec
 import {prepareOutcomeReferenceProbe,type OutcomeReading} from './outcome-probe.ts';
 import {prepareAppraisalProbe} from './appraisal-probe.ts';
 import {ClaudeBudget,claudeInputBound,claudeInputBoundLimit,isClaudeModel,type ClaudeModel} from './claude-budget.ts';
+import type {JevOutcomeProbe} from './jev-outcome.ts';
 
 type StructuredRequest={messages:Message[];format?:object;schema?:object};
 export type ClaudeEffort='low'|'medium'|'high';
@@ -154,8 +155,14 @@ export class ClaudeAppraisalProbe extends ClaudeChat {
 }
 // The same two-stage interpretation as DeepSeek, with the same prompts. With
 // no eligible episode only the appraisal stage is billed.
-export function createClaudeEventInterpreter(options:ClaudeOptions):EventInterpreter{
+// With jevFirst, Jev decides the outcome stage when confident; ambiguity, low
+// confidence or any Jev failure falls back to the Claude outcome probe.
+export function createClaudeEventInterpreter(options:ClaudeOptions,jevFirst?:JevOutcomeProbe):EventInterpreter{
   return new SplitEventInterpreter(
-    async request=>eligibleAffectEpisodes(request).length?new ClaudeOutcomeReferenceProbe(options).probe(request):null,
+    async request=>{
+      if(!eligibleAffectEpisodes(request).length)return null;
+      if(jevFirst){const decision=await jevFirst.decide(request);if(decision.accepted)return {outcome:decision.outcome,unresolvedReference:null,source:'jev'};}
+      return {...await new ClaudeOutcomeReferenceProbe(options).probe(request),source:'claude'};
+    },
     (request,outcome)=>new ClaudeAppraisalProbe(options).probe(request,outcome));
 }

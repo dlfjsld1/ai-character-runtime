@@ -146,3 +146,15 @@ it('the diagnostic capture appends request and result and returns the result unc
   expect(await wrapped.interpret(input)).toBe(result);
   expect(JSON.parse(readFileSync(file,'utf8').trim())).toMatchObject({request:{eventId:input.eventId},result});
 });
+it('with Jev first, a confident Jev outcome skips the Claude outcome call; a fallback uses it; the source is recorded',async()=>{
+  const {JevOutcomeProbe}=await import('./jev-outcome.ts'),{affectSource,affectNow}=await import('../../../evals/affect-fixture.ts');
+  const input=affectRequest();input.experience.status='found';input.sources.push(affectSource(20,'episode','단계별 목록으로 나눠 봐.',affectNow-1000));
+  const jevReply=(ref:string)=>async()=>Response.json({model:'jev-1.13.0',answers:Object.fromEntries([['action_ref',ref],['action_use','used'],['action_result','favorable']].map(([k,v])=>[k,{type:'choice',choice:v,confidence:.95,probabilities:{[v]:.95}}])),usage:{input_tokens:1,output_tokens:1}});
+  const claudeFor=()=>setup(async(_u,init)=>{const body=JSON.parse(String(init.body)),view=JSON.parse(body.messages.at(-1).content);
+    if(body.output_config.format.schema.properties.unresolvedReference)return reply(JSON.stringify({outcome:null,unresolvedReference:null}));
+    const {outcome:_o,...raw}=authoredReferenceReply(view.input);return reply(JSON.stringify(raw));});
+  const decided=claudeFor(),viaJev=await createClaudeEventInterpreter(decided.options,new JevOutcomeProbe('k',()=>{},jevReply('a0') as any)).interpret(input);
+  expect(viaJev).toMatchObject({status:'interpreted',outcomeSource:'jev'});expect(decided.fetch).toHaveBeenCalledTimes(1);
+  const fallback=claudeFor(),viaClaude=await createClaudeEventInterpreter(fallback.options,new JevOutcomeProbe('k',()=>{},jevReply('ambiguous') as any)).interpret(input);
+  expect(viaClaude).toMatchObject({status:'interpreted',outcomeSource:'claude'});expect(fallback.fetch).toHaveBeenCalledTimes(2);
+});
