@@ -8,6 +8,10 @@ import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evid
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
 import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
 import {DeepSeekBudget} from '../../../packages/adapters/src/deepseek-budget.ts';
+import {readFileSync} from 'node:fs';
+import {parseEnv} from 'node:util';
+import {ClaudeDialogue,createClaudeEventInterpreter,type ClaudeOptions} from '../../../packages/adapters/src/claude.ts';
+import {ClaudeBudget} from '../../../packages/adapters/src/claude-budget.ts';
 import {OpenAIInteractionV3Candidate,interactionV3EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v3.ts';
 import {OpenAIInteractionV4Candidate,interactionV4EvidenceVerifier} from '../../../packages/adapters/src/openai-interaction-v4.ts';
 
@@ -32,7 +36,8 @@ const registeredProviders:ProviderRegistry={
   },openai:config=>{
     if(config.DIALOGUE_MODEL!=='gpt-6-sol')throw new RuntimeError('unsupported_provider_configuration',400);
     return {dialogue:new OpenAIDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DIALOGUE_API_KEY,budget:openaiBudget(config)})};
-  },deepseek:config=>{
+  },claude:config=>({dialogue:new ClaudeDialogue(claudeOptions(config,config.DIALOGUE_MODEL,config.CLAUDE_DIALOGUE_EFFORT))}),
+  deepseek:config=>{
     if(config.DIALOGUE_MODEL!=='deepseek-flash')throw new RuntimeError('unsupported_provider_configuration',400);
     return {dialogue:new DeepSeekDialogue({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION,'daily')})};
   }},
@@ -54,9 +59,25 @@ const registeredProviders:ProviderRegistry={
 // independently of the dialogue provider. Local-only setups never call it.
 export function deepseekConfigured(config:LocalConfig){return !config.LOCAL_ONLY&&config.ALLOW_PAID_PROVIDERS&&!!config.DEEPSEEK_API_KEY&&config.DEEPSEEK_BUDGET_USD>0&&!!config.DEEPSEEK_BUDGET_PATH&&config.DEEPSEEK_MAX_CALLS>0&&!!config.DEEPSEEK_BUDGET_AUTHORIZATION;}
 function deepseekInterpreter(config:LocalConfig){return createDeepSeekEventInterpreter({localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:config.DEEPSEEK_API_KEY,budget:new DeepSeekBudget(config.DEEPSEEK_BUDGET_PATH,config.DEEPSEEK_BUDGET_USD,config.DEEPSEEK_MAX_CALLS,config.DEEPSEEK_BUDGET_AUTHORIZATION,'daily'),...o2Timeouts(20000)});}
+// The key is read from its own file only; process environment keys and CLI
+// profiles are never used, so no other account can be billed.
+export function claudeKey(config:Pick<LocalConfig,'CLAUDE_KEY_FILE'>){
+  let key:string|undefined;try{key=parseEnv(readFileSync(config.CLAUDE_KEY_FILE,'utf8')).ANTHROPIC_API_KEY?.trim();}catch{key=undefined;}
+  if(!key)throw new RuntimeError('claude_key_missing',400);return key;
+}
+// Dialogue and interpreter share one daily ledger and its lock.
+function claudeOptions(config:LocalConfig,model:string,effort:ClaudeOptions['effort']):ClaudeOptions{
+  return {localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:claudeKey(config),model,effort,
+    budget:new ClaudeBudget(config.CLAUDE_BUDGET_PATH,config.CLAUDE_BUDGET_USD,config.CLAUDE_MAX_CALLS,config.CLAUDE_BUDGET_AUTHORIZATION),physicalTimeoutMs:60000};
+}
+function interpreter(config:LocalConfig):EventInterpreter|undefined{
+  if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT));
+  if(config.EVENT_INTERPRETER==='deepseek'&&!deepseekConfigured(config))throw new RuntimeError('unsupported_provider_configuration',400);
+  return config.EVENT_INTERPRETER!=='none'&&deepseekConfigured(config)?deepseekInterpreter(config):undefined;
+}
 export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv=process.env,registry:ProviderRegistry=registeredProviders):RuntimeProviders {
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
   const appraisal=registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment);
   if(config.APPRAISAL_DAILY_MAX_CALLS>0)appraisal.appraiser=new DailyCallCap(appraisal.appraiser,config.APPRAISAL_CALL_COUNT_PATH,config.APPRAISAL_DAILY_MAX_CALLS);
-  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...appraisal,...(deepseekConfigured(config)?{interpreter:deepseekInterpreter(config)}:{})};
+  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...appraisal,...((i=>i?{interpreter:i}:{})(interpreter(config)))};
 }
