@@ -12,7 +12,9 @@ import {ClaudeBudget,claudeInputBound,claudeInputBoundLimit,isClaudeModel,type C
 
 type StructuredRequest={messages:Message[];format?:object;schema?:object};
 export type ClaudeEffort='low'|'medium'|'high';
-export type ClaudeOptions={localOnly:boolean;allowPaidProviders:boolean;apiKey:string;model:string;effort:ClaudeEffort;budget:ClaudeBudget;
+// thinking 'off' trades depth for latency: Sonnet 5.5 uses between_tools, Haiku 5.5
+// disabled (both only at effort high or below); Opus 5.5 cannot turn it off.
+export type ClaudeOptions={localOnly:boolean;allowPaidProviders:boolean;apiKey:string;model:string;effort:ClaudeEffort;thinking?:'adaptive'|'off';budget:ClaudeBudget;
   fetcher?:typeof fetch;deadlineMs?:number;physicalTimeoutMs?:number;onCall?:(record:Record<string,unknown>)=>void;onResponse?:(record:{content:string|null;stopReason:string|null;model:string|null})=>void};
 
 // Structured outputs accept a JSON Schema subset. Drop the unsupported
@@ -39,13 +41,15 @@ export function claudeOutputSchema(schema:unknown):Record<string,unknown>{
   };
   return walk(schema) as Record<string,unknown>;
 }
-export function claudePayload(model:ClaudeModel,effort:ClaudeEffort,request:StructuredRequest,maxTokens:number){
+const thinkingOff={'claude-sonnet-5-5':{type:'between_tools' as const},'claude-haiku-5-5':{type:'disabled' as const}} as const;
+export function claudePayload(model:ClaudeModel,effort:ClaudeEffort,request:StructuredRequest,maxTokens:number,thinking:'adaptive'|'off'='adaptive'){
   const system=request.messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const messages=request.messages.filter(m=>m.role!=='system').map(m=>({role:m.role as 'user'|'assistant',content:m.content}));
   if(messages[0]?.role!=='user')throw new RuntimeError('claude_request_invalid',400);
-  // No sampling parameters (rejected since 2026-10-21) and no thinking field:
-  // both models run adaptive thinking; effort is the only depth control.
-  return {model,max_tokens:maxTokens,...(system?{system}:{}),messages,
+  // No sampling parameters (rejected since 2026-10-21). Without a thinking
+  // field the models run adaptive thinking; effort is the depth control.
+  if(thinking==='off'&&!(model in thinkingOff))throw new RuntimeError('unsupported_provider_configuration',400);
+  return {model,max_tokens:maxTokens,...(system?{system}:{}),messages,...(thinking==='off'?{thinking:thinkingOff[model as keyof typeof thinkingOff]}:{}),
     output_config:{effort,format:{type:'json_schema' as const,schema:claudeOutputSchema(request.format??request.schema)}}};
 }
 
@@ -60,6 +64,7 @@ class ClaudeChat {
     if(options.localOnly||!options.allowPaidProviders)throw new RuntimeError('paid_provider_disabled',400);
     const key=options.apiKey.trim();if(!key||/\s/.test(key))throw new RuntimeError('claude_key_missing',400);
     if(!isClaudeModel(options.model)||!this.allowed().includes(options.model))throw new RuntimeError('unsupported_provider_configuration',400);
+    if(options.thinking==='off'&&(options.model==='claude-opus-5-5'||!['low','medium','high'].includes(options.effort)))throw new RuntimeError('unsupported_provider_configuration',400);
     this.model=options.model;
     // An explicit key only: never fall back to environment keys or CLI
     // profiles that could bill another account. No SDK retries: one ledger
@@ -71,7 +76,7 @@ class ClaudeChat {
   async ready(){return this.readiness();}
   protected async request(request:StructuredRequest,maxTokens:number):Promise<string>{
     if(this.busy)throw new RuntimeError('physical_call_unconfirmed',503);
-    const body=claudePayload(this.model,this.options.effort,request,maxTokens),inputBound=claudeInputBound(body);
+    const body=claudePayload(this.model,this.options.effort,request,maxTokens,this.options.thinking),inputBound=claudeInputBound(body);
     if(inputBound>claudeInputBoundLimit)throw new RuntimeError('context_limit',503);
     const id=this.options.budget.reserve(this.model,inputBound,maxTokens);this.busy=true;
     let timer:ReturnType<typeof setTimeout>|undefined;

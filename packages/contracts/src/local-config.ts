@@ -59,6 +59,7 @@ export const configSchema = z.object({
   CLAUDE_DIALOGUE_EFFORT: z.enum(['low','medium','high']).default('low'),
   CLAUDE_INTERPRETER_MODEL: z.string().trim().default(''),
   CLAUDE_INTERPRETER_EFFORT: z.enum(['low','medium','high']).default('medium'),
+  CLAUDE_INTERPRETER_THINKING: z.enum(['adaptive','off']).default('adaptive'),
   // auto keeps the earlier rule: DeepSeek when it is fully configured.
   EVENT_INTERPRETER: z.enum(['auto','deepseek','claude','none']).default('auto'),
   APPRAISAL_DAILY_MAX_CALLS: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
@@ -87,6 +88,7 @@ export const configSchema = z.object({
   .refine(value => value.DIALOGUE_PROVIDER!=='openai'||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.DIALOGUE_MODEL==='gpt-6-sol'&&!!value.DIALOGUE_API_KEY&&value.DIALOGUE_BUDGET_USD>0&&!!value.DIALOGUE_BUDGET_PATH), 'OpenAI requires explicit paid permission, model, key and budget ledger')
   .refine(value => value.DIALOGUE_PROVIDER!=='claude'||(claudeReady(value)&&claudeModelIds.includes(value.DIALOGUE_MODEL)), 'Claude dialogue requires explicit permission, claude-opus-5-5 or claude-sonnet-5-5, a key file, daily budget and authorization')
   .refine(value => value.EVENT_INTERPRETER!=='claude'||(claudeReady(value)&&claudeModelIds.includes(value.CLAUDE_INTERPRETER_MODEL)), 'The Claude interpreter requires explicit permission, CLAUDE_INTERPRETER_MODEL claude-opus-5-5 or claude-sonnet-5-5, a key file, daily budget and authorization')
+  .refine(value => value.CLAUDE_INTERPRETER_THINKING!=='off'||value.CLAUDE_INTERPRETER_MODEL!=='claude-opus-5-5', 'Claude Opus 5.5 cannot turn thinking off')
   .refine(value => value.APPRAISAL_PROVIDER!=='jev'||value.APPRAISAL_MODEL==='jev-1.13.0', 'Jev requires APPRAISAL_MODEL=jev-1.13.0')
   .refine(value => value.APPRAISAL_DAILY_MAX_CALLS===0||!!value.APPRAISAL_CALL_COUNT_PATH, 'APPRAISAL_DAILY_MAX_CALLS requires APPRAISAL_CALL_COUNT_PATH')
   .refine(value => !['openai-decisions-v3','openai-decisions-v4','openai-decisions-v5'].includes(value.APPRAISAL_PROVIDER)||(!value.LOCAL_ONLY&&value.ALLOW_PAID_PROVIDERS&&value.APPRAISAL_MODEL==='gpt-6-luna'&&!!value.DIALOGUE_API_KEY&&value.DIALOGUE_BUDGET_USD>0&&!!value.DIALOGUE_BUDGET_PATH), 'Decisions v3/v4/v5 require explicit paid permission, gpt-6-luna, key and shared budget ledger')
@@ -117,6 +119,7 @@ export function parseConfig(environment: NodeJS.ProcessEnv): LocalConfig {
     CLAUDE_DIALOGUE_EFFORT: environment.CLAUDE_DIALOGUE_EFFORT,
     CLAUDE_INTERPRETER_MODEL: environment.CLAUDE_INTERPRETER_MODEL,
     CLAUDE_INTERPRETER_EFFORT: environment.CLAUDE_INTERPRETER_EFFORT,
+    CLAUDE_INTERPRETER_THINKING: environment.CLAUDE_INTERPRETER_THINKING,
     EVENT_INTERPRETER: environment.EVENT_INTERPRETER,
     APPRAISAL_DAILY_MAX_CALLS: environment.APPRAISAL_DAILY_MAX_CALLS,
     APPRAISAL_CALL_COUNT_PATH: environment.APPRAISAL_CALL_COUNT_PATH,

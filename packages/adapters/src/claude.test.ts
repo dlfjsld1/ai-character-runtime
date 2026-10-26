@@ -128,3 +128,13 @@ it('a changed daily cap applies to the existing ledger instead of invalidating i
   const small=new ClaudeBudget(path,1,5,'test');small.finish(small.reserve('claude-sonnet-5-5',5000,1000),usage);
   const larger=new ClaudeBudget(path,3,50,'test');expect(larger.availability()).toBeNull();expect(larger.summary()).toMatchObject({limitUsd:3,todayAttempts:1});
 });
+it('thinking off is sent per model and refused for Opus or above high effort',async()=>{
+  const bodies:any[]=[];const {options}=setup(async(_u,init)=>{bodies.push(JSON.parse(String(init.body)));return reply(JSON.stringify({content:'답한다.',sentences:['응.'],recommendations:[]}));});
+  await new ClaudeDialogue({...options,thinking:'off'}).generateTurn(plan(),{});expect(bodies[0].thinking).toEqual({type:'between_tools'});
+  expect(()=>new ClaudeDialogue({...options,model:'claude-opus-5-5',thinking:'off'})).toThrow();
+  expect(()=>new ClaudeAppraisalProbe({...options,model:'claude-haiku-5-5',thinking:'off'})).not.toThrow();
+  const {parseConfig}=await import('../../contracts/src/local-config.ts');
+  const base={LOCAL_ONLY:'false',ALLOW_PAID_PROVIDERS:'true',CLAUDE_KEY_FILE:'x.env',CLAUDE_BUDGET_USD:'1',CLAUDE_BUDGET_PATH:'l.json',CLAUDE_MAX_CALLS:'5',CLAUDE_BUDGET_AUTHORIZATION:'t',EVENT_INTERPRETER:'claude'};
+  expect(parseConfig({...base,CLAUDE_INTERPRETER_MODEL:'claude-sonnet-5-5',CLAUDE_INTERPRETER_THINKING:'off'}).CLAUDE_INTERPRETER_THINKING).toBe('off');
+  expect(()=>parseConfig({...base,CLAUDE_INTERPRETER_MODEL:'claude-opus-5-5',CLAUDE_INTERPRETER_THINKING:'off'})).toThrow();
+});

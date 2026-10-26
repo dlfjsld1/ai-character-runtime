@@ -66,12 +66,12 @@ export function claudeKey(config:Pick<LocalConfig,'CLAUDE_KEY_FILE'>){
   if(!key)throw new RuntimeError('claude_key_missing',400);return key;
 }
 // Dialogue and interpreter share one daily ledger and its lock.
-function claudeOptions(config:LocalConfig,model:string,effort:ClaudeOptions['effort']):ClaudeOptions{
-  return {localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:claudeKey(config),model,effort,
+function claudeOptions(config:LocalConfig,model:string,effort:ClaudeOptions['effort'],thinking:ClaudeOptions['thinking']='adaptive'):ClaudeOptions{
+  return {localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:claudeKey(config),model,effort,thinking,
     budget:new ClaudeBudget(config.CLAUDE_BUDGET_PATH,config.CLAUDE_BUDGET_USD,config.CLAUDE_MAX_CALLS,config.CLAUDE_BUDGET_AUTHORIZATION),physicalTimeoutMs:60000};
 }
 function interpreter(config:LocalConfig):EventInterpreter|undefined{
-  if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT));
+  if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT,config.CLAUDE_INTERPRETER_THINKING));
   if(config.EVENT_INTERPRETER==='deepseek'&&!deepseekConfigured(config))throw new RuntimeError('unsupported_provider_configuration',400);
   return config.EVENT_INTERPRETER!=='none'&&deepseekConfigured(config)?deepseekInterpreter(config):undefined;
 }

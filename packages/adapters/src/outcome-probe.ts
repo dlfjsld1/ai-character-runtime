@@ -7,7 +7,7 @@ export const OUTCOME_PROBE_TASK='outcome-only-diagnostic-v1';
 export const OUTCOME_PROBE_VERSION='outcome-probe-v1';
 // Runtime variant: also reports a reference to one of my past actions that
 // cannot be matched to a single provided episode, so the character can ask.
-export const OUTCOME_REFERENCE_PROBE_VERSION='outcome-probe-v3';
+export const OUTCOME_REFERENCE_PROBE_VERSION='outcome-probe-v4';
 // This experimental result is deliberately not an EventInterpretationResult.
 // Empty appraisals used during validation are never a model affect decision.
 export type OutcomeProbeResult={taskKind:typeof OUTCOME_PROBE_TASK;promptVersion:typeof OUTCOME_PROBE_VERSION;outcome:EventInterpretation['outcome']};
@@ -23,7 +23,8 @@ outcome에는 식별 가능한 자기 episode 하나의 사용 여부와 보고�
 제공된 짧은 참조값과 revision만 그대로 복사한다. 출력에는 outcome 하나만 작성한다.`;
 const referenceInstructions=instructions.replace('출력에는 outcome 하나만 작성한다.','출력에는 outcome과 unresolvedReference만 작성한다.')+`
 unresolvedReference: 현재 input이 내가 예전에 권하거나 알려 준 것의 사용·결과를 말하는데, 제공된 episode 중 어느 것인지 하나로 정할 수 없을 때만(맞는 episode가 없거나 둘 이상일 때) 그것을 가리키는 현재 input의 정확한 원문 일부를 quote에 적는다. experience.truncated=true면 제공되지 않은 더 오래된 행동이 있을 수 있다. outcome을 정했거나, 현재 input이 내가 예전에 한 행동을 가리키지 않으면 null이다.
-현재 input이 어느 것을 말하는지 묻는 내 직전 응답에 대한 답이면, 그 답과 앞선 사용자 보고를 하나의 보고로 읽는다. 답이 가리키는 episode를 outcome으로 정하고, evidence에는 현재 input, 앞선 보고, 그 episode의 원문 인용을 함께 넣는다.`;
+현재 input이 어느 것을 말하는지 묻는 내 직전 응답에 대한 답이면, 그 답과 앞선 사용자 보고를 하나의 보고로 읽는다. 답이 가리키는 episode를 outcome으로 정하고, evidence에는 현재 input, 앞선 보고, 그 episode의 원문 인용을 함께 넣는다.
+상대가 내가 권하거나 알려 준 것을 겪은 뒤의 평가처럼 좋았다·별로였다고 지난 일로 말하면, 해 봤다는 말이 없어도 사용한 뒤의 결과 보고로 읽는다(used와 그 평가). 앞으로의 예상, 가정, 아직 안 해 봤다는 말, 해 보지 않고 제안 자체만 평가하는 말은 사용으로 보지 않는다.`;
 
 function containsReference(value:unknown):boolean{
   if(!value||typeof value!=='object')return false;
