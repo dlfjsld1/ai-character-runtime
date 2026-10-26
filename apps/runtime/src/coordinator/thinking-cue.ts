@@ -3,6 +3,8 @@ import type {AppraisalMetadata} from '../../../../packages/contracts/src/apprais
 
 // A short "thinking" cue (e.g. 음..) shown on Stage when a reply is slow. It is
 // not dialogue: never stored, never part of the conversation, never ACKed.
+// Requirement (user, 2026-10-26): once TTS exists, the cue is spoken in the
+// same voice as the replies; until then it is a caption only.
 export const THINKING_CUE_DELAY_MS=4000;
 
 // The cue is only for turns the character will answer. Suppress it whenever
