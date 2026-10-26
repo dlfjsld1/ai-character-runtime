@@ -138,3 +138,11 @@ it('thinking off is sent per model and refused for Opus or above high effort',as
   expect(parseConfig({...base,CLAUDE_INTERPRETER_MODEL:'claude-sonnet-5-5',CLAUDE_INTERPRETER_THINKING:'off'}).CLAUDE_INTERPRETER_THINKING).toBe('off');
   expect(()=>parseConfig({...base,CLAUDE_INTERPRETER_MODEL:'claude-opus-5-5',CLAUDE_INTERPRETER_THINKING:'off'})).toThrow();
 });
+it('the diagnostic capture appends request and result and returns the result unchanged',async()=>{
+  const {capturingInterpreter}=await import('../../../apps/runtime/src/providers.ts');
+  const dir=mkdtempSync(join(tmpdir(),'claude-cap-'));dirs.push(dir);const file=join(dir,'capture.jsonl');
+  const result={status:'unavailable' as const,reason:'transport_failed' as const,promptVersion:'x'},input=affectRequest();
+  const wrapped=capturingInterpreter({promptVersion:'x',interpret:async()=>result},file);
+  expect(await wrapped.interpret(input)).toBe(result);
+  expect(JSON.parse(readFileSync(file,'utf8').trim())).toMatchObject({request:{eventId:input.eventId},result});
+});

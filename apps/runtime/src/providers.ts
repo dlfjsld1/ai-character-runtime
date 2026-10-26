@@ -8,7 +8,7 @@ import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evid
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
 import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
 import {DeepSeekBudget} from '../../../packages/adapters/src/deepseek-budget.ts';
-import {readFileSync} from 'node:fs';
+import {readFileSync,appendFileSync} from 'node:fs';
 import {parseEnv} from 'node:util';
 import {ClaudeDialogue,createClaudeEventInterpreter,type ClaudeOptions} from '../../../packages/adapters/src/claude.ts';
 import {ClaudeBudget} from '../../../packages/adapters/src/claude-budget.ts';
@@ -70,7 +70,19 @@ function claudeOptions(config:LocalConfig,model:string,effort:ClaudeOptions['eff
   return {localOnly:config.LOCAL_ONLY,allowPaidProviders:config.ALLOW_PAID_PROVIDERS,apiKey:claudeKey(config),model,effort,thinking,
     budget:new ClaudeBudget(config.CLAUDE_BUDGET_PATH,config.CLAUDE_BUDGET_USD,config.CLAUDE_MAX_CALLS,config.CLAUDE_BUDGET_AUTHORIZATION),physicalTimeoutMs:60000};
 }
+// Diagnostic capture for offline comparison; it never changes the result.
+export function capturingInterpreter(inner:EventInterpreter,path:string):EventInterpreter{
+  return {promptVersion:inner.promptVersion,async interpret(request){
+    const result=await inner.interpret(request);
+    try{appendFileSync(path,JSON.stringify({at:Date.now(),request,result})+'\n');}catch{}
+    return result;
+  }};
+}
 function interpreter(config:LocalConfig):EventInterpreter|undefined{
+  const chosen=selectInterpreter(config);
+  return chosen&&config.EVENT_INTERPRETER_CAPTURE_PATH?capturingInterpreter(chosen,config.EVENT_INTERPRETER_CAPTURE_PATH):chosen;
+}
+function selectInterpreter(config:LocalConfig):EventInterpreter|undefined{
   if(config.EVENT_INTERPRETER==='claude')return createClaudeEventInterpreter(claudeOptions(config,config.CLAUDE_INTERPRETER_MODEL,config.CLAUDE_INTERPRETER_EFFORT,config.CLAUDE_INTERPRETER_THINKING));
   if(config.EVENT_INTERPRETER==='deepseek'&&!deepseekConfigured(config))throw new RuntimeError('unsupported_provider_configuration',400);
   return config.EVENT_INTERPRETER!=='none'&&deepseekConfigured(config)?deepseekInterpreter(config):undefined;

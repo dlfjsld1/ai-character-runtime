@@ -62,6 +62,8 @@ export const configSchema = z.object({
   CLAUDE_INTERPRETER_THINKING: z.enum(['adaptive','off']).default('adaptive'),
   // auto keeps the earlier rule: DeepSeek when it is fully configured.
   EVENT_INTERPRETER: z.enum(['auto','deepseek','claude','none']).default('auto'),
+  // Diagnostic only: append each interpreter request and result as JSON lines.
+  EVENT_INTERPRETER_CAPTURE_PATH: configuredPath,
   APPRAISAL_DAILY_MAX_CALLS: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
   APPRAISAL_CALL_COUNT_PATH: configuredPath,
   DIALOGUE_BUDGET_USD: z.coerce.number().finite().min(0).default(0),
@@ -121,6 +123,7 @@ export function parseConfig(environment: NodeJS.ProcessEnv): LocalConfig {
     CLAUDE_INTERPRETER_EFFORT: environment.CLAUDE_INTERPRETER_EFFORT,
     CLAUDE_INTERPRETER_THINKING: environment.CLAUDE_INTERPRETER_THINKING,
     EVENT_INTERPRETER: environment.EVENT_INTERPRETER,
+    EVENT_INTERPRETER_CAPTURE_PATH: environment.EVENT_INTERPRETER_CAPTURE_PATH,
     APPRAISAL_DAILY_MAX_CALLS: environment.APPRAISAL_DAILY_MAX_CALLS,
     APPRAISAL_CALL_COUNT_PATH: environment.APPRAISAL_CALL_COUNT_PATH,
     DIALOGUE_BUDGET_USD: environment.DIALOGUE_BUDGET_USD ?? '0',
