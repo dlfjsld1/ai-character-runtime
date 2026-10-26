@@ -1,13 +1,17 @@
-import {readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync,mkdirSync} from 'node:fs';
+import {dirname} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {RuntimeError} from '../../contracts/src/domain.ts';
 
 // First-party list prices checked 2026-10-26 (USD per million tokens). Cache
 // writes are priced at 1.25x input. Reservations are guards, not invoices.
+// Haiku 5.5 is billed at its prompts-over-100K rate here (the higher tier) and
+// its cache reads at the full input rate: no smaller rate was confirmed.
 export const claudeModels={
   'claude-opus-5-5':{input:4,output:20,cacheRead:.2},
   'claude-sonnet-5-5':{input:2,output:10,cacheRead:.2},
+  'claude-haiku-5-5':{input:.5,output:2.5,cacheRead:.5},
 } as const;
 export type ClaudeModel=keyof typeof claudeModels;
 export const isClaudeModel=(value:string):value is ClaudeModel=>Object.hasOwn(claudeModels,value);
@@ -39,11 +43,13 @@ export class ClaudeBudget {
   private read():Ledger{
     try{
       const ledger=ledgerSchema.parse(JSON.parse(readFileSync(this.path,'utf8')));
-      if(ledger.limitUsd!==this.limitUsd||new Set(ledger.entries.map(e=>e.id)).size!==ledger.entries.length)throw new Error();
-      return ledger;
+      if(new Set(ledger.entries.map(e=>e.id)).size!==ledger.entries.length)throw new Error();
+      // The configured daily cap is authoritative; the file records the latest one.
+      ledger.limitUsd=this.limitUsd;return ledger;
     }catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return {version:1,provider:'anthropic',limitUsd:this.limitUsd,entries:[]};throw new RuntimeError('claude_budget_invalid',503);}
   }
   private transaction<T>(fn:(ledger:Ledger)=>T){
+    mkdirSync(dirname(this.path),{recursive:true});
     let fd:number;try{fd=openSync(this.path+'.lock','wx');}catch{throw new RuntimeError('claude_budget_locked',503);}
     try{const ledger=this.read(),result=fn(ledger);writeFileSync(this.path+'.tmp',JSON.stringify(ledger,null,2)+'\n');renameSync(this.path+'.tmp',this.path);return result;}
     finally{closeSync(fd);unlinkSync(this.path+'.lock');}

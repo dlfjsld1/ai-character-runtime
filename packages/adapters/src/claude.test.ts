@@ -43,10 +43,10 @@ it('the wire schema keeps structure, forces closed objects and rejects open maps
   expect(()=>claudeOutputSchema({type:'object',additionalProperties:{type:'string'}})).toThrow();
 });
 it.each([
-  ['max_tokens',{stop_reason:'max_tokens'},'invalid_output'],
+  ['max_tokens',{stop_reason:'max_tokens'},'claude_max_tokens_invalid_output'],
   ['refusal',{stop_reason:'refusal'},'claude_refusal'],
-  ['two text blocks',{content:[{type:'text',text:'{}'},{type:'text',text:'{}'}]},'invalid_output'],
-  ['other model',{model:'claude-opus-5-5'},'invalid_output'],
+  ['two text blocks',{content:[{type:'text',text:'{}'},{type:'text',text:'{}'}]},'claude_text_invalid_output'],
+  ['other model',{model:'claude-opus-5-5'},'claude_model_invalid_output'],
 ] as const)('%s is rejected after the ledger records its usage',async(_name,patch,code)=>{
   const {options,path}=setup(async()=>reply('{}',patch as Record<string,unknown>));
   await expect(new ClaudeDialogue(options).dialogue(plan(),{})).rejects.toMatchObject({code});
@@ -105,4 +105,24 @@ it('configuration picks Claude only when asked and fully authorized; models are 
   expect(()=>parseConfig({...base,CLAUDE_BUDGET_USD:'0',EVENT_INTERPRETER:'claude',CLAUDE_INTERPRETER_MODEL:'claude-sonnet-5-5'})).toThrow();
   // Claude settings alone never enable a paid interpreter.
   expect(createProviders(parseConfig({...base})).interpreter).toBeUndefined();
+});
+it('a ledger in a directory that does not exist yet is created, not reported as locked',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'claude-dir-'));dirs.push(dir);const budget=new ClaudeBudget(join(dir,'new','ledger.json'),1,5,'test');
+  budget.finish(budget.reserve('claude-sonnet-5-5',5000,1000),usage);expect(budget.summary().todayAttempts).toBe(1);
+});
+it('Haiku 5.5 can run interpretation probes for evaluation only, priced conservatively',async()=>{
+  const {options}=setup(async()=>reply('{}',{},'claude-haiku-5-5'));
+  expect(()=>new ClaudeDialogue({...options,model:'claude-haiku-5-5'})).toThrow();
+  expect(()=>new ClaudeAppraisalProbe({...options,model:'claude-haiku-5-5'})).not.toThrow();
+  expect(claudeUsageUsd('claude-haiku-5-5',{input_tokens:1e6,output_tokens:1e6,cache_creation_input_tokens:0,cache_read_input_tokens:0})).toBeCloseTo(3);
+  const {parseConfig}=await import('../../contracts/src/local-config.ts');
+  const base={LOCAL_ONLY:'false',ALLOW_PAID_PROVIDERS:'true',CLAUDE_KEY_FILE:'x.env',CLAUDE_BUDGET_USD:'1',CLAUDE_BUDGET_PATH:'l.json',CLAUDE_MAX_CALLS:'5',CLAUDE_BUDGET_AUTHORIZATION:'t'};
+  // Evaluation only: the runtime configuration does not accept Haiku in either role.
+  expect(()=>parseConfig({...base,EVENT_INTERPRETER:'claude',CLAUDE_INTERPRETER_MODEL:'claude-haiku-5-5'})).toThrow();
+  expect(()=>parseConfig({...base,DIALOGUE_PROVIDER:'claude',DIALOGUE_MODEL:'claude-haiku-5-5'})).toThrow();
+});
+it('a changed daily cap applies to the existing ledger instead of invalidating it',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'claude-cap-'));dirs.push(dir);const path=join(dir,'l.json');
+  const small=new ClaudeBudget(path,1,5,'test');small.finish(small.reserve('claude-sonnet-5-5',5000,1000),usage);
+  const larger=new ClaudeBudget(path,3,50,'test');expect(larger.availability()).toBeNull();expect(larger.summary()).toMatchObject({limitUsd:3,todayAttempts:1});
 });

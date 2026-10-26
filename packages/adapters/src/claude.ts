@@ -51,16 +51,20 @@ class ClaudeChat {
   readonly name='anthropic';readonly model:ClaudeModel;
   private busy=false;private verified=false;private client:Anthropic;
   readonly counter={count:async(messages:Message[])=>claudeInputBound(messages),countText:async(text:string)=>Buffer.byteLength(text,'utf8')};
+  // Haiku can run interpretation probes for evaluation; the runtime config
+  // does not accept it, and dialogue never does.
+  protected readonly models:readonly ClaudeModel[]=['claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5'];
   constructor(protected readonly options:ClaudeOptions){
     if(options.localOnly||!options.allowPaidProviders)throw new RuntimeError('paid_provider_disabled',400);
     const key=options.apiKey.trim();if(!key||/\s/.test(key))throw new RuntimeError('claude_key_missing',400);
-    if(!isClaudeModel(options.model))throw new RuntimeError('unsupported_provider_configuration',400);
+    if(!isClaudeModel(options.model)||!this.allowed().includes(options.model))throw new RuntimeError('unsupported_provider_configuration',400);
     this.model=options.model;
     // An explicit key only: never fall back to environment keys or CLI
     // profiles that could bill another account. No SDK retries: one ledger
     // reservation is one physical call.
     this.client=new Anthropic({apiKey:key,maxRetries:0,timeout:options.physicalTimeoutMs??120000,...(options.fetcher?{fetch:options.fetcher}:{})});
   }
+  protected allowed():readonly ClaudeModel[]{return this.models;}
   readiness(){const error=this.options.budget.availability();return {status:this.busy?'busy':error?'blocked':this.verified?'ready':'not_verified',inferenceVerified:this.verified,preparationError:error};}
   async ready(){return this.readiness();}
   protected async request(request:StructuredRequest,maxTokens:number):Promise<string>{
@@ -88,7 +92,11 @@ class ClaudeChat {
         if(!valid)throw new RuntimeError('claude_usage_unconfirmed',503);
         if(message.stop_reason==='refusal')throw new RuntimeError('claude_refusal',503);
         // Thinking blocks are ignored; exactly one text block is the answer.
-        if(message.stop_reason!=='end_turn'||message.model!==this.model||texts.length!==1||!texts[0]!.text.trim())throw new RuntimeError('invalid_output',503);
+        // Distinct codes for diagnosis; each still classifies as invalid_output.
+        if(message.stop_reason==='max_tokens')throw new RuntimeError('claude_max_tokens_invalid_output',503);
+        if(message.stop_reason!=='end_turn')throw new RuntimeError('claude_stop_invalid_output',503);
+        if(message.model!==this.model)throw new RuntimeError('claude_model_invalid_output',503);
+        if(texts.length!==1||!texts[0]!.text.trim())throw new RuntimeError('claude_text_invalid_output',503);
         this.verified=true;return texts[0]!.text;
       }catch(error){if(!settled)this.options.budget.finish(id);throw error instanceof RuntimeError?error:new RuntimeError('claude_provider_unavailable',503);}
       finally{clearTimeout(timer);this.busy=false;this.options.onCall?.({id,provider:this.name,model:this.model,physicalCompleted});}
@@ -99,6 +107,7 @@ class ClaudeChat {
 }
 
 export class ClaudeDialogue extends ClaudeChat implements DialogueGenerator {
+  protected override allowed():readonly ClaudeModel[]{return ['claude-opus-5-5','claude-sonnet-5-5'];}
   private compose(plan:Plan,context:DialogueContext){return buildDialogueRequest(plan,context,this.model,{promptVariant:'conversation-history-v1'});}
   async fitConversation(plan:Plan,context:DialogueContext){
     if(plan.purpose==='knowledge_answer'){
