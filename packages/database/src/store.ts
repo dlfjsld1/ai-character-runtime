@@ -1,3 +1,4 @@
+import {parseFirstReactionSet} from '../../contracts/src/first-reaction.ts';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import type pg from 'pg';
@@ -126,6 +127,10 @@ export class Store {
   async thinkingCues(configVersion:bigint|string):Promise<string[]>{
     const cues=(await this.db.pool.query("SELECT body->'thinkingCues' AS cues FROM character_configs WHERE character_id=$1 AND version=$2",[this.characterId,String(configVersion)])).rows[0]?.cues;
     return Array.isArray(cues)?cues.filter((c:unknown):c is string=>typeof c==='string'&&!!c.trim()&&[...c].length<=20):[];
+  }
+  // Reviewed first-reaction lines of a config version; invalid or absent means none.
+  async firstReactions(configVersion:bigint|string){
+    return parseFirstReactionSet((await this.db.pool.query("SELECT body->'firstReactions' AS lines FROM character_configs WHERE character_id=$1 AND version=$2",[this.characterId,String(configVersion)])).rows[0]?.lines);
   }
   // A withholding silence toward this person within the ten-minute incident window.
   async recentlyWithheld(identityId:string,now:number){
@@ -364,7 +369,7 @@ export class Store {
       if(evidence&&((evidence.kind==='praise'&&appraisal.act==='praise')||(evidence.kind==='direct_insult'&&appraisal.act==='criticism'))&&[1,2,3].includes(evidence.strength))return evidence;
     }catch{/* Unsupported evidence cannot authorize an emotional increase. */}
   }
-  async commitAppraisal(selected:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:Appraisal,metadata:AppraisalMetadata,memoryIds:string[]=[],eventAffect?:EventAffectAttempt){metadata=appraisalMetadataSchema.parse(metadata);return this.locked(async(c,s)=>{
+  async commitAppraisal(selected:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:Appraisal,metadata:AppraisalMetadata,memoryIds:string[]=[],eventAffect?:EventAffectAttempt,firstReaction?:string){metadata=appraisalMetadataSchema.parse(metadata);return this.locked(async(c,s)=>{
     const e=(await c.query('SELECT * FROM events WHERE id=$1 AND character_id=$2 FOR UPDATE',[selected.event.id,this.characterId])).rows[0];
     const session=(await c.query('SELECT status FROM sessions WHERE id=$1',[e.session_id])).rows[0];
     if(e.data_status!=='active'||e.attention_status!=='selected'||BigInt(e.revision)!==selected.revision||s.generationEpoch!==selected.generationEpoch||session.status!=='active')return {status:'stale',response:null};
@@ -422,7 +427,7 @@ export class Store {
     // completed delivery. Use those response refs, never arbitrary old utterances.
     const explained=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='reengage' AND plan->>'targetIdentityId'=$4 AND plan->'reengagement'->>'silenceEventId'=$5 AND plan->'reengagement'->>'disclosure' IN ('explain','partial') LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id,previous.eventId])).rowCount:false;
     const boundaryDelivered=previousSources&&previous?.reason==='withholding'?(await c.query("SELECT 1 FROM response_runs WHERE character_id=$1 AND session_id=$2 AND id=ANY($3::uuid[]) AND status='completed' AND plan->>'purpose'='set_boundary' AND plan->>'targetIdentityId'=$4 LIMIT 1",[this.characterId,e.session_id,conversation.data.turns.filter(t=>t.source.kind==='response').map(t=>t.source.id),e.identity_id])).rowCount:false;
-    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,unresolvedReference:affectApplied.unresolvedReference,referenceAsked:await this.askedReference(c,conversation.data.turns,e.id),previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];
+    const plan=chooseSocial(body,appraisal,effect,e.identity_id,now,{text:e.payload.text,previousSilence:previousSources?previous:null,explainedSilenceEventId:explained?previous!.eventId:undefined,recentWithholdingEventId,recentBoundaryDelivered:!!boundaryDelivered,appraisalFailed:!!metadata.failureCode,unresolvedReference:affectApplied.unresolvedReference,referenceAsked:await this.askedReference(c,conversation.data.turns,e.id),previousOutputFailed:await this.previousOutputFailed(c,e.identity_id,previous),participationEvidence:this.participationEvidence(appraisal,metadata,e.id,e.identity_id,String(e.revision),conversationContext),conversationEvidence});plan.memoryIds=[...memoryIds];if(firstReaction&&plan.participation?.mode==='speak')plan.firstReaction=firstReaction;
     let silence:SilenceRecord|undefined;
     let acknowledgement:Row|undefined;
     if(plan.participation?.mode==='silent'&&plan.participation.reason==='no_addition'){

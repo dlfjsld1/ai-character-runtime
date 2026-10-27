@@ -58,8 +58,8 @@ function Stage({onError,error}:{onError:(s:string)=>void;error:string}) {
   const[caption,setCaption]=useState(''),[status,setStatus]=useState('연결 중'),[expression,setExpression]=useState('neutral'),[citations,setCitations]=useState<KnowledgeCitation[]>([]);
   const wire=useRef<Wire|null>(null),epoch=useRef('0'),generation=useRef('0'),owner=useRef(false),cancelled=useRef(new Set<string>()),queue=useRef<any[]>([]),running=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null),playbackVersion=useRef(0),activeSegment=useRef<any>(null);
   // A thinking cue is display only: no ACK, never queued, cleared by any real output.
-  const cue=useRef<{eventId:string;timer:ReturnType<typeof setTimeout>}|null>(null),[thinking,setThinking]=useState(false);
-  function clearCue(eventId?:string){if(!cue.current||(eventId&&cue.current.eventId!==eventId))return;clearTimeout(cue.current.timer);cue.current=null;setThinking(false);if(!running.current)setCaption('');}
+  const cue=useRef<{eventId:string;timer:ReturnType<typeof setTimeout>}|null>(null),[cueKind,setCueKind]=useState<''|'thinking'|'reaction'>('');
+  function clearCue(eventId?:string){if(!cue.current||(eventId&&cue.current.eventId!==eventId))return;clearTimeout(cue.current.timer);cue.current=null;setCueKind('');if(!running.current)setCaption('');}
   const performances=useRef(new Map<string,{expression:string;generationEpoch:string;outputEpoch:string;finished:number;segmentCount?:number;citations:KnowledgeCitation[]}>());
   const currentOutput=(p:any)=>owner.current&&p.outputEpoch===epoch.current&&p.generationEpoch===generation.current&&!cancelled.current.has(p.responseId);
   function forgetFinished(responseId:string){const performance=performances.current.get(responseId);if(performance?.segmentCount!==undefined&&performance.finished>=performance.segmentCount){performances.current.delete(responseId);cancelled.current.add(responseId);}}
@@ -81,13 +81,15 @@ function Stage({onError,error}:{onError:(s:string)=>void;error:string}) {
     if(packet.type==='response.sealed'&&currentOutput(p)){const performance=performances.current.get(p.responseId);if(performance){performance.segmentCount=p.segmentCount;forgetFinished(p.responseId);}}
     if(['response.start','speech.segment','response.cancel'].includes(packet.type))clearCue();
     if(packet.type==='character.thinking.end')clearCue(p.eventId);
-    if(packet.type==='character.thinking'&&owner.current&&p.outputEpoch===epoch.current&&!running.current&&!queue.current.length){clearCue();setCaption(p.text);setThinking(true);cue.current={eventId:p.eventId,timer:setTimeout(()=>clearCue(p.eventId),15000)};}
+    // A first reaction is the character's own short line said before the reply; like the cue it
+    // is display only here (no ACK). Requirement: once TTS exists both are spoken.
+    if((packet.type==='character.thinking'||packet.type==='character.reaction')&&owner.current&&p.outputEpoch===epoch.current&&!running.current&&!queue.current.length){clearCue();setCaption(p.text);setCueKind(packet.type==='character.reaction'?'reaction':'thinking');cue.current={eventId:p.eventId,timer:setTimeout(()=>clearCue(p.eventId),15000)};}
     if(packet.type==='speech.segment'&&owner.current&&!cancelled.current.has(p.responseId)){queue.current.push(p);void renderNext();}
     if(packet.type==='response.cancel'){cancelled.current.add(p.responseId);performances.current.delete(p.responseId);queue.current=queue.current.filter(s=>s.responseId!==p.responseId);if(activeSegment.current?.responseId===p.responseId)stopPlayback();if(p.newGenerationEpoch)syncGeneration(p.newGenerationEpoch);void renderNext();}
     if(packet.type==='output.revoke'){clear();channel.send('output.released',{outputEpoch:p.outputEpoch,stopRequestId:p.stopRequestId},crypto.randomUUID());setStatus('출력 해제됨');}
     if(['connection.lost','session.ended'].includes(packet.type)){clear();setStatus('출력 대기');}
     if(packet.type==='command.result'&&p.status==='rejected')onError(p.error.code);
   },setStatus);wire.current=channel;channel.connect();const poll=setInterval(()=>{void api('/api/sessions/current').then(s=>{if(s&&channel.connectionId&&s.id!==channel.sessionId){clear();channel.subscribe(s.id);channel.send('stage.ready',{audioUnlocked:false,avatarReady:false,supportsExpressions:['neutral','listening','happy','embarrassed','uncomfortable']});}}).catch(()=>{});},2000);return()=>{clearInterval(poll);clear();channel.close();};},[]);
-  return <main className={`stage expression-${expression}`}><p className="stage-status">{status} · 자막 Stage</p>{error&&<p role="alert" className="error">{error}</p>}<div className="expression-label">{caption?{neutral:'차분하게 말하는 중',listening:'듣는 중',happy:'밝게 말하는 중',embarrassed:'조심스럽게 말하는 중',uncomfortable:'절제된 태도로 말하는 중'}[expression]:'대기 중'}</div><p className={thinking?'caption thinking':'caption'} aria-live="polite">{caption}</p>{caption&&<Citations citations={citations}/>}<p className="stage-note">음성과 아바타는 실제 자원 검증 후 연결돼요.</p></main>;
+  return <main className={`stage expression-${expression}`}><p className="stage-status">{status} · 자막 Stage</p>{error&&<p role="alert" className="error">{error}</p>}<div className="expression-label">{caption?{neutral:'차분하게 말하는 중',listening:'듣는 중',happy:'밝게 말하는 중',embarrassed:'조심스럽게 말하는 중',uncomfortable:'절제된 태도로 말하는 중'}[expression]:'대기 중'}</div><p className={cueKind?'caption '+cueKind:'caption'} aria-live="polite">{caption}</p>{caption&&<Citations citations={citations}/>}<p className="stage-note">음성과 아바타는 실제 자원 검증 후 연결돼요.</p></main>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

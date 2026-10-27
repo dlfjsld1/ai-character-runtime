@@ -8,6 +8,9 @@ import type {EventAffectAttempt} from '../../../../packages/database/src/store.t
 import { appraisalEvaluationSchema,type AppraisalMetadata } from '../../../../packages/contracts/src/appraisal.ts';
 import {budgetAppraisalConversation} from '../../../../packages/contracts/src/conversation.ts';
 import {THINKING_CUE_DELAY_MS,thinkingCueAllowed,pickThinkingCue} from './thinking-cue.ts';
+import {firstReactionAllowed,reactionStyle} from './first-reaction.ts';
+import {FIRST_REACTION_THRESHOLD,pickFirstReaction,type Situation,type SituationClassifier} from '../../../../packages/contracts/src/first-reaction.ts';
+import {dialoguePlan} from '../../../../packages/character-core/src/index.ts';
 import type {KnowledgeRetriever} from '../../../../packages/contracts/src/knowledge.ts';
 export type OutputOwner={clientId:string;outputEpoch:bigint};
 export interface Sink {
@@ -30,7 +33,8 @@ export class Coordinator {
   private ticking=0;
   private cues=new Map<string,{timer:ReturnType<typeof setTimeout>;shown:boolean}>();
   private lastCue:string|null=null;
-  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever,public interpreter?:EventInterpreter){}
+  private lastReaction:string|null=null;
+  constructor(public store:Store,public provider:DialogueGenerator,public sink:Sink,public appraiser:AppraisalProvider,public solver?:ActivitySolver,public knowledge?:KnowledgeRetriever,public interpreter?:EventInterpreter,public situation?:SituationClassifier){}
   start(){this.timer=setInterval(()=>{void this.tick().catch(()=>this.sink.failure('db_unavailable'));},1000);}
   async stop(){this.stopped=true;if(this.timer)clearInterval(this.timer);for(const cue of this.cues.values())clearTimeout(cue.timer);this.cues.clear();while(this.draining||this.solving||this.dispatching||this.taskRunning||this.ticking)await new Promise(resolve=>setTimeout(resolve,5));await this.queue.catch(()=>{});}
   control<T>(fn:()=>Promise<T>):Promise<T>{const result=this.queue.then(fn,fn);this.queue=result.catch(()=>{});return result;}
@@ -65,17 +69,21 @@ export class Coordinator {
         }catch(e){const code=e instanceof RuntimeError?e.code:'knowledge_search_failed';await this.store.failKnowledge(selected.id,code);this.sink.inputStatus(selected.id,'failed');this.sink.failure(code);await this.sink.changed();continue;}
       }
       this.sink.inputStatus(selected.id,'selected');await this.sink.changed();let appraisal=neutralAppraisal,failureCode:string|undefined;
+      // The situation question runs beside the social appraisal; it never blocks the turn.
+      const situation=this.situation?this.situation.classify(request.event.payload.text,this.previousTurn(request)):Promise.resolve(null);
       // Event affect runs beside the social appraisal; its failure never blocks the turn.
       const eventAffect=this.interpretAffect(request);
       let metadata:AppraisalMetadata={provider:this.appraiser.name,model:this.appraiser.model,promptVersion:this.appraiser.promptVersion};
       try{const readiness=this.appraiser.readiness();if(readiness.status==='blocked'||readiness.status==='unavailable')throw new RuntimeError(readiness.errorCode??'appraisal_unavailable',503);request.conversation=budgetAppraisalConversation(request.conversation);request.conversationContext.history=request.conversation;const activity=await this.store.activity();const result=appraisalEvaluationSchema.parse(await this.appraiser.evaluate({id:request.event.id,text:request.event.payload.text,identityId:request.event.identity_id,revision:String(request.revision)},{activity:activity?{prompt:activity.public_prompt,status:activity.status}:null,recentPraise:request.praiseSnapshot.context,conversation:request.conversation,conversationContext:request.conversationContext}));appraisal=result.appraisal;metadata=result.metadata;}
       catch(e){failureCode=e instanceof RuntimeError?e.code:'invalid_output';this.sink.failure(failureCode);}
-      await this.armThinkingCue(request,appraisal,metadata,!!failureCode).catch(()=>{});
+      const firstReaction=await this.showFirstReaction(request,await situation,appraisal,metadata,!!failureCode).catch(()=>null);
+      // A first reaction replaces the 4 s thinking cue for this input.
+      if(!firstReaction)await this.armThinkingCue(request,appraisal,metadata,!!failureCode).catch(()=>{});
       const activity=await this.store.activity();const dialogueReady=this.provider.readiness?.();
       const memories=dialogueReady?.status==='blocked'||dialogueReady?.status==='unavailable'?[]:await this.memoryBudget(request.event.identity_id,activity?.id);
       if(this.stopped)break;
       const affect=await eventAffect;if(this.stopped)break;
-      const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id),affect));
+      const result=await this.control(()=>this.store.commitAppraisal(request,appraisal,{...metadata,failureCode},memories.map(m=>m.id),affect,firstReaction??undefined));
       this.sink.inputStatus(selected.id,result.status==='stale'?'expired':'observed');await this.sink.changed();if(result.response){void this.dispatch(result.response.id,selected.id);break;}this.endThinkingCue(selected.id);
     }}finally{this.draining=false;}
   }
@@ -87,6 +95,24 @@ export class Coordinator {
       const started=performance.now(),result=await this.interpreter.interpret(built);
       return {request:built,result,promptVersion,latencyMs:Math.round(performance.now()-started)};
     }catch{return {request:null,result:{status:'unavailable',reason:'transport_failed',promptVersion},promptVersion,latencyMs:0};}
+  }
+  private previousTurn(request:NonNullable<Awaited<ReturnType<Store['select']>>>){
+    const last=request.conversation.turns.filter(t=>t.source.id!==request.event.id).at(-1);
+    return last?{speaker:(last.source.kind==='event'?'user':'character') as 'user'|'character',text:last.text}:undefined;
+  }
+  // Say a short first reaction from the character's reviewed lines when the
+  // situation is clear (Jev, threshold 0.6) and nothing points to silence. It is
+  // cleared like the cue and passed to the reply as already said.
+  private async showFirstReaction(request:NonNullable<Awaited<ReturnType<Store['select']>>>,situation:Situation|null,appraisal:typeof neutralAppraisal,metadata:AppraisalMetadata,failed:boolean){
+    const e=request.event;
+    if(!situation||situation.category==='none'||situation.confidence<FIRST_REACTION_THRESHOLD||['quoted','other'].includes(situation.target))return null;
+    if(!firstReactionAllowed(appraisal,metadata,failed,await this.store.recentlyWithheld(e.identity_id,this.store.clock())))return null;
+    const set=await this.store.firstReactions(request.configVersion);const owner=this.sink.owner();if(!set||!owner||this.stopped)return null;
+    // Style from the state before this turn; the reaction precedes this turn's appraisal.
+    const text=pickFirstReaction(set,situation.category,reactionStyle(dialoguePlan((await this.store.state()).body,'other',e.identity_id)),this.lastReaction);if(!text)return null;
+    this.lastReaction=text;this.cues.set(e.id,{timer:setTimeout(()=>{},0),shown:true});
+    this.sink.sendOwner('character.reaction',{eventId:e.id,text,outputEpoch:owner.outputEpoch.toString()});
+    return text;
   }
   // Show a thinking cue if the reply has not started 4 s after the input arrived.
   private async armThinkingCue(request:NonNullable<Awaited<ReturnType<Store['select']>>>,appraisal:typeof neutralAppraisal,metadata:AppraisalMetadata,failed:boolean){

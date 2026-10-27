@@ -5,6 +5,7 @@ import {OllamaProvider,PythonTokenCounter} from '../../../packages/adapters/src/
 import {JevConversationCandidate} from '../../../packages/adapters/src/jev.ts';
 import {DailyCallCap,countDailyCall} from '../../../packages/adapters/src/daily-call-cap.ts';
 import {JevOutcomeProbe} from '../../../packages/adapters/src/jev-outcome.ts';
+import {JevSituationProbe} from '../../../packages/adapters/src/jev-situation.ts';
 import {jevEvidenceVerifier} from '../../../packages/adapters/src/appraisal-evidence.ts';
 import {OpenAIDialogue,DialogueBudget} from '../../../packages/adapters/src/openai.ts';
 import {DeepSeekDialogue,createDeepSeekEventInterpreter,o2Timeouts} from '../../../packages/adapters/src/deepseek.ts';
@@ -20,7 +21,7 @@ import {OpenAIInteractionV5Candidate,interactionV5EvidenceVerifier} from '../../
 
 function openaiBudget(config:LocalConfig){return new DialogueBudget(config.DIALOGUE_BUDGET_PATH,config.DIALOGUE_BUDGET_USD,undefined,config.OPENAI_BUDGET_AUTHORIZATION?{authorization:config.OPENAI_BUDGET_AUTHORIZATION,maxDecisionCalls:config.OPENAI_MAX_DECISION_CALLS,maxDialogueCalls:config.OPENAI_MAX_DIALOGUE_CALLS,...(config.OPENAI_ACKNOWLEDGED_COUNT_ENTRY_ID?{acknowledgedCountEntryId:config.OPENAI_ACKNOWLEDGED_COUNT_ENTRY_ID}:{}),...(config.OPENAI_ACKNOWLEDGED_DIALOGUE_ENTRY_ID?{acknowledgedDialogueEntryId:config.OPENAI_ACKNOWLEDGED_DIALOGUE_ENTRY_ID}:{})}:undefined);}
 
-export type RuntimeProviders={dialogue:DialogueGenerator;solver?:ActivitySolver;appraiser:AppraisalProvider;evidenceVerifier:AppraisalEvidenceVerifier;interpreter?:EventInterpreter};
+export type RuntimeProviders={dialogue:DialogueGenerator;solver?:ActivitySolver;appraiser:AppraisalProvider;evidenceVerifier:AppraisalEvidenceVerifier;interpreter?:EventInterpreter;situation?:JevSituationProbe};
 type Factory<T>=(config:LocalConfig,environment:NodeJS.ProcessEnv)=>T;
 export type ProviderRegistry={dialogue:Record<string,Factory<Pick<RuntimeProviders,'dialogue'|'solver'>>>;appraisal:Record<string,Factory<Pick<RuntimeProviders,'appraiser'|'evidenceVerifier'>>>};
 export function createOllamaDialogue(config:Pick<LocalConfig,'DIALOGUE_MODEL'|'OLLAMA_BASE_URL'|'OMNIVOICE_PYTHON'>,environment:NodeJS.ProcessEnv,probeOptions:ConstructorParameters<typeof OllamaProvider>[4]={}){
@@ -94,5 +95,7 @@ export function createProviders(config:LocalConfig,environment:NodeJS.ProcessEnv
   if(!Object.hasOwn(registry.dialogue,config.DIALOGUE_PROVIDER)||!Object.hasOwn(registry.appraisal,config.APPRAISAL_PROVIDER))throw new RuntimeError('unsupported_provider_configuration',400);
   const appraisal=registry.appraisal[config.APPRAISAL_PROVIDER]!(config,environment);
   if(config.APPRAISAL_DAILY_MAX_CALLS>0)appraisal.appraiser=new DailyCallCap(appraisal.appraiser,config.APPRAISAL_CALL_COUNT_PATH,config.APPRAISAL_DAILY_MAX_CALLS);
-  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...appraisal,...((i=>i?{interpreter:i}:{})(interpreter(config)))};
+  return {...registry.dialogue[config.DIALOGUE_PROVIDER]!(config,environment),...appraisal,...((i=>i?{interpreter:i}:{})(interpreter(config))),
+    // Jev situation calls share the daily appraisal allowance.
+    ...(config.FIRST_REACTION==='jev'?{situation:new JevSituationProbe(config.TYPESAFE_API_KEY,()=>{if(config.APPRAISAL_DAILY_MAX_CALLS>0)countDailyCall(config.APPRAISAL_CALL_COUNT_PATH,config.APPRAISAL_DAILY_MAX_CALLS);})}:{})};
 }

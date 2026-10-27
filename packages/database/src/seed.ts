@@ -8,10 +8,12 @@ export const IDENTITY_IDS=['20000000-0000-4000-8000-000000000001','20000000-0000
 export const THINKING_CUES_V1=['음..','그러니까..','어..'] as const;
 export const PERSONA_V1=['새로운 것에 호기심이 많다.','상대를 쉽게 적대하지 않고 무관한 사람을 공격하지 않는다.','자기가 한 설명과 도움이 실제로 맞고 쓸모 있는 것을 중요하게 여긴다.'] as const;
 export async function seed(db:Database,now=Date.now()) {
+  // Reviewed first-reaction lines of config v1 (data file, not code).
+  const firstReactions=JSON.parse(await readFile(new URL('../data/first-reactions-v1.json',import.meta.url),'utf8')).firstReactions;
   const problems=JSON.parse(await readFile(new URL('../../../fixtures/puzzles/problems.json',import.meta.url),'utf8'));
   await db.transaction(async c=>{
     await c.query('INSERT INTO characters(id,display_name) VALUES($1,$2) ON CONFLICT DO NOTHING',[CHARACTER_ID,'캐릭터']);
-    await c.query("INSERT INTO character_configs(character_id,version,schema_version,preset_id,domain_version,provider_config_version,body) VALUES($1,1,1,'curious-puzzle-v1','core-rules-v1','local-ai-v1',$2) ON CONFLICT DO NOTHING",[CHARACTER_ID,{preset:'curious-puzzle-v1',thinkingCues:THINKING_CUES_V1}]);
+    await c.query("INSERT INTO character_configs(character_id,version,schema_version,preset_id,domain_version,provider_config_version,body) VALUES($1,1,1,'curious-puzzle-v1','core-rules-v1','local-ai-v1',$2) ON CONFLICT DO NOTHING",[CHARACTER_ID,{preset:'curious-puzzle-v1',thinkingCues:THINKING_CUES_V1,firstReactions}]);
     // Live character values for config v1 (user-approved 2026-10-21). A change is a new config version.
     for(const [i,text] of PERSONA_V1.entries())await c.query("INSERT INTO character_persona_values(id,character_id,config_version,ordinal,kind,text) VALUES($1,$2,1,$3,'persona',$4) ON CONFLICT DO NOTHING",[`30000000-0000-4000-8000-00000000000${i+1}`,CHARACTER_ID,i,text]);
     await c.query('INSERT INTO character_state(character_id,version,config_version,schema_version,generation_epoch,snapshot_at,body) VALUES($1,0,1,1,0,$2,$3) ON CONFLICT DO NOTHING',[CHARACTER_ID,new Date(now),initialState(now)]);

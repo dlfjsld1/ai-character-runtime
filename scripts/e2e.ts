@@ -2,7 +2,7 @@
 // code, fresh test DB), with the server mode that spec needs.
 import {readdirSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-const modes:Record<string,Record<string,string>>={'persistence.spec.ts':{TEST_IDENTITY_MODE:'operator'},'thinking-cue.spec.ts':{TEST_DIALOGUE_DELAY_MS:'7000'}};
+const modes:Record<string,Record<string,string>>={'persistence.spec.ts':{TEST_IDENTITY_MODE:'operator'},'thinking-cue.spec.ts':{TEST_DIALOGUE_DELAY_MS:'7000'},'first-reaction.spec.ts':{TEST_DIALOGUE_DELAY_MS:'7000',TEST_FIRST_REACTION:'1'}};
 let failed=0;
 for(const file of readdirSync('evals/browser').filter(f=>f.endsWith('.spec.ts')).sort()){
   console.log(`\n== ${file}`);

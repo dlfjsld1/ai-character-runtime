@@ -10,6 +10,8 @@ export function buildDialogueRequest(plan:Plan,context:object,model:string,evalu
     intent.praise='지금 건네는 칭찬을 자연스럽게 받아들인다. 과거 일을 검증해 달라는 질문이 아니므로 기록 부재나 확인 불가 설명을 붙이지 않는다. 확인되지 않은 과거 행동이나 성과를 실제로 해냈다고 주장하지 않는다.';
     if(plan.reference==='unresolved_suggestion')intent.clarify='상대가 내가 전에 권하거나 알려 준 것의 결과를 말하고 있지만, 그게 어느 것인지 확실하지 않다. 어느 것을 말하는지 짧게 묻는다. 내가 무엇을 했는지 추측해서 이름을 대지 않는다.';
     intent.other='현재 말의 내용과 요청에 맞게 반응한다. 답하는 데 필요한 대상이나 정보가 불명확할 때만 그 부분을 짧게 묻는다. 문장 형태가 질문인지 서술인지 구별하기 위한 확인 질문은 하지 않는다.';
+    // Only the runtime sets firstReaction: the character already said it before this reply.
+    if(plan.firstReaction)intent[plan.purpose]=(intent[plan.purpose]??'현재 말에 답한다.')+` 이미 "${plan.firstReaction}"라고 짧게 반응했다. 그 말을 반복하지 말고 이어서 답한다.`;
     const silence=(context as {silence?:{eventId?:string;identityId?:string;reason?:string;affect?:{frustration?:number}}|null}).silence;
     const disclosure=plan.reengagement?.silenceEventId&&silence?.eventId===plan.reengagement.silenceEventId&&silence.identityId===plan.targetIdentityId&&['withholding','listening','no_addition'].includes(silence.reason??'')?plan.reengagement.disclosure:'unknown';
     const concealing=!!plan.reengagement&&disclosure==='deflect';
