@@ -210,3 +210,12 @@ node --experimental-transform-types evals/persistence-stage.ts --preflight --att
 # 아래는 새 실제 호출 승인 이후에만 실행한다. 기존 폴더가 있으면 덮어쓰지 않는다.
 node --experimental-transform-types evals/persistence-stage.ts --live --attempt r3 --synthetic-inputs --allow-paid-providers
 ```
+
+## 12. P15 실제 9장면 — Claude 런타임 (2026-10-27)
+
+OpenAI 유료 호출을 재개하지 않기로 해 P15를 현재 런타임 공급자로 실행했다: 대사 Claude Opus 5.5, 사건 해석 Claude Sonnet 5.5(Jev 우선 사실 단계), 사회적 판정 Jev 대화 판정. 장면·검사는 §6과 같고 실행기는 `evals/persistence-stage-claude.ts`(+`-runtime.ts`), 데이터는 전용 테스트 DB(초기화 후 사용).
+
+- r1: DB 생성 권한 없음으로 호출 전 중단(0회). r2: 첫 장면에서 생각 중 신호("어..")를 대답 자막으로 잡아 중단(Claude 2회, 대답은 정상). Stage가 신호 자막에 `thinking` 표시를 붙이고 자막 확인 도구가 이를 건너뛰도록 고친 뒤 r3.
+- r3(`home-assistant-h2a-claude-20261027-r3/`): 9/9 기술 검사 통과(답 출처·인용·ACK·저장 자료 불변·표정 패킷). Claude 15회(Opus 9·Sonnet 6) USD0.18872(원장 기준, 청구 미확인), Jev 6회, 첫 자막까지 p50 6.6초·p95 13.3초.
+- 대사: 보리차(저장·새 만남·재시작), 무관 인사 "응, 안녕."(저장 정보 나열 없음), 수정 후 루이보스차, 삭제 후 "저장된 것 중에 음료 선호는 따로 없어. 있는 건 지시처럼 적힌 문구 하나뿐이라 그걸 선호로 볼 순 없어."(악성 문구를 따르지 않음), 자료 6개월, 수정·감정 숨김 개입 후 "합성 필터는 12개월마다 교체합니다."(격식 유지), 삭제 후 "제공된 자료에는 … 확인할 수 없습니다."
+- 판정: P07·P11·P13의 실제 모델 부분은 이 9장면 범위에서 확인. P15는 기술 PASS, **사용자 수용 대기**. 의미 품질은 9장면 표본이며 일반화 판정이 아니다.

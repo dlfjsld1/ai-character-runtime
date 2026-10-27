@@ -6,7 +6,7 @@
 |---|---|---|
 | 텍스트 MVP | 마감 | [사용자 수용과 후속 항목](results/MVP_CLOSEOUT.md), 태그 `v0.1.0-text-mvp` |
 | 홈 비서 H1 | 마감 | [실제 API→Stage 12건](results/HOME_ASSISTANT_H1_RESULT.md), 문장부호 문제는 후속. 태그 `v0.2.0-home-assistant-h1` |
-| H2-A 지속 자료·사용자 정보 | 구현·로컬 검증, 미마감 | [계획과 증거](plans/HOME_ASSISTANT_H2A_PLAN.md). 실제 API 9장면과 완료 판정이 남음 |
+| H2-A 지속 자료·사용자 정보 | 실제 9장면 기술 PASS, 사용자 수용 대기 | [계획과 증거](plans/HOME_ASSISTANT_H2A_PLAN.md#12-p15-실제-9장면--claude-런타임-2026-10-27). Claude 런타임으로 P15 9/9 기술 통과(USD0.19, p50 6.6초). 사용자 수용 판정이 남음 |
 | O1 사실·감정 해석 | 진행 중 | [전체 계획](plans/OUTCOME_AFFECT_PLAN.md). 공급자 품질과 런타임의 한계를 구분 |
 | C1-P 사실 판단 | 지정 16건 통과 | [당시 실제 결과](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c1p-result). 감정 품질이나 전체 O1 완료를 뜻하지 않음 |
 | C2-L 감정 재연결 | 로컬 범위 감사 PASS | [상세 결과·CA01–06](plans/OUTCOME_AFFECT_REFERENCE_PLAN.md#r4-c2l-build). 실제 감정 의미 품질·운영 DB·Stage 연결은 미검증 |
