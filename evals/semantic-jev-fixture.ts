@@ -26,3 +26,13 @@ export function scriptedJev(table:Record<string,ConversationAct|{act:Conversatio
   });
   return provider;
 }
+// Fixture server appraiser shaped like the runtime default (Jev conversation),
+// labelled jev-mock in Studio. Acts come from the same keywords as mockJevAppraiser;
+// conversational acts only from the explicit table the caller writes.
+export function mockJevConversationAppraiser(table:Record<string,ConversationAct>={}):AppraisalProvider{
+  const candidate=new JevConversationCandidate({localOnly:false,allowPaidProviders:true,apiKey:'synthetic-mock-key'},async(_url,init)=>{
+    const text=JSON.parse(String(init?.body)).state.utterance as string,act=text.includes('칭찬')?'praise':text.includes('안녕')?'greeting':'question';
+    return Response.json(conversationRaw(table[text]??'ordinary','unknown',recordedJevResponse(act,'character',act==='praise'?3:0)));
+  });
+  return {name:'jev-mock',model:candidate.model,promptVersion:candidate.promptVersion,readiness:()=>({status:'configured',inferenceVerified:false,errorCode:null}),evaluate:(event,context)=>candidate.evaluate(event,context)};
+}

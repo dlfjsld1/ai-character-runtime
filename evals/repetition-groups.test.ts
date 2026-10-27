@@ -81,12 +81,16 @@ it('S2-A unobserved, changed-revision or missing-text praise cannot grant a comp
  }
 });
 it('S2-D a changed comparison set, label or time window during inference discards grouping',async()=>{
+ // Look up each praise by its own evidence key; the last row may belong to another input.
+ const groupOf=async(eventId:string)=>(await db.pool.query("SELECT applied FROM relationship_evidence WHERE kind='praise' AND evidence_key=$1",['praise:'+eventId])).rows[0]?.applied.affect.groupId;
  await commit(await prepare());
- const late=await prepare(['distinct']),intervening=await prepare();await commit(intervening);await commit(late);expect((await rows()).at(-1).applied.affect.groupId).toBeNull();
+ // Another praise committed during inference makes the late one stale: no grouping, no record.
+ const late=await prepare(['distinct']),intervening=await prepare();await commit(intervening);
+ expect((await commit(late)).status).toBe('stale');expect(await groupOf(late.accepted.eventId)).toBeUndefined();
  now+=600000;await commit(await prepare());const changed=await prepare(['distinct']);
  await db.pool.query("UPDATE relationship_evidence SET applied=jsonb_set(applied,'{affect,groupId}',to_jsonb($2::text)) WHERE id=$1",[(await rows()).at(-1).id,randomUUID()]);
- await commit(changed);expect((await rows()).at(-1).applied.affect.groupId).toBeNull();
- now+=600000;await commit(await prepare());const expired=await prepare(['distinct']);now+=600000;await commit(expired);expect((await rows()).at(-1).applied.affect.groupId).toBeNull();
+ await commit(changed);expect(await groupOf(changed.accepted.eventId)).toBeNull();
+ now+=600000;await commit(await prepare());const expired=await prepare(['distinct']);now+=600000;await commit(expired);expect(await groupOf(expired.accepted.eventId)).toBeNull();
 });
 it('S2-D revision/epoch/deletion guards reject late appraisal without allocating a group',async()=>{
  const p=await prepare();

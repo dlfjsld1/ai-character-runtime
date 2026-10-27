@@ -23,7 +23,7 @@
     "diagnose": "node --experimental-strip-types scripts/diagnose.ts",
     "test:db": "vitest run --config vitest.integration.config.ts evals/db.test.ts",
     "test:protocol": "vitest run --config vitest.integration.config.ts evals/protocol.test.ts",
-    "test:e2e": "playwright test --config playwright.config.ts",
+    "test:e2e": "node --experimental-strip-types scripts/e2e.ts",
     "db:migrate": "node --experimental-transform-types scripts/db.ts migrate",
     "db:seed": "node --experimental-transform-types scripts/db.ts seed",
     "dev": "node --experimental-transform-types apps/runtime/src/index.ts",

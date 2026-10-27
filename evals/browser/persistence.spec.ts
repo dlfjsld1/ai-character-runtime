@@ -2,6 +2,8 @@ import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const artifactRoot=resolve(process.env.TEST_ARTIFACT_ROOT||'runtime-data');
+// Needs the fixture server in operator mode: run with TEST_IDENTITY_MODE=operator set (e.g. only this spec).
+test.skip(process.env.TEST_IDENTITY_MODE!=='operator','needs TEST_IDENTITY_MODE=operator');
 test('H2-A synthetic: operator facts, failure/CAS recovery, new meeting retention and Stage invalidation',async({page,context})=>{
  test.setTimeout(90000);expect(process.env.TEST_IDENTITY_MODE).toBe('operator');
  const fixture=JSON.parse(await readFile('evals/fixtures/persistence-v1.json','utf8'));
