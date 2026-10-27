@@ -69,3 +69,12 @@ it('keeps both observations of one concern instead of cancelling them',()=>{
   raw.appraisals[0]!.evidence[0]!.quote='도움이 됐어.';negative.evidence[0]!.quote='부담도 컸어.';negative.congruence=-.6;raw.appraisals.push(negative);
   expect(p.decode(raw).appraisals.map(a=>a.congruence)).toEqual([.6,-.6]);
 });
+it('the runtime variant widens "my suggestion" to any action of mine; the evaluation request is unchanged',async()=>{
+  const {APPRAISAL_PROBE_VERSION,APPRAISAL_PROBE_RUNTIME_VERSION}=await import('./appraisal-probe.ts');
+  const {input,outcome}=scene(),base=prepareAppraisalProbe(input,outcome),runtime=prepareAppraisalProbe(input,outcome,{runtime:true});
+  expect(base.request.promptVersion).toBe(APPRAISAL_PROBE_VERSION);expect(runtime.request.promptVersion).toBe(APPRAISAL_PROBE_RUNTIME_VERSION);
+  expect(base.request.messages[0]!.content).toContain('자기 제안의 효과를 평가할 때');
+  expect(runtime.request.messages[0]!.content).toContain('자기 행동(제안이나 알려 준 것)의 효과');expect(runtime.request.messages[0]!.content).not.toContain('자기 제안의 효과');
+  expect(runtime.request.messages[1]).toEqual(base.request.messages[1]);expect(runtime.request.schema).toEqual(base.request.schema);
+  expect(runtime.decode(reply(runtime))).toEqual(base.decode(reply(base)));
+});

@@ -148,7 +148,7 @@ export class ClaudeOutcomeReferenceProbe extends ClaudeChat {
 export class ClaudeAppraisalProbe extends ClaudeChat {
   async probe(input:EventInterpretationRequest,outcome:EventInterpretation['outcome']):Promise<EventInterpretation>{
     let prepared:ReturnType<typeof prepareAppraisalProbe>;
-    try{prepared=prepareAppraisalProbe(input,outcome);}catch{throw new RuntimeError('appraisal_probe_invalid_input',400);}
+    try{prepared=prepareAppraisalProbe(input,outcome,{runtime:true});}catch{throw new RuntimeError('appraisal_probe_invalid_input',400);}
     const text=await this.request(prepared.request,8192);
     try{return prepared.decode(text);}catch{throw new RuntimeError('appraisal_probe_invalid_output',503);}
   }
